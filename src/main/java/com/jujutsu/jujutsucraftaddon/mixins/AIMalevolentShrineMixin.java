@@ -5,10 +5,12 @@ import net.mcreator.jujutsucraft.entity.EntityMalevolentShrineEntity;
 import net.mcreator.jujutsucraft.init.JujutsucraftModEntities;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.procedures.AIMalevolentShrineProcedure;
+import net.mcreator.jujutsucraft.procedures.GetEntityFromUUIDProcedure;
 import net.mcreator.jujutsucraft.procedures.LogicOwnerExistProcedure;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -31,8 +33,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.UUID;
-import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
 @Mixin(value = AIMalevolentShrineProcedure.class, priority = -10000)
@@ -54,29 +54,14 @@ public abstract class AIMalevolentShrineMixin {
             double HP = 0.0;
             entity.setDeltaMovement(new Vec3(0.0, Math.min(entity.getDeltaMovement().y(), 0.0), 0.0));
             ServerLevel _level;
+
             if (entity instanceof EntityMalevolentShrineEntity || entity instanceof MalevolentShrineEntity) {
                 if (!entity.getPersistentData().getBoolean("flag_start")) {
                     entity.getPersistentData().putBoolean("flag_start", true);
                     yaw = (double) entity.getYRot();
                     pitch = (double) entity.getXRot();
-                    int index0 = 0;
 
-                    while (true) {
-                        if (index0 >= 18) {
-                            entity.setYRot((float) yaw);
-                            entity.setXRot((float) pitch);
-                            entity.setYBodyRot(entity.getYRot());
-                            entity.setYHeadRot(entity.getYRot());
-                            entity.yRotO = entity.getYRot();
-                            entity.xRotO = entity.getXRot();
-                            if (entity instanceof LivingEntity) {
-                                LivingEntity _entity = (LivingEntity) entity;
-                                _entity.yBodyRotO = _entity.getYRot();
-                                _entity.yHeadRotO = _entity.getYRot();
-                            }
-                            break;
-                        }
-
+                    for (int index0 = 0; index0 < 18; ++index0) {
                         x_pos = entity.getX() + Math.cos(Math.toRadians((double) (entity.getYRot() + 90.0F))) * ((double) entity.getBbWidth() - 2.5);
                         y_pos = entity.getY();
                         z_pos = entity.getZ() + Math.sin(Math.toRadians((double) (entity.getYRot() + 90.0F))) * ((double) entity.getBbWidth() - 2.5);
@@ -85,25 +70,21 @@ public abstract class AIMalevolentShrineMixin {
                             --y_pos;
                         }
 
-                        if (world instanceof ServerLevel) {
-                            ServerLevel _serverLevel = (ServerLevel) world;
+                        if (world instanceof ServerLevel _serverLevel) {
                             Entity entityinstance = ((EntityType) JujutsucraftModEntities.ENTITY_SKULL.get()).create(_serverLevel, (CompoundTag) null, (Consumer) null, BlockPos.containing(x_pos, y_pos, z_pos), MobSpawnType.MOB_SUMMONED, false, false);
                             if (entityinstance != null) {
                                 entityinstance.setYRot(world.getRandom().nextFloat() * 360.0F);
-                                Entity _ent = entityinstance;
-                                if (!_ent.level().isClientSide() && _ent.getServer() != null) {
-                                    _ent.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _ent.position(), _ent.getRotationVector(), _ent.level() instanceof ServerLevel ? (ServerLevel) _ent.level() : null, 4, _ent.getName().getString(), _ent.getDisplayName(), _ent.level().getServer(), _ent), "data merge entity @s {Invulnerable:1b}");
+                                if (!entityinstance.level().isClientSide() && entityinstance.getServer() != null) {
+                                    entityinstance.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, entityinstance.position(), entityinstance.getRotationVector(), entityinstance.level() instanceof ServerLevel ? (ServerLevel) entityinstance.level() : null, 4, entityinstance.getName().getString(), entityinstance.getDisplayName(), entityinstance.level().getServer(), entityinstance), "data merge entity @s {Invulnerable:1b}");
                                 }
 
-                                _ent = entityinstance;
-                                _ent.setYRot(entity.getYRot());
-                                _ent.setXRot(0.0F);
-                                _ent.setYBodyRot(_ent.getYRot());
-                                _ent.setYHeadRot(_ent.getYRot());
-                                _ent.yRotO = _ent.getYRot();
-                                _ent.xRotO = _ent.getXRot();
-                                if (_ent instanceof LivingEntity) {
-                                    LivingEntity _entity = (LivingEntity) _ent;
+                                entityinstance.setYRot(entity.getYRot());
+                                entityinstance.setXRot(0.0F);
+                                entityinstance.setYBodyRot(entityinstance.getYRot());
+                                entityinstance.setYHeadRot(entityinstance.getYRot());
+                                entityinstance.yRotO = entityinstance.getYRot();
+                                entityinstance.xRotO = entityinstance.getXRot();
+                                if (entityinstance instanceof LivingEntity _entity) {
                                     _entity.yBodyRotO = _entity.getYRot();
                                     _entity.yHeadRotO = _entity.getYRot();
                                 }
@@ -120,13 +101,21 @@ public abstract class AIMalevolentShrineMixin {
                         entity.setYHeadRot(entity.getYRot());
                         entity.yRotO = entity.getYRot();
                         entity.xRotO = entity.getXRot();
-                        if (entity instanceof LivingEntity) {
-                            LivingEntity _entity = (LivingEntity) entity;
+                        if (entity instanceof LivingEntity _entity) {
                             _entity.yBodyRotO = _entity.getYRot();
                             _entity.yHeadRotO = _entity.getYRot();
                         }
+                    }
 
-                        ++index0;
+                    entity.setYRot((float) yaw);
+                    entity.setXRot((float) pitch);
+                    entity.setYBodyRot(entity.getYRot());
+                    entity.setYHeadRot(entity.getYRot());
+                    entity.yRotO = entity.getYRot();
+                    entity.xRotO = entity.getXRot();
+                    if (entity instanceof LivingEntity _entity) {
+                        _entity.yBodyRotO = _entity.getYRot();
+                        _entity.yHeadRotO = _entity.getYRot();
                     }
                 }
 
@@ -138,52 +127,27 @@ public abstract class AIMalevolentShrineMixin {
 
             flag = false;
             if (entity.getPersistentData().getDouble("NameRanged_ranged") != 0.0 && LogicOwnerExistProcedure.execute(world, entity)) {
-                entity_a = (new BiFunction<LevelAccessor, String, Entity>() {
-                    public Entity apply(LevelAccessor levelAccessor, String uuid) {
-                        if (levelAccessor instanceof ServerLevel serverLevel) {
-                            try {
-                                return serverLevel.getEntity(UUID.fromString(uuid));
-                            } catch (Exception var5) {
-                            }
-                        }
-
-                        return null;
-                    }
-                }).apply(world, entity.getPersistentData().getString("OWNER_UUID"));
-                if (entity.getPersistentData().getDouble("NameRanged_ranged") == entity_a.getPersistentData().getDouble("NameRanged")) {
-                    label98:
-                    {
-                        flag = true;
-                        if (entity_a instanceof LivingEntity) {
-                            LivingEntity _livEnt36 = (LivingEntity) entity_a;
-                            if (_livEnt36.hasEffect((MobEffect) JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-                                break label98;
-                            }
-                        }
-
-                        if (entity_a.getPersistentData().getDouble("select") == 0.0) {
-                            entity.getPersistentData().putBoolean("flag", true);
-                        }
+                entity_a = GetEntityFromUUIDProcedure.execute(world, entity.getPersistentData().getString("OWNER_UUID"));
+                if (entity_a != null && entity.getPersistentData().getDouble("NameRanged_ranged") == entity_a.getPersistentData().getDouble("NameRanged")) {
+                    flag = true;
+                    if (!(entity_a instanceof LivingEntity _livEnt && _livEnt.hasEffect((MobEffect) JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) && entity_a.getPersistentData().getDouble("select") == 0.0) {
+                        entity.getPersistentData().putBoolean("flag", true);
                     }
 
-                    if (entity instanceof EntityMalevolentShrineEntity && entity_a.getPersistentData().getDouble("brokenBrain") >= 1.0 && entity_a.getPersistentData().getDouble("cnt1") >= 45.0) {
+                    if ((entity instanceof EntityMalevolentShrineEntity || entity instanceof MalevolentShrineEntity) && entity_a.getPersistentData().getDouble("brokenBrain") >= 1.0 && entity_a.getPersistentData().getDouble("cnt1") >= 45.0) {
+                        if (world instanceof ServerLevel _serverLevel) {
+                            _serverLevel.sendParticles(ParticleTypes.EXPLOSION, x, y, z, 100, 1.0, 1.0, 1.0, 0.5);
+                            _serverLevel.sendParticles(ParticleTypes.LARGE_SMOKE, x, y, z, 100, 1.0, 1.0, 1.0, 0.5);
+                        }
+
                         if (!entity.getPersistentData().getBoolean("flag_a")) {
                             entity.getPersistentData().putBoolean("flag_a", true);
-                            Level _level2;
-                            if (world instanceof Level) {
-                                _level2 = (Level) world;
+                            if (world instanceof Level _level2) {
                                 if (!_level2.isClientSide()) {
                                     _level2.playSound((Player) null, BlockPos.containing(x, y, z), (SoundEvent) ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:stone_crash")), SoundSource.NEUTRAL, 2.0F, 1.0F);
-                                } else {
-                                    _level2.playLocalSound(x, y, z, (SoundEvent) ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:stone_crash")), SoundSource.NEUTRAL, 2.0F, 1.0F, false);
-                                }
-                            }
-
-                            if (world instanceof Level) {
-                                _level2 = (Level) world;
-                                if (!_level2.isClientSide()) {
                                     _level2.playSound((Player) null, BlockPos.containing(x, y, z), (SoundEvent) ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("block.end_gateway.spawn")), SoundSource.NEUTRAL, 2.0F, 0.8F);
                                 } else {
+                                    _level2.playLocalSound(x, y, z, (SoundEvent) ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:stone_crash")), SoundSource.NEUTRAL, 2.0F, 1.0F, false);
                                     _level2.playLocalSound(x, y, z, (SoundEvent) ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("block.end_gateway.spawn")), SoundSource.NEUTRAL, 2.0F, 0.8F, false);
                                 }
                             }
@@ -192,14 +156,13 @@ public abstract class AIMalevolentShrineMixin {
                 }
             }
 
-            if (!flag) {
+            if (!flag || entity.getPersistentData().getDouble("skill") == 1.0) {
                 entity.getPersistentData().putBoolean("flag", true);
             }
 
             if (entity.getPersistentData().getBoolean("flag") && !entity.level().isClientSide()) {
                 entity.discard();
             }
-
         }
     }
 }

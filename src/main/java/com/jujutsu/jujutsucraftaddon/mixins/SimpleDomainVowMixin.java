@@ -12,7 +12,6 @@ import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -33,210 +32,121 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Comparator;
-import java.util.List;
-
+import java.util.Objects;
 
 @Mixin(value = SimpleDomainEffectStartedappliedProcedure.class, priority = -10000)
 public abstract class SimpleDomainVowMixin {
-    public SimpleDomainVowMixin() {
-    }
 
     /**
-     * @author Satushi
-     * @reason Change Simple Domain Logic To Upgrade Range
+     * @author Satushi / Audit Correction
+     * @reason Refactored for v43 with JJKUR quest progression, range upgrades, and projectile defense.
+     * FIXED: Added amplifier > 0 check to the main condition for parity with base mod.
      */
-
     @Inject(at = @At("HEAD"), method = "execute", remap = false, cancellable = true)
     private static void execute(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
         ci.cancel();
+        if (entity == null) return;
 
-        if (entity != null) {
-            double x_pos;
-            double y_pos;
-            double z_pos;
-            double num1;
-            double num2;
-            int var10000;
-            label46: {
-                x_pos = 0.0;
-                y_pos = 0.0;
-                z_pos = 0.0;
-                num1 = 0.0;
-                num2 = 0.0;
-                double num3 = 0.0;
-                double pitch = 0.0;
-                double yaw = 0.0;
-                double tick = 0.0;
-                if (entity instanceof LivingEntity) {
-                    LivingEntity _livEnt = (LivingEntity)entity;
-                    if (_livEnt.hasEffect((MobEffect)JujutsucraftModMobEffects.SIMPLE_DOMAIN.get())) {
-                        var10000 = _livEnt.getEffect((MobEffect)JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getAmplifier();
-                        break label46;
-                    }
-                }
+        // CORRECTED: Main condition now checks for amplifier > 0 as required by v43 and Addon Original logic
+        if (entity instanceof LivingEntity _liv && _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()) 
+            && _liv.getEffect((MobEffect) JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getAmplifier() > 0) {
+            
+            if (!LogicSimpleDomainProcedure.execute()) return;
 
-                var10000 = 0;
-            }
+            int duration = _liv.getEffect((MobEffect) JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getDuration();
+            double baseRadius = entity.getBbWidth() + 0.025 * duration;
+            baseRadius = Math.min(baseRadius, entity.getPersistentData().getDouble("skill") == 3105.0 ? 16.0 : 4.0);
 
-            if (var10000 > 0 && LogicSimpleDomainProcedure.execute()) {
-                int var10002;
-                double var30;
-                label38: {
-                    num1 = Math.toRadians(Math.random() * 360.0);
-                    var30 = (double)entity.getBbWidth();
-                    if (entity instanceof LivingEntity) {
-                        LivingEntity _livEnt = (LivingEntity)entity;
-                        if (_livEnt.hasEffect((MobEffect)JujutsucraftModMobEffects.SIMPLE_DOMAIN.get())) {
-                            var10002 = _livEnt.getEffect((MobEffect)JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getDuration();
-                            break label38;
-                        }
-                    }
+            JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null)
+                    .orElse(new JujutsucraftaddonModVariables.PlayerVariables());
 
-                    var10002 = 0;
-                }
+            // 1. Particle Rendering (v43 Randomization + JJKUR Level Multiplier)
+            double currentAngle;
+            double radiusMultiplier = (addonVars.SimpleDomainLevel >= 3.0) ? addonVars.SimpleDomainLevel : 1.0;
+            double finalRadius = baseRadius * radiusMultiplier;
 
-                num2 = var30 + 0.025 * (double)var10002;
-                num2 = Math.min(num2, entity.getPersistentData().getDouble("skill") == 3105.0 ? 16.0 : 4.0);
-                double num3 = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).SimpleDomainLevel;
-                for(int index0 = 0; index0 < 72; ++index0) {
-                    if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).SimpleDomainLevel >= 3.0) {
-                        x_pos = x + Math.sin(num1) * num2 * num3;
-                        y_pos = y;
-                        z_pos = z + Math.cos(num1) * num2 * num3;
-                        if (!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Effects)) {
-                            if (world instanceof ServerLevel) {
-                                {
-                                    ServerLevel _level = (ServerLevel) world;
-                                    _level.getServer().getCommands().performPrefixedCommand((new CommandSourceStack(CommandSource.NULL, new Vec3(x_pos, y_pos, z_pos), Vec2.ZERO, _level, 4, "", Component.literal(""), _level.getServer(), null)).withSuppressedOutput(), "particle dust 0.749 0.984 1.000 1 ~ ~ ~ 0 0 0 1 1 force");
-                                }
-                            }
-                        } else {
-                            if (Math.random() < (1) / ((float) 20)) {
-                                {
-                                    Entity _ent = entity;
-                                    if (!_ent.level().isClientSide() && _ent.getServer() != null) {
-                                        _ent.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _ent.position(), _ent.getRotationVector(), _ent.level() instanceof ServerLevel ? (ServerLevel) _ent.level() : null, 4,
-                                                _ent.getName().getString(), _ent.getDisplayName(), _ent.level().getServer(), _ent), "particle jjkueffects:simple_domain_2");
-                                    }
-                                }
-                            }
+            for (int i = 0; i < 72; i++) {
+                currentAngle = Math.toRadians(Math.random() * 360.0);
+                double px = x + Math.sin(currentAngle) * finalRadius;
+                double pz = z + Math.cos(currentAngle) * finalRadius;
 
-                        }
-
-
-                        num1 += Math.toRadians(Math.random() * 10.0);
-                    } else {
-                        x_pos = x + Math.sin(num1) * num2;
-                        y_pos = y;
-                        z_pos = z + Math.cos(num1) * num2;
-                        if (!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Effects)) {
-                            if (world instanceof ServerLevel) {
-                                {
-                                    ServerLevel _level = (ServerLevel) world;
-                                    _level.getServer().getCommands().performPrefixedCommand((new CommandSourceStack(CommandSource.NULL, new Vec3(x_pos, y_pos, z_pos), Vec2.ZERO, _level, 4, "", Component.literal(""), _level.getServer(), null)).withSuppressedOutput(), "particle dust 0.749 0.984 1.000 1 ~ ~ ~ 0 0 0 1 1 force");
-                                }
-                            }
-                        } else {
-                            if (Math.random() < (1) / ((float) 20)) {
-                                {
-                                    Entity _ent = entity;
-                                    if (!_ent.level().isClientSide() && _ent.getServer() != null) {
-                                        _ent.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _ent.position(), _ent.getRotationVector(), _ent.level() instanceof ServerLevel ? (ServerLevel) _ent.level() : null, 4,
-                                                _ent.getName().getString(), _ent.getDisplayName(), _ent.level().getServer(), _ent), "particle jjkueffects:simple_domain");
-                                    }
-                                }
-                            }
-
-                        }
-
-                        num1 += Math.toRadians(Math.random() * 10.0);
+                if (world instanceof ServerLevel _level) {
+                    if (!addonVars.Effects) {
+                        _level.getServer().getCommands().performPrefixedCommand(
+                            new CommandSourceStack(CommandSource.NULL, new Vec3(px, y, pz), Vec2.ZERO, _level, 4, "", Component.literal(""), _level.getServer(), null).withSuppressedOutput(),
+                            "particle dust 0.749 0.984 1.000 1 ~ ~ ~ 0 0 0 1 1 force"
+                        );
+                    } else if (Math.random() < 0.05) {
+                        String particle = (addonVars.SimpleDomainLevel >= 3.0) ? "jjkueffects:simple_domain_2" : "jjkueffects:simple_domain";
+                        _level.getServer().getCommands().performPrefixedCommand(
+                            new CommandSourceStack(CommandSource.NULL, entity.position(), entity.getRotationVector(), _level, 4, entity.getName().getString(), entity.getDisplayName(), _level.getServer(), entity),
+                            "particle " + particle
+                        );
                     }
                 }
             }
 
-            if (entity instanceof ServerPlayer _plr22 && _plr22.level() instanceof ServerLevel
-                    && _plr22.getAdvancements().getOrStartProgress(_plr22.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:perfect_simple_domain"))).isDone()) {
-                final Vec3 _center2 = new Vec3(x, y, z);
-                List<Entity> _entfound2 = world.getEntitiesOfClass(Entity.class, new AABB(_center2, _center2).inflate(7 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center2))).toList();
-                for (Entity entityiterator : _entfound2) {
-                    if (!(entityiterator == entity)) {
-                        if (entityiterator.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:ranged_ammo_no_move")))) {
-                            if (Math.random() <= 0.1) {
-                                if (!entityiterator.level().isClientSide())
-                                    entityiterator.hurt(new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("jujutsucraft:damage_curse")))),
-                                            Mth.nextInt(RandomSource.create(), 10, 50));
-                            }
-                        } else if (entityiterator.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:ranged_ammo")))) {
-                            if (Math.random() <= 0.1) {
-                                if (!entityiterator.level().isClientSide())
-                                    entityiterator.hurt(new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("jujutsucraft:damage_curse")))),
-                                            Mth.nextInt(RandomSource.create(), 10, 50));
+            // 2. Perfect Simple Domain: Projectile Defense
+            if (entity instanceof ServerPlayer _sp) {
+                boolean isPerfect = _sp.getAdvancements().getOrStartProgress(Objects.requireNonNull(_sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:perfect_simple_domain")))).isDone();
+                if (isPerfect) {
+                    Vec3 center = new Vec3(x, y, z);
+                    for (Entity target : world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(3.5), e -> true)) {
+                        if (target != entity) {
+                            boolean isAmmo = target.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:ranged_ammo"))) || 
+                                             target.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:ranged_ammo_no_move")));
+                            
+                            if (isAmmo && Math.random() <= 0.1) {
+                                if (!target.level().isClientSide()) {
+                                    target.hurt(new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(net.minecraft.resources.ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("jujutsucraft:damage_curse")))), 
+                                        Mth.nextInt(RandomSource.create(), 10, 50));
+                                }
                             }
                         }
                     }
                 }
             }
 
+            // 3. Ui Ui Support
+            JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null)
+                    .orElse(new JujutsucraftModVariables.PlayerVariables());
+            if (baseVars.PlayerCurseTechnique2 == 11.0) {
+                Vec3 center = new Vec3(x, y, z);
+                for (Entity found : world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(50.0), e -> true)) {
+                    if (found instanceof UiUiEntity && (found.getPersistentData().getString("OWNER_UUID")).equals(entity.getStringUUID())) {
+                        found.teleportTo(x, y, z);
+                        if (found instanceof ServerPlayer _sp) {
+                            _sp.connection.teleport(x, y, z, found.getYRot(), found.getXRot());
+                        }
+                        if (found instanceof LivingEntity _livUi && !found.level().isClientSide()) {
+                            int currentAmp = _livUi.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()) ? _livUi.getEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getAmplifier() : 0;
+                            _livUi.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get(), 400, currentAmp + 3, false, false));
+                        }
+                    }
+                }
+            }
 
-            if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 11) {
-                {
-                    final Vec3 _center = new Vec3(x, y, z);
-                    List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(100 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
-                    for (Entity entityiterator : _entfound) {
-                        if (entityiterator instanceof UiUiEntity) {
-                            if ((entityiterator.getPersistentData().getString("OWNER_UUID")).equals(entity.getStringUUID())) {
-                                {
-                                    Entity _ent = entityiterator;
-                                    _ent.teleportTo(x, y, z);
-                                    if (_ent instanceof ServerPlayer _serverPlayer)
-                                        _serverPlayer.connection.teleport(x, y, z, _ent.getYRot(), _ent.getXRot());
-                                }
-                                if (entityiterator instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get(), 400,
-                                            (entityiterator instanceof LivingEntity _livEnt && _livEnt.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()) ? _livEnt.getEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getAmplifier() : 0)
-                                                    + 3,
-                                            false, false));
+            // 4. Quest Progression
+            if (addonVars.SimpleQuest >= 0.0) {
+                double progress = entity.getPersistentData().getDouble("cnt_simpledomain");
+                if (progress < 10000.0) {
+                    entity.getPersistentData().putDouble("cnt_simpledomain", progress + 1.0);
+                } else if (progress >= 10000.0) {
+                    if (entity instanceof ServerPlayer _sp) {
+                        Advancement adv = _sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:perfect_simple_domain"));
+                        AdvancementProgress ap = _sp.getAdvancements().getOrStartProgress(adv);
+                        if (!ap.isDone()) {
+                            for (String criteria : ap.getRemainingCriteria()) {
+                                _sp.getAdvancements().award(adv, criteria);
                             }
                         }
                     }
+                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(cap -> {
+                        cap.SimpleDomainLevel = 3.0;
+                        cap.SimpleQuest = 5.0;
+                        cap.syncPlayerVariables(entity);
+                    });
                 }
-
-            }
-
-            if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).SimpleQuest >= 0.0) {
-                if (entity.getPersistentData().getDouble("cnt_simpledomain") <= 10000.0) {
-                    {
-                        entity.getPersistentData().putDouble("cnt_simpledomain", entity.getPersistentData().getDouble("cnt_simpledomain") + 1.0);
-                    }
-                } else if (entity.getPersistentData().getDouble("cnt_simpledomain") >= 10000.0) {
-                    if (entity instanceof ServerPlayer _player) {
-                        Advancement _adv = _player.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:perfect_simple_domain"));
-                        AdvancementProgress _ap = _player.getAdvancements().getOrStartProgress(_adv);
-                        if (!_ap.isDone()) {
-                            for (String criteria : _ap.getRemainingCriteria())
-                                _player.getAdvancements().award(_adv, criteria);
-                        }
-                    }
-
-                    {
-                        double _setval = 3;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.SimpleDomainLevel = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-
-                    {
-                        double _setval = 5;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.SimpleQuest = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-
-                }
-
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.jujutsu.jujutsucraftaddon.mixins;
 
 import net.mcreator.jujutsucraft.client.gui.SelectTechniqueScreen;
-import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
@@ -52,14 +51,5 @@ public interface TechniqueGuiAccessorMixin {
             remap = false
     )
     HashMap<String, String> textstate();
-
-
-    @Accessor(
-            value = "cursed_spirit",
-            remap = false
-    )
-    static Checkbox getCursedSpirit() {
-        throw new UnsupportedOperationException();
-    }
 
 }

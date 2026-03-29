@@ -16,28 +16,20 @@ public abstract class CooldownTimeEffectStartedappliedProcedureMixin {
      * @author Satushi
      * @reason Gives Cooldown Time To Players and Check if someone can fully unlock burnout
      */
-
     @Inject(method = "execute", at = @At("TAIL"), remap = false)
-    private static void execute(Entity entity, CallbackInfo cir) {
-        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).CooldownExp < 2500) {
-            {
-                double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).CooldownExp + 1;
-                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                    capability.CooldownExp = _setval;
+    private static void execute(Entity entity, CallbackInfo ci) {
+        if (entity != null) {
+            entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
+                if (capability.CooldownExp <= 2500) {
+                    if (capability.CooldownExp == 2500) {
+                        if (entity instanceof Player _player && !_player.level().isClientSide()) {
+                            _player.displayClientMessage(Component.literal("Now You Can Fully Unlock Burnout, Talk With Gojo"), false);
+                        }
+                    }
+                    capability.CooldownExp += 1;
                     capability.syncPlayerVariables(entity);
-                });
-            }
-        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).CooldownExp == 2500) {
-            if (entity instanceof Player _player && !_player.level().isClientSide())
-                _player.displayClientMessage(Component.literal("Now You Can Fully Unlock Burnout, Talk With Gojo"), false);
-            {
-                double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).CooldownExp + 1;
-                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                    capability.CooldownExp = _setval;
-                    capability.syncPlayerVariables(entity);
-                });
-            }
+                }
+            });
         }
-
     }
 }

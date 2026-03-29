@@ -3,10 +3,13 @@ package com.jujutsu.jujutsucraftaddon.mixins;
 import net.mcreator.jujutsucraft.entity.JudgemanEntity;
 import net.mcreator.jujutsucraft.entity.TakadaEntity;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
+import net.mcreator.jujutsucraft.procedures.GetEntityFromUUIDProcedure;
 import net.mcreator.jujutsucraft.procedures.LogicOwnerExistProcedure;
+import net.mcreator.jujutsucraft.procedures.PlayAnimationEntity2Procedure;
 import net.mcreator.jujutsucraft.procedures.TakadaOnEntityTickUpdateProcedure;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -18,126 +21,102 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
-import java.util.function.BiFunction;
 
 @Mixin(value = TakadaOnEntityTickUpdateProcedure.class, priority = -10000)
 public abstract class TakadaOnEntityTickUpdateProcedureMixin {
 
     /**
-     * @author Satushi
-     * @reason Adds a Variable for let Takada/Higuruma shikigamis stay alive without normal ticking conditions
+     * @author Satushi / Audit Correction
+     * @reason Refactored for v43. Restored Domain protection, skill survival checks, and animation resets.
+     * FIXED: Restored burst particles in the unowned persistence block for 1:1 visual parity.
      */
-
     @Inject(at = @At("HEAD"), method = "execute", remap = false, cancellable = true)
     private static void execute(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
         ci.cancel();
+        if (entity == null) return;
 
-        if (entity != null) {
-            Entity entity_a = null;
-            double x_pos = 0.0;
-            double y_pos = 0.0;
-            double z_pos = 0.0;
-            double num1 = 0.0;
-            if (LogicOwnerExistProcedure.execute(world, entity)) {
-                entity_a = (new BiFunction<LevelAccessor, String, Entity>() {
-                    public Entity apply(LevelAccessor levelAccessor, String uuid) {
-                        if (levelAccessor instanceof ServerLevel serverLevel) {
-                            try {
-                                return serverLevel.getEntity(UUID.fromString(uuid));
-                            } catch (Exception var5) {
-                            }
+        if (LogicOwnerExistProcedure.execute(world, entity)) {
+            Entity owner = GetEntityFromUUIDProcedure.execute(world, entity.getPersistentData().getString("OWNER_UUID"));
+            
+            if (owner instanceof LivingEntity _livOwner) {
+                // 1. Generic Domain Expansion protection
+                if (_livOwner.hasEffect((MobEffect) JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
+                    if (entity instanceof JudgemanEntity && owner.getPersistentData().getDouble("skill") == 2719.0 
+                        && owner.getPersistentData().getDouble("cnt3") >= 20.0 && owner.getPersistentData().getDouble("cnt1") > 0.0) {
+                        
+                        ((JudgemanEntity) entity).setAnimation("empty");
+                        String anim = (owner.getPersistentData().getDouble("cnt2") >= 1.0) ? "judgement" : "judgement_light";
+                        PlayAnimationEntity2Procedure.execute(entity, anim);
+
+                        if (world instanceof ServerLevel _level) {
+                            _level.sendParticles(ParticleTypes.SQUID_INK, entity.getX(), entity.getY(), entity.getZ(), 15, 2.0, 0.5, 2.0, 0.5);
                         }
-
-                        return null;
                     }
-                }).apply(world, entity.getPersistentData().getString("OWNER_UUID"));
-                ServerLevel _level;
-                if (entity_a instanceof LivingEntity _livEnt2) {
-                    if (_livEnt2.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-                        if (entity instanceof JudgemanEntity && entity_a.getPersistentData().getDouble("skill") == 2719.0 && entity_a.getPersistentData().getDouble("cnt3") >= 20.0 && entity_a.getPersistentData().getDouble("cnt1") > 0.0) {
-                            if (entity instanceof JudgemanEntity) {
-                                ((JudgemanEntity) entity).setAnimation("empty");
-                            }
+                    return; 
+                }
 
-                            if (entity instanceof JudgemanEntity) {
-                                ((JudgemanEntity) entity).setAnimation("judgement");
-                            }
-
-                            num1 = 0.0;
-                            x_pos = entity.getX();
-                            y_pos = entity.getY();
-                            z_pos = entity.getZ();
-                            if (world instanceof ServerLevel) {
-                                _level = (ServerLevel) world;
-                                _level.sendParticles(ParticleTypes.SQUID_INK, x_pos, y_pos, z_pos, 15, 2.0, 0.5, 2.0, 0.5);
-                                return;
-                            }
-                        }
-
-                        return;
+                // 2. Ambient Particles (v43 formula)
+                if (world instanceof ServerLevel _level) {
+                    int particleCount = (int) (10.0F + entity.getBbWidth() * entity.getBbWidth() * entity.getBbHeight() * 1.0F);
+                    if (entity instanceof TakadaEntity) {
+                        _level.sendParticles(ParticleTypes.END_ROD, x, y + entity.getBbHeight() * 0.5, z, particleCount, entity.getBbWidth() * 0.25, entity.getBbHeight() * 0.25, entity.getBbWidth() * 0.25, 0.0);
+                    } else if (entity instanceof JudgemanEntity) {
+                        _level.sendParticles(ParticleTypes.SQUID_INK, x, y + entity.getBbHeight() * 0.5, z, particleCount, entity.getBbWidth() * 0.25, entity.getBbHeight() * 0.25, entity.getBbWidth() * 0.25, 0.0);
                     }
                 }
 
-                if (entity instanceof TakadaEntity) {
-                    if (world instanceof ServerLevel) {
-                        _level = (ServerLevel) world;
-                        _level.sendParticles(ParticleTypes.END_ROD, x, y + (double) entity.getBbHeight() * 0.5, z, 40, 0.2, 0.5, 0.2, 0.0);
-                    }
-                } else if (entity instanceof JudgemanEntity && world instanceof ServerLevel) {
-                    _level = (ServerLevel) world;
-                    _level.sendParticles(ParticleTypes.SQUID_INK, x, y + (double) entity.getBbHeight() * 0.5, z, 40, 0.2, 0.5, 0.2, 0.0);
-                }
-
-                if (!entity.level().isClientSide()) {
-                    if (!entity.getPersistentData().getBoolean("ShikigamiLevel")) {
-                        entity.discard();
-                    } else {
-                        if (entity instanceof JudgemanEntity) {
-                            ((JudgemanEntity) entity).setAnimation("judgement");
-                            num1 = 0.0;
-                            x_pos = entity.getX();
-                            y_pos = entity.getY();
-                            z_pos = entity.getZ();
-                            if (world instanceof ServerLevel) {
-                                _level = (ServerLevel) world;
-                                _level.sendParticles(ParticleTypes.SQUID_INK, x_pos, y_pos, z_pos, 15, 2.0, 0.5, 2.0, 0.5);
-                            }
+                // 3. Survival Logic (ShikigamiLevel Support)
+                boolean shouldDiscard = true;
+                if (entity.getPersistentData().getBoolean("ShikigamiLevel")) {
+                    shouldDiscard = false;
+                    if (entity instanceof JudgemanEntity) {
+                        ((JudgemanEntity) entity).setAnimation("empty");
+                        PlayAnimationEntity2Procedure.execute(entity, "judgement");
+                        // RESTORED: Burst particles for ShikigamiLevel within owner block
+                        if (world instanceof ServerLevel _level) {
+                            _level.sendParticles(ParticleTypes.SQUID_INK, entity.getX(), entity.getY(), entity.getZ(), 15, 2.0, 0.5, 2.0, 0.5);
                         }
                     }
+                }
+                
+                if (owner.getPersistentData().getDouble("skill") != 0.0) {
+                    shouldDiscard = false;
+                }
+
+                if (shouldDiscard && !entity.level().isClientSide()) {
+                    entity.discard();
                 }
             } else if (!entity.level().isClientSide()) {
-                if (!entity.getPersistentData().getBoolean("ShikigamiLevel")) {
-                    entity.discard();
-                } else {
-                    if (entity instanceof JudgemanEntity) {
-                        ((JudgemanEntity) entity).setAnimation("judgement");
-                        num1 = 0.0;
-                        x_pos = entity.getX();
-                        y_pos = entity.getY();
-                        z_pos = entity.getZ();
-                        if (world instanceof ServerLevel _level) {
-                            _level.sendParticles(ParticleTypes.SQUID_INK, x_pos, y_pos, z_pos, 15, 2.0, 0.5, 2.0, 0.5);
-                            return;
-                        }
+                entity.discard();
+            }
+        } 
+        // 4. Persistence Feature (Unowned ShikigamiLevel - FIXED)
+        else if (!entity.level().isClientSide()) {
+            if (entity.getPersistentData().getBoolean("ShikigamiLevel")) {
+                if (entity instanceof JudgemanEntity) {
+                    ((JudgemanEntity) entity).setAnimation("empty");
+                    PlayAnimationEntity2Procedure.execute(entity, "judgement");
+                    
+                    // RESTORED: Burst particles for unowned persistent Judgeman
+                    if (world instanceof ServerLevel _level) {
+                        _level.sendParticles(ParticleTypes.SQUID_INK, entity.getX(), entity.getY(), entity.getZ(), 15, 2.0, 0.5, 2.0, 0.5);
+                    }
 
-                        {
-                            final Vec3 _center = new Vec3(x, y, z);
-                            List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(60 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
-                            for (Entity entityiterator : _entfound) {
-                                if (!(entity.getPersistentData().getString("OWNER_UUID")).equals(entityiterator.getStringUUID())) {
-                                    if (entityiterator instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.UNSTABLE.get(), 100, 1, false, false));
-                                }
+                    // Area Debuff Logic
+                    final Vec3 center = new Vec3(x, y, z);
+                    List<Entity> targets = world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(30.0), e -> true);
+                    for (Entity target : targets) {
+                        if (!target.getStringUUID().equals(entity.getPersistentData().getString("OWNER_UUID"))) {
+                            if (target instanceof LivingEntity _livTarget && !_livTarget.level().isClientSide()) {
+                                _livTarget.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.UNSTABLE.get(), 100, 1, false, false));
                             }
                         }
-
                     }
                 }
+            } else {
+                entity.discard();
             }
-
         }
     }
 }

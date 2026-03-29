@@ -10,12 +10,22 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = PlayAnimationIfPossibleProcedure.class, priority = -1000)
 public abstract class PlayAnimationMixin {
+
+    /**
+     * @author Satushi
+     * @reason Redirects player animation handling to Addon's procedure to include custom animations
+     */
     @Inject(method = "onEntityAttacked", at = @At("HEAD"), cancellable = true, remap = false)
     private static void onEntityAttackedMixin(LivingAttackEvent event, CallbackInfo ci) {
         if (event != null && event.getEntity() != null) {
             ci.cancel();
-
-            NewPlayAnimation.execute(event, event.getEntity().level(), event.getSource(), event.getEntity());
+            // Delegate to Addon Procedure
+            NewPlayAnimation.execute(
+                event, 
+                event.getEntity().level(), 
+                event.getSource(), 
+                event.getEntity()
+            );
         }
     }
 }

@@ -1,19 +1,18 @@
 package com.jujutsu.jujutsucraftaddon.mixins;
 
 import net.mcreator.jujutsucraft.entity.IceSpearEntity;
+import net.mcreator.jujutsucraft.init.JujutsucraftModAttributes;
 import net.mcreator.jujutsucraft.init.JujutsucraftModParticleTypes;
 import net.mcreator.jujutsucraft.procedures.*;
-import net.minecraft.commands.CommandSource;
-import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.phys.Vec3;
-import net.minecraftforge.registries.ForgeRegistries;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -24,7 +23,7 @@ public abstract class AIStandIceSpearProcedureMixin {
 
     /**
      * @author Satushi
-     * @reason Changes Ice Spear Damage to buff it
+     * @reason Changes Ice Spear Damage to buff it and update to v43
      */
 
     @Inject(at = @At("HEAD"), method = "execute", remap = false, cancellable = true)
@@ -32,10 +31,6 @@ public abstract class AIStandIceSpearProcedureMixin {
         ci.cancel();
 
         if (entity != null) {
-            double x_pos = 0.0;
-            double y_pos = 0.0;
-            double z_pos = 0.0;
-            double speed = 0.0;
             if (entity.getPersistentData().getDouble("move") == 1.0) {
                 if (entity instanceof IceSpearEntity) {
                     ((IceSpearEntity) entity).setAnimation("spin");
@@ -49,6 +44,12 @@ public abstract class AIStandIceSpearProcedureMixin {
 
                 entity.getPersistentData().putDouble("cnt1", entity.getPersistentData().getDouble("cnt1") + 1.0);
                 if (entity.onGround()) {
+                    entity.getPersistentData().putDouble("cnt3", entity.getPersistentData().getDouble("cnt3") + 1.0);
+                    entity.getPersistentData().putDouble("cnt4", 0.0);
+                    if (entity.getPersistentData().getDouble("cnt3") > 20.0 && !entity.level().isClientSide()) {
+                        entity.discard();
+                    }
+
                     entity.setDeltaMovement(new Vec3(0.0, entity.getDeltaMovement().y(), 0.0));
                     if (entity.getPersistentData().getDouble("cnt2") > 10.0) {
                         if (world instanceof Level _level) {
@@ -57,18 +58,17 @@ public abstract class AIStandIceSpearProcedureMixin {
                             }
                         }
 
-                        ServerLevel _level;
-                        if (world instanceof ServerLevel) {
-                            _level = (ServerLevel) world;
+                        if (world instanceof ServerLevel _level) {
                             _level.sendParticles(ParticleTypes.FIREWORK, x, y, z, 8, 0.2, 0.2, 0.2, 0.2);
+                            _level.sendParticles((SimpleParticleType) JujutsucraftModParticleTypes.PARTICLE_ICE.get(), x, y, z, 4, 0.2, 0.2, 0.2, 0.2);
                         }
 
-                        if (world instanceof ServerLevel) {
-                            _level = (ServerLevel) world;
-                            _level.sendParticles(JujutsucraftModParticleTypes.PARTICLE_ICE.get(), x, y, z, 4, 0.2, 0.2, 0.2, 0.2);
+                        double sizeAttr = 1.0;
+                        if (entity instanceof LivingEntity _livingEntity && _livingEntity.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.SIZE.get())) {
+                            sizeAttr = _livingEntity.getAttribute((Attribute) JujutsucraftModAttributes.SIZE.get()).getBaseValue();
                         }
 
-                        if (((LivingEntity) entity).getAttribute(ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation("jujutsucraft:size"))).getBaseValue() < 100) {
+                        if (sizeAttr < 100) {
                             entity.getPersistentData().putDouble("Damage", 40.0);
                             entity.getPersistentData().putDouble("Range", 5.0 * ReturnEntitySizeProcedure.execute(entity));
                             entity.getPersistentData().putDouble("knockback", 0.5);
@@ -93,21 +93,24 @@ public abstract class AIStandIceSpearProcedureMixin {
                     entity.getPersistentData().putDouble("cnt2", 0.0);
                 } else {
                     entity.getPersistentData().putDouble("cnt2", entity.getPersistentData().getDouble("cnt2") + 1.0);
+                    entity.getPersistentData().putDouble("cnt3", 0.0);
+                    entity.getPersistentData().putDouble("cnt4", entity.getPersistentData().getDouble("cnt4") + 1.0);
+                    if (entity.getPersistentData().getDouble("cnt4") > 100.0 && !entity.level().isClientSide()) {
+                        entity.discard();
+                    }
+
                     if (entity.getPersistentData().getDouble("cnt2") > 10.0) {
                         BulletDomainHit2Procedure.execute(world, entity);
                         entity.getPersistentData().putDouble("Damage", 20.0);
                         entity.getPersistentData().putDouble("Range", 5.0 * ReturnEntitySizeProcedure.execute(entity));
                         entity.getPersistentData().putDouble("knockback", 0.5);
                         entity.getPersistentData().putDouble("effect", 14.0);
-                        RangeAttackProcedure.execute(world, x, entity.getY() + (double) entity.getBbHeight() * 0.5, z, entity);
+                        RangeAttackProcedure.execute(world, x, entity.getY() + entity.getBbHeight() * 0.5, z, entity);
                     }
                 }
 
-                if (!entity.isAlive() || entity.getPersistentData().getDouble("cnt1") > 200.0) {
-                    Entity _ent = entity;
-                    if (!_ent.level().isClientSide() && _ent.getServer() != null) {
-                        _ent.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _ent.position(), _ent.getRotationVector(), _ent.level() instanceof ServerLevel ? (ServerLevel) _ent.level() : null, 4, _ent.getName().getString(), _ent.getDisplayName(), _ent.level().getServer(), _ent), "kill @s");
-                    }
+                if ((!entity.isAlive() || entity.getPersistentData().getDouble("cnt1") > 200.0) && !entity.level().isClientSide()) {
+                    entity.discard();
                 }
             }
 

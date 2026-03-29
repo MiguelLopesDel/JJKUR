@@ -1,77 +1,77 @@
-package com.jujutsu.jujutsucraftaddon.mixins;
-
-import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
-import com.mojang.blaze3d.shaders.FogShape;
-import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
-import net.mcreator.jujutsucraft.procedures.RenderFogProcedure;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.level.LevelAccessor;
-import net.minecraftforge.eventbus.api.Event;
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import static net.mcreator.jujutsucraft.procedures.RenderFogProcedure.setDistance;
-import static net.mcreator.jujutsucraft.procedures.RenderFogProcedure.setShape;
-
-@Mixin(value = RenderFogProcedure.class, priority = -1000)
-public class RenderFogMixin {
-    @Inject(
-            method = {"execute(Lnet/minecraftforge/eventbus/api/Event;Lnet/minecraft/world/entity/Entity;)V"},
-            at = {@At("HEAD")},
-            cancellable = true,
-            remap = false
-    )
-    private static void execute(Event event, Entity entity, CallbackInfo ci) {
-        ci.cancel();
-
-        if (entity != null) {
-            double var10000;
-            double color;
-            double distance;
-            label61:
-            {
-                color = 0.0;
-                distance = 0.0;
-                if (entity instanceof LivingEntity) {
-                    LivingEntity _livEnt0 = (LivingEntity) entity;
-                    if (_livEnt0.hasEffect((MobEffect) JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-                        var10000 = entity.getPersistentData().getDouble("skill_domain") + 10.0;
-                        break label61;
-                    }
-                }
-
-                if (entity instanceof LivingEntity) {
-                    LivingEntity _livEnt = (LivingEntity) entity;
-                    if (_livEnt.hasEffect((MobEffect) JujutsucraftModMobEffects.NEUTRALIZATION.get())) {
-                        var10000 = (double) _livEnt.getEffect((MobEffect) JujutsucraftModMobEffects.NEUTRALIZATION.get()).getAmplifier();
-                        break label61;
-                    }
-                }
-
-                var10000 = 0.0;
-            }
-            LevelAccessor world = entity.level();
-            color = var10000;
-            if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).fog) {
-                if (color > 10.0) {
-                    color -= 10.0;
-                    if (color != 1.0 && color != 18.0) {
-                        distance = 48.0;
-                    } else {
-                        distance = 64.0;
-                    }
-
-                    if (color == 1.0 || color == 18.0 || color == 4.0 || color == 26.0 || color == 43.0 || color == 6.0 || color == 11.0 || color == 23.0 || color == 25.0 || color == 24.0) {
-                        setDistance(0.0F, (float) distance);
-                        setShape(FogShape.SPHERE);
-                    }
-                }
-            }
-
-        }
-    }
-}
+//- //package com.jujutsu.jujutsucraftaddon.mixins;                                                                                                                                                             │
+//        │  2 - //                                                                                                                                                                                                          │
+//        │  3 - //import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;                                                                                                                               │
+//        │  4 - //import com.mojang.blaze3d.shaders.FogShape;                                                                                                                                                               │
+//        │  5 - //import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;                                                                                                                                          │
+//        │  6 - //import net.mcreator.jujutsucraft.procedures.RenderFogProcedure;                                                                                                                                           │
+//        │  7 - //import net.minecraft.world.effect.MobEffect;                                                                                                                                                              │
+//        │  8 - //import net.minecraft.world.entity.Entity;                                                                                                                                                                 │
+//        │  9 - //import net.minecraft.world.entity.LivingEntity;                                                                                                                                                           │
+//        │ 10 - //import net.minecraft.world.level.LevelAccessor;                                                                                                                                                           │
+//        │ 11 - //import net.minecraftforge.eventbus.api.Event;                                                                                                                                                             │
+//        │ 12 - //import org.spongepowered.asm.mixin.Mixin;                                                                                                                                                                 │
+//        │ 13 - //import org.spongepowered.asm.mixin.injection.At;                                                                                                                                                          │
+//        │ 14 - //import org.spongepowered.asm.mixin.injection.Inject;                                                                                                                                                      │
+//        │ 15 - //import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;                                                                                                                                       │
+//        │ 16 - //                                                                                                                                                                                                          │
+//        │ 17 - //import static net.mcreator.jujutsucraft.procedures.RenderFogProcedure.setDistance;                                                                                                                        │
+//        │ 18 - //import static net.mcreator.jujutsucraft.procedures.RenderFogProcedure.setShape;                                                                                                                           │
+//        │ 19 - //                                                                                                                                                                                                          │
+//        │ 20 - //@Mixin(value = RenderFogProcedure.class, priority = -1000)                                                                                                                                                │
+//        │ 21 - //public class RenderFogMixin {                                                                                                                                                                             │
+//        │ 22 - //    @Inject(                                                                                                                                                                                              │
+//        │ 23 - //            method = {"execute(Lnet/minecraftforge/eventbus/api/Event;Lnet/minecraft/world/entity/Entity;)V"},                                                                                            │
+//        │ 24 - //            at = {@At("HEAD")},                                                                                                                                                                           │
+//        │ 25 - //            cancellable = true,                                                                                                                                                                           │
+//        │ 26 - //            remap = false                                                                                                                                                                                 │
+//        │ 27 - //    )                                                                                                                                                                                                     │
+//        │ 28 - //    private static void execute(Event event, Entity entity, CallbackInfo ci) {                                                                                                                            │
+//        │ 29 - //        ci.cancel();                                                                                                                                                                                      │
+//        │ 30 - //                                                                                                                                                                                                          │
+//        │ 31 - //        if (entity != null) {                                                                                                                                                                             │
+//        │ 32 - //            double var10000;                                                                                                                                                                              │
+//        │ 33 - //            double color;                                                                                                                                                                                 │
+//        │ 34 - //            double distance;                                                                                                                                                                              │
+//        │ 35 - //            label61:                                                                                                                                                                                      │
+//        │ 36 - //            {                                                                                                                                                                                             │
+//        │ 37 - //                color = 0.0;                                                                                                                                                                              │
+//        │ 38 - //                distance = 0.0;                                                                                                                                                                           │
+//        │ 39 - //                if (entity instanceof LivingEntity) {                                                                                                                                                     │
+//        │ 40 - //                    LivingEntity _livEnt0 = (LivingEntity) entity;                                                                                                                                        │
+//        │ 41 - //                    if (_livEnt0.hasEffect((MobEffect) JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {                                                                                               │
+//        │ 42 - //                        var10000 = entity.getPersistentData().getDouble("skill_domain") + 10.0;                                                                                                           │
+//        │ 43 - //                        break label61;                                                                                                                                                                    │
+//        │ 44 - //                    }                                                                                                                                                                                     │
+//        │ 45 - //                }                                                                                                                                                                                         │
+//        │ 46 - //                                                                                                                                                                                                          │
+//        │ 47 - //                if (entity instanceof LivingEntity) {                                                                                                                                                     │
+//        │ 48 - //                    LivingEntity _livEnt = (LivingEntity) entity;                                                                                                                                         │
+//        │ 49 - //                    if (_livEnt.hasEffect((MobEffect) JujutsucraftModMobEffects.NEUTRALIZATION.get())) {                                                                                                  │
+//        │ 50 - //                        var10000 = (double) _livEnt.getEffect((MobEffect) JujutsucraftModMobEffects.NEUTRALIZATION.get()).getAmplifier();                                                                 │
+//        │ 51 - //                        break label61;                                                                                                                                                                    │
+//        │ 52 - //                    }                                                                                                                                                                                     │
+//        │ 53 - //                }                                                                                                                                                                                         │
+//        │ 54 - //                                                                                                                                                                                                          │
+//        │ 55 - //                var10000 = 0.0;                                                                                                                                                                           │
+//        │ 56 - //            }                                                                                                                                                                                             │
+//        │ 57 - //            LevelAccessor world = entity.level();                                                                                                                                                         │
+//        │ 58 - //            color = var10000;                                                                                                                                                                             │
+//        │ 59 - //            if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).fog) {                                │
+//        │ 60 - //                if (color > 10.0) {                                                                                                                                                                       │
+//        │ 61 - //                    color -= 10.0;                                                                                                                                                                        │
+//        │ 62 - //                    if (color != 1.0 && color != 18.0) {                                                                                                                                                  │
+//        │ 63 - //                        distance = 48.0;                                                                                                                                                                  │
+//        │ 64 - //                    } else {                                                                                                                                                                              │
+//        │ 65 - //                        distance = 64.0;                                                                                                                                                                  │
+//        │ 66 - //                    }                                                                                                                                                                                     │
+//        │ 67 - //                                                                                                                                                                                                          │
+//        │ 68 - //                    if (color == 1.0 || color == 18.0 || color == 4.0 || color == 26.0 || color == 43.0 || color == 6.0 || color == 11.0 || color == 23.0 || color == 25.0 || color == 24.0) {            │
+//        │ 69 - //                        setDistance(0.0F, (float) distance);                                                                                                                                              │
+//        │ 70 - //                        setShape(FogShape.SPHERE);                                                                                                                                                        │
+//        │ 71 - //                    }                                                                                                                                                                                     │
+//        │ 72 - //                }                                                                                                                                                                                         │
+//        │ 73 - //            }                                                                                                                                                                                             │
+//        │ 74 - //                                                                                                                                                                                                          │
+//        │ 75 - //        }                                                                                                                                                                                                 │
+//        │ 76 - //    }                                                                                                                                                                                                     │
+//        │ 77 - //}

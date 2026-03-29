@@ -20,30 +20,35 @@ public abstract class KeyForwardOnKeyPressedProcedureMixin {
      * @author Satushi
      * @reason Gives Dashing To Players when Pressing Forward
      */
-
-
     @Inject(method = "execute", at = @At("TAIL"), remap = false)
     private static void execute(Entity entity, CallbackInfo ci) {
-        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Dash) {
-            entity.getPersistentData().putDouble("dash", (entity.getPersistentData().getDouble("dash") + 1));
-            if (entity.getPersistentData().getDouble("dash") == 2) {
-                if (!(entity instanceof LivingEntity _livEnt0 && _livEnt0.hasEffect(JujutsucraftaddonModMobEffects.DASH_COOLDOWN.get()))) {
-                    if (!(entity instanceof LivingEntity _livEnt0 && _livEnt0.hasEffect(JujutsucraftModMobEffects.NEUTRALIZATION.get()))) {
-                        if (!(entity instanceof LivingEntity _livEnt0 && _livEnt0.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get()))) {
-                            if (!(entity instanceof LivingEntity _livEnt0 && _livEnt0.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()))) {
-                                if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 != -1) {
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.DASH.get(), 1, 1, false, false));
-                                } else if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == -1) {
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.DASH.get(), 60, 1, false, false));
-                                }
-                            }
-                        }
+        if (entity == null) return;
+
+        JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null)
+                .orElse(new JujutsucraftaddonModVariables.PlayerVariables());
+
+        if (addonVars.Dash) {
+            double dashCount = entity.getPersistentData().getDouble("dash") + 1;
+            entity.getPersistentData().putDouble("dash", dashCount);
+
+            if (dashCount == 2 && entity instanceof LivingEntity _liv) {
+                // Check for restrictions
+                boolean hasRestriction = _liv.hasEffect(JujutsucraftaddonModMobEffects.DASH_COOLDOWN.get())
+                        || _liv.hasEffect(JujutsucraftModMobEffects.NEUTRALIZATION.get())
+                        || _liv.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())
+                        || _liv.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get());
+
+                if (!hasRestriction) {
+                    JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null)
+                            .orElse(new JujutsucraftModVariables.PlayerVariables());
+
+                    int duration = (baseVars.PlayerCurseTechnique2 == -1) ? 60 : 1;
+
+                    if (!_liv.level().isClientSide()) {
+                        _liv.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.DASH.get(), duration, 1, false, false));
                     }
                 }
             }
         }
     }
 }
-

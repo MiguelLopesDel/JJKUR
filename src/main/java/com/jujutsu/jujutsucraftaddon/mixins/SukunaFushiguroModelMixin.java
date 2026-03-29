@@ -10,18 +10,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = SukunaFushiguroModel.class, priority = -10000)
 public abstract class SukunaFushiguroModelMixin {
-    public SukunaFushiguroModelMixin() {
-    }
 
     /**
      * @author Satushi
-     * @reason Change Rika Default Model Location
+     * @reason Redirect Sukuna Fushiguro animations to Addon's custom animation file
      */
-
-
-    @Inject(method = "getAnimationResource*", at = @At("RETURN"), cancellable = true, remap = false)
+    @Inject(method = "getAnimationResource", at = @At("RETURN"), cancellable = true, remap = false)
     private void getAnimationResource(SukunaFushiguroEntity entity, CallbackInfoReturnable<ResourceLocation> cir) {
-        ResourceLocation modifiedLocation = new ResourceLocation("jujutsucraftaddon", "animations/human2.animation.json");
-        cir.setReturnValue(modifiedLocation);
+        cir.setReturnValue(new ResourceLocation("jujutsucraftaddon", "animations/human2.animation.json"));
     }
 }

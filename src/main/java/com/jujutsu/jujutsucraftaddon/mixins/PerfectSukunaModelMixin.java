@@ -10,18 +10,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(value = SukunaPerfectModel.class, priority = -10000)
 public abstract class PerfectSukunaModelMixin {
-    public PerfectSukunaModelMixin() {
-    }
 
     /**
      * @author Satushi
-     * @reason Change Rika Default Model Location
+     * @reason Redirect Sukuna Perfect animations to Addon's custom animation file
      */
-
-
-    @Inject(method = "getAnimationResource*", at = @At("RETURN"), cancellable = true, remap = false)
+    @Inject(method = "getAnimationResource", at = @At("RETURN"), cancellable = true, remap = false)
     private void getAnimationResource(SukunaPerfectEntity entity, CallbackInfoReturnable<ResourceLocation> cir) {
-        ResourceLocation modifiedLocation = new ResourceLocation("jujutsucraftaddon", "animations/human2.animation.json");
-        cir.setReturnValue(modifiedLocation);
+        cir.setReturnValue(new ResourceLocation("jujutsucraftaddon", "animations/human2.animation.json"));
     }
 }

@@ -2,6 +2,7 @@ package com.jujutsu.jujutsucraftaddon.mixins;
 
 import net.mcreator.jujutsucraft.init.JujutsucraftModAttributes;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
+import net.mcreator.jujutsucraft.procedures.GetEntityAnimationProcedure;
 import net.mcreator.jujutsucraft.procedures.LogicSwordProcedure;
 import net.mcreator.jujutsucraft.procedures.PlayAnimationEntityGuardProcedure;
 import net.mcreator.jujutsucraft.procedures.PlayAnimationProcedure;
@@ -25,62 +26,70 @@ public abstract class PlayAnimationEntityGuardMixin {
 
     /**
      * @author Satushi
-     * @reason Changes playing Animations
+     * @reason Refactored to match v43 blocking animations and side-aware logic, respecting entity types
      */
-
     @Inject(at = @At("HEAD"), method = "execute", remap = false, cancellable = true)
-    private static void execute(LevelAccessor world, Entity entityiterator, CallbackInfo ci) {
+    private static void execute(LevelAccessor world, Entity entity, Entity entityiterator, CallbackInfo ci) {
         ci.cancel();
-        boolean sword = false;
-        if (entityiterator != null) {
-            Entity entity_a = null;
-            entity_a = entityiterator;
-            if (entity_a instanceof LivingEntity) {
-                LivingEntity _livEnt0 = (LivingEntity)entity_a;
-                if (_livEnt0.hasEffect((MobEffect)JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())) {
-                    return;
-                }
+        if (entity == null || entityiterator == null) return;
+
+        if (entityiterator instanceof LivingEntity _liv && _liv.isAlive()) {
+            // 1. Check if technique is active (prevents block animation)
+            if (_liv.hasEffect((MobEffect) JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())) {
+                return;
             }
 
-            if (entity_a.getPersistentData().getDouble("skill") == 0.0) {
-                sword = LogicSwordProcedure.execute(entity_a);
-                LivingEntity _livingEntity8;
-                if (!(entity_a instanceof Player) && !(entity_a instanceof GeoEntity)) {
-                    if (entity_a instanceof LivingEntity) {
-                        _livingEntity8 = (LivingEntity)entity_a;
-                        _livingEntity8.swing(InteractionHand.MAIN_HAND, true);
-                    }
-                } else {
-                    if (entity_a instanceof Player && entity_a instanceof LivingEntity) {
-                        _livingEntity8 = (LivingEntity)entity_a;
-                        _livingEntity8.swing(InteractionHand.MAIN_HAND, true);
-                    }
+            // 2. Ensure no other skill is running
+            if (_liv.getPersistentData().getDouble("skill") == 0.0) {
+                boolean sword = LogicSwordProcedure.execute(_liv);
 
+                // v43 Neutralization Check
+                if (sword && entity.getPersistentData().getDouble("skill") != 0.0 && !entity.getPersistentData().getBoolean("attack")) {
+                    int neutralizationAmp = _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.NEUTRALIZATION.get()) ? 
+                                            _liv.getEffect((MobEffect) JujutsucraftModMobEffects.NEUTRALIZATION.get()).getAmplifier() : 0;
+                    if (neutralizationAmp > 10) {
+                        sword = false;
+                    }
+                }
+
+                // 3. Handle Swing (Applies to all living entities)
+                _liv.swing(InteractionHand.MAIN_HAND, true);
+
+                // 4. Animation Logic (Restricted to Player or GeoEntity to avoid overhead/bugs)
+                if (_liv instanceof Player || _liv instanceof GeoEntity) {
+                    double animationValue = 0.0;
                     if (sword) {
-                        if (entity_a instanceof LivingEntity) {
-                            _livingEntity8 = (LivingEntity)entity_a;
-                            if (_livingEntity8.getAttributes().hasAttribute((Attribute)JujutsucraftModAttributes.ANIMATION_1.get())) {
-                                _livingEntity8.getAttribute((Attribute)JujutsucraftModAttributes.ANIMATION_1.get()).setBaseValue(100.0);
+                        if (_liv instanceof GeoEntity) {
+                            String side = GetEntityAnimationProcedure.execute(_liv);
+                            if (side.contains("_right")) {
+                                animationValue = 4.0;
+                            } else if (side.contains("_left")) {
+                                animationValue = 1.0;
+                            } else {
+                                animationValue = (double) Mth.nextInt(RandomSource.create(), 1, 6);
                             }
+                        } else {
+                            animationValue = (double) Mth.nextInt(RandomSource.create(), 1, 6);
                         }
 
-                        if (entity_a instanceof LivingEntity) {
-                            _livingEntity8 = (LivingEntity)entity_a;
-                            if (_livingEntity8.getAttributes().hasAttribute((Attribute)JujutsucraftModAttributes.ANIMATION_2.get())) {
-                                _livingEntity8.getAttribute((Attribute)JujutsucraftModAttributes.ANIMATION_2.get()).setBaseValue((double) Mth.nextInt(RandomSource.create(), 0, 100));
-                            }
-                        }
-                    } else if (entity_a instanceof LivingEntity) {
-                        _livingEntity8 = (LivingEntity)entity_a;
-                        if (_livingEntity8.getAttributes().hasAttribute((Attribute)JujutsucraftModAttributes.ANIMATION_1.get())) {
-                            _livingEntity8.getAttribute((Attribute)JujutsucraftModAttributes.ANIMATION_1.get()).setBaseValue(-9.0);
-                        }
+                        // Set Animation Attributes for Sword Block
+                        setAttributeValue(_liv, JujutsucraftModAttributes.ANIMATION_1.get(), 100.0);
+                        setAttributeValue(_liv, JujutsucraftModAttributes.ANIMATION_2.get(), animationValue);
+                    } else {
+                        // Set Animation Attributes for Arm Guard
+                        setAttributeValue(_liv, JujutsucraftModAttributes.ANIMATION_1.get(), -9.0);
+                        setAttributeValue(_liv, JujutsucraftModAttributes.ANIMATION_2.get(), 0.0);
                     }
 
-                    PlayAnimationProcedure.execute(world, entity_a);
+                    PlayAnimationProcedure.execute(world, _liv);
                 }
             }
+        }
+    }
 
+    private static void setAttributeValue(LivingEntity entity, Attribute attribute, double value) {
+        if (entity.getAttributes().hasAttribute(attribute)) {
+            entity.getAttribute(attribute).setBaseValue(value);
         }
     }
 }

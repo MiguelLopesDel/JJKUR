@@ -27,52 +27,31 @@ public abstract class GetDomainBlockProcedureMixin {
         ci.cancel();
 
         if (entity != null) {
-            double var10000;
-            String outside;
-            String inside;
-            String floor;
-            double domain_num;
+            String outside = "jujutsucraft:jujutsu_barrier";
+            String inside = "jujutsucraft:block_universe";
+            String floor = "jujutsucraft:block_universe";
+            double domain_num = entity.getPersistentData().getDouble("select") > 0.0 ? entity.getPersistentData().getDouble("select") : entity.getPersistentData().getDouble("skill_domain");
             double close_type;
-            label133:
-            {
-                boolean noBarrier = false;
-                outside = "";
-                inside = "";
-                floor = "";
-                domain_num = 0.0;
-                close_type = 0.0;
-                domain_num = entity.getPersistentData().getDouble("select") > 0.0 ? entity.getPersistentData().getDouble("select") : entity.getPersistentData().getDouble("skill_domain");
-                if (entity instanceof LivingEntity _livEnt3) {
-                    if (_livEnt3.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-                        if (entity instanceof LivingEntity _livEnt) {
-                            if (_livEnt.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-                                var10000 = _livEnt.getEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get()).getAmplifier();
-                                break label133;
-                            }
-                        }
 
-                        var10000 = 0.0;
-                        break label133;
-                    }
-                }
-
-                var10000 = entity.getPersistentData().getDouble("cnt2");
+            if (entity instanceof LivingEntity _livEnt && _livEnt.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
+                close_type = _livEnt.getEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get()).getAmplifier();
+            } else {
+                close_type = entity.getPersistentData().getDouble("cnt2");
             }
 
-            close_type = var10000;
-            outside = "jujutsucraft:jujutsu_barrier";
-            inside = "jujutsucraft:block_universe";
-            floor = "jujutsucraft:block_universe";
             if (domain_num <= 10.0) {
                 if (domain_num == 1.0) {
-                    if ((((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Subrace).equals("Death Painting") && ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Clans).equals("Itadori") && (entity instanceof ServerPlayer _plr25 && _plr25.level() instanceof ServerLevel
-                            && _plr25.getAdvancements().getOrStartProgress(_plr25.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:soul_research"))).isDone() && entity instanceof ServerPlayer _plr26
-                            && _plr26.level() instanceof ServerLevel && _plr26.getAdvancements().getOrStartProgress(_plr26.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:enchained"))).isDone())) || entity instanceof ItadoriShinjukuEntity) {
+                    JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables());
+                    boolean isSpecialItadori = (addonVars.Subrace.equals("Death Painting") && addonVars.Clans.equals("Itadori") &&
+                            entity instanceof ServerPlayer _sp &&
+                            _sp.getAdvancements().getOrStartProgress(_sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:soul_research"))).isDone() &&
+                            _sp.getAdvancements().getOrStartProgress(_sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:enchained"))).isDone()) ||
+                            entity instanceof ItadoriShinjukuEntity;
 
+                    if (isSpecialItadori) {
                         inside = "jujutsucraftaddon:snow_domain";
                         floor = "jujutsucraftaddon:snow_domain";
                         outside = "jujutsucraftaddon:snow_domain";
-
                     } else {
                         inside = "jujutsucraft:domain_bone";
                         floor = "jujutsucraft:block_red";
@@ -128,8 +107,8 @@ public abstract class GetDomainBlockProcedureMixin {
                 }
             } else if (domain_num <= 30.0) {
                 if (domain_num == 21.0) {
-                    inside = "jujutsucraft:domain_blue_sky";
-                    floor = "jujutsucraft:domain_grass";
+                    inside = "jujutsucraft:domain_cloud";
+                    floor = "jujutsucraft:domain_podzol";
                 } else if (domain_num == 22.0) {
                     floor = "jujutsucraft:block_universe";
                 } else if (domain_num == 23.0) {
@@ -176,9 +155,23 @@ public abstract class GetDomainBlockProcedureMixin {
                 } else if (domain_num == 40.0) {
                     floor = "jujutsucraft:domain_dark_stone";
                 }
-            } else if (domain_num <= 50.0 && domain_num == 43.0) {
-                floor = "jujutsucraft:domain_dark_stone";
-                inside = "jujutsucraft:domain_dark_stone";
+            } else if (domain_num <= 50.0) {
+                if (domain_num == 43.0) {
+                    floor = "jujutsucraft:domain_dark_stone";
+                    inside = "jujutsucraft:domain_dark_stone";
+                } else if (domain_num == 44.0) {
+                    floor = "jujutsucraft:domain_white";
+                    inside = "jujutsucraft:domain_white";
+                } else if (domain_num == 45.0) {
+                    floor = "jujutsucraft:domain_block_red";
+                    inside = "jujutsucraft:domain_blood";
+                } else if (domain_num == 46.0) {
+                    inside = "jujutsucraft:domain_blood";
+                    floor = "jujutsucraft:domain_blood";
+                } else if (domain_num == 47.0) {
+                    inside = "jujutsucraft:domain_cloud";
+                    floor = "jujutsucraft:coffinofthe_ironmountain_1";
+                }
             } else if (domain_num >= 50.0) {
                 floor = "jujutsucraft:block_universe";
                 inside = "jujutsucraft:block_universe";

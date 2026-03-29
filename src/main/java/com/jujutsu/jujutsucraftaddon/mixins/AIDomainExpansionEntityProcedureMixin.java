@@ -34,30 +34,17 @@ public abstract class AIDomainExpansionEntityProcedureMixin {
 
         if (entity != null) {
             BlockState blockstate1 = Blocks.AIR.defaultBlockState();
-            String outside = "";
-            String inside = "";
-            String floor = "";
-            String old_block = "";
-            boolean logic_a = false;
-            boolean failed = false;
-            boolean noBarrier = false;
-            double x_pos = 0.0;
-            double y_pos = 0.0;
-            double z_pos = 0.0;
+            double x_dis = 0.0;
+            double cnt2 = 0.0;
             double range = 0.0;
+            double x_pos = 0.0;
+            double z_dis = 0.0;
+            double z_pos = 0.0;
             double dis = 0.0;
             double loop_num = 0.0;
-            double x_dis = 0.0;
-            double y_dis = 0.0;
-            double z_dis = 0.0;
-            double domain_num = 0.0;
-            double cnt1 = 0.0;
             double y_floor = 0.0;
-            double x_dis_p = 0.0;
-            double y_dis_p = 0.0;
-            double z_dis_p = 0.0;
-            double cnt2 = 0.0;
-            double dis_p = 0.0;
+            double y_pos = 0.0;
+            double y_dis = 0.0;
             range = (double) Math.round(entity.getPersistentData().getDouble("DomainExpansionSizer") + 3.0);
             entity.setDeltaMovement(new Vec3(0.0, 0.0, 0.0));
             Entity _ent = entity;
@@ -107,29 +94,26 @@ public abstract class AIDomainExpansionEntityProcedureMixin {
                 x_pos = (double) Math.round(x) - range;
 
                 for (int index0 = 0; index0 < (int) loop_num; ++index0) {
-                    x_dis = Math.pow(x_pos - (double) Math.round(x), 2.0);
-                    x_dis_p = Math.pow(x_pos - (double) Math.round((float) Math.round(x)), 2.0);
-                    if (Math.sqrt(x_dis_p) <= cnt2) {
+                    x_dis = x_pos - (double) Math.round(x);
+                    x_dis *= x_dis;
+                    if (x_dis <= cnt2 * cnt2) {
                         y_pos = (double) Math.round(y) - range;
 
                         for (int index1 = 0; index1 < (int) loop_num; ++index1) {
-                            y_dis = Math.pow(y_pos - (double) Math.round(y), 2.0);
-                            y_dis_p = Math.pow(y_pos - (double) Math.round(y), 2.0);
-                            if (Math.sqrt(y_dis_p) <= cnt2 && y_pos >= -64.0 && y_pos <= 319.0) {
+                            y_dis = y_pos - (double) Math.round(y);
+                            y_dis *= y_dis;
+                            if (y_dis <= cnt2 * cnt2 && y_pos >= -64.0 && y_pos <= 319.0) {
                                 z_pos = (double) Math.round(z) - range;
 
                                 for (int index2 = 0; index2 < (int) loop_num; ++index2) {
-                                    z_dis = Math.pow(z_pos - (double) Math.round(z), 2.0);
-                                    z_dis_p = Math.pow(z_pos - (double) Math.round(z), 2.0);
-                                    if (Math.sqrt(z_dis_p) <= cnt2) {
-                                        dis_p = Math.sqrt(x_dis_p + y_dis_p + z_dis_p);
-                                        if (dis_p <= cnt2 + 0.0 && dis_p >= cnt2 - 1.0) {
-                                            dis = Math.sqrt(x_dis + z_dis + y_dis);
-                                            if (dis < range + 1.0) {
-                                                blockstate1 = world.getBlockState(BlockPos.containing(x_pos, y_pos, z_pos));
-                                                if (blockstate1.is(BlockTags.create(new ResourceLocation("jujutsucraft:barrier")))) {
-                                                    JujutsuBarrierUpdateTickProcedure.execute(world, x_pos, y_pos, z_pos);
-                                                }
+                                    z_dis = z_pos - (double) Math.round(z);
+                                    z_dis *= z_dis;
+                                    if (z_dis <= cnt2 * cnt2) {
+                                        dis = x_dis + z_dis + y_dis;
+                                        if (dis < (range + 1.0) * (range + 1.0) && dis <= cnt2 * cnt2 && dis >= (cnt2 - 1.0) * (cnt2 - 1.0)) {
+                                            blockstate1 = world.getBlockState(BlockPos.containing(x_pos, y_pos, z_pos));
+                                            if (blockstate1.is(BlockTags.create(new ResourceLocation("jujutsucraft:barrier")))) {
+                                                JujutsuBarrierUpdateTickProcedure.execute(world, x_pos, y_pos, z_pos);
                                             }
                                         }
                                     }

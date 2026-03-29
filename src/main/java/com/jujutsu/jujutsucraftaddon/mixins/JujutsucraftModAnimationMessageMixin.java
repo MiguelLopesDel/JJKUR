@@ -1,66 +1,60 @@
 package com.jujutsu.jujutsucraftaddon.mixins;
 
+import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod;
+import dev.kosmx.playerAnim.api.layered.IAnimation;
+import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
+import dev.kosmx.playerAnim.api.layered.ModifierLayer;
+import dev.kosmx.playerAnim.core.data.KeyframeAnimation;
+import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess;
+import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationRegistry;
 import net.mcreator.jujutsucraft.procedures.SetupAnimationsProcedure;
+import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(value = SetupAnimationsProcedure.JujutsucraftModAnimationMessage.class, remap = false, priority = -10000)
-public class JujutsucraftModAnimationMessageMixin {
-//    @Inject(method = "<init>(Lnet/minecraft/network/FriendlyByteBuf;)V", at = @At("TAIL"), remap = false, cancellable = true)
-//    private void onDeserialize(FriendlyByteBuf buffer, CallbackInfo ci) {
-//        ci.cancel();
-//        CompoundTag tag = buffer.readNbt();
-//        PacketAccessorMixin accessor = (PacketAccessorMixin) this;
-//
-//        if (tag != null) {
-//            String json = tag.getString("animation");
-//            if (json != null && !json.isEmpty()) {
-//                accessor.setAnimation(Component.Serializer.fromJson(json));
-//            } else {
-//                accessor.setAnimation(Component.literal(""));  // Prevents crashes
-//            }// Deserialize Component
-//            accessor.setTarget(tag.getInt("target"));
-//            accessor.setOverride(tag.getBoolean("override"));
-//        }
-//    }
-//
-//    @Inject(method = "buffer", at = @At("HEAD"), cancellable = true, remap = false)
-//    private static void onBuffer(SetupAnimationsProcedure.JujutsucraftModAnimationMessage message, FriendlyByteBuf buffer, CallbackInfo ci) {
-//        CompoundTag tag = new CompoundTag();
-//        PacketAccessorMixin accessor = (PacketAccessorMixin) message;
-//
-//        tag.putString("animation", Component.Serializer.toJson(((PacketAccessorMixin) message).getAnimation()));// Serialize Component
-//        tag.putInt("target", accessor.getTarget());
-//        tag.putBoolean("override", accessor.isOverride());
-//
-//        buffer.writeNbt(tag);
-//        ci.cancel();
-//    }
-//
-//    @Inject(method = "handler", at = @At("HEAD"), cancellable = true, remap = false)
-//    private static void onHandler(SetupAnimationsProcedure.JujutsucraftModAnimationMessage message, Supplier<NetworkEvent.Context> contextSupplier, CallbackInfo ci) {
-//        PacketAccessorMixin accessor = (PacketAccessorMixin) message;
-//        NetworkEvent.Context context = contextSupplier.get();
-//
-//        context.enqueueWork(() -> {
-//            Level level = Minecraft.getInstance().level;
-//            if (level == null) return;
-//
-//            Entity entity = level.getEntity(accessor.getTarget());
-//            if (entity instanceof AbstractClientPlayer player) {
-//                var animationLayer = (ModifierLayer<IAnimation>) PlayerAnimationAccess.getPlayerAssociatedData(player)
-//                        .get(new ResourceLocation("jujutsucraft", "player_animation"));
-//
-//                if (animationLayer != null && (accessor.isOverride() || !animationLayer.isActive())) {
-//                    animationLayer.setAnimation(new KeyframeAnimationPlayer(
-//                            (PlayerAnimationRegistry.getAnimation(
-//                                    new ResourceLocation("jujutsucraft", accessor.getAnimation().toString().toLowerCase())
-//                            ))
-//                    ));
-//                }
-//            }
-//        });
-//
-//        context.setPacketHandled(true);
-//        ci.cancel();
-//    }
+@Mixin(value = SetupAnimationsProcedure.class, remap = false)
+public abstract class JujutsucraftModAnimationMessageMixin {
+
+    /**
+     * @author Satushi
+     * @reason Consolidated Mixin to handle animation loading for both base and addon namespaces with debug logging
+     */
+    @Inject(method = "setAnimationClientside", at = @At("HEAD"), cancellable = true)
+    private static void onSetAnimationClientside(Player player, String anim, boolean override, CallbackInfo ci) {
+        if (player instanceof AbstractClientPlayer player_) {
+            ModifierLayer<IAnimation> animation = (ModifierLayer<IAnimation>) PlayerAnimationAccess.getPlayerAssociatedData(player_)
+                    .get(new ResourceLocation("jujutsucraft", "player_animation"));
+            
+            if (animation == null) {
+                JujutsucraftaddonMod.LOGGER.error("Animation Layer not found for player: " + player.getName().getString());
+                return;
+            }
+
+            if (override || !animation.isActive()) {
+                // 1. Try Base Namespace (jujutsucraft)
+                ResourceLocation animBase = new ResourceLocation("jujutsucraft", anim);
+                KeyframeAnimation retrieved = PlayerAnimationRegistry.getAnimation(animBase);
+                String usedNamespace = "jujutsucraft";
+
+                // 2. If not found, try Addon Namespace (jujutsucraftaddon)
+                if (retrieved == null) {
+                    ResourceLocation animAddon = new ResourceLocation("jujutsucraftaddon", anim);
+                    retrieved = PlayerAnimationRegistry.getAnimation(animAddon);
+                    usedNamespace = "jujutsucraftaddon";
+                }
+
+                if (retrieved != null) {
+                    JujutsucraftaddonMod.LOGGER.info("Animation Sync: Playing [" + anim + "] from namespace [" + usedNamespace + "] for player [" + player.getName().getString() + "]");
+                    animation.setAnimation(new KeyframeAnimationPlayer(retrieved));
+                    ci.cancel(); // Prevent base mod from attempting to load it again
+                } else {
+                    JujutsucraftaddonMod.LOGGER.error("Animation Sync Error: Failed to find animation [" + anim + "] in BOTH namespaces!");
+                }
+            }
+        }
+    }
 }

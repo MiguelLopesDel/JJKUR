@@ -17,31 +17,29 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LivingEntity.class)
 public abstract class HitenItemMixin {
 
-
-    @Inject(method = "swing*", at = @At("HEAD"))
+    @Inject(method = "swing(Lnet/minecraft/world/InteractionHand;Z)V", at = @At("HEAD"))
     private void onSwing(CallbackInfo ci) {
         LivingEntity entity = (LivingEntity) (Object) this;
-        boolean sukuna = false;
-        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Clans.equals("Sukuna") && ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 1)) {
-           sukuna = true;
-        }
-
         ItemStack mainHandItem = entity.getMainHandItem();
+
         if (mainHandItem.getItem() instanceof HitenItem) {
-            if (entity instanceof SukunaPerfectEntity || entity instanceof SukunaFushiguroEntity) {
-                if (Math.random() < (1) / ((float) 40)) {
-                    if (!entity.hasEffect(JujutsucraftModMobEffects.COOLDOWN_TIME.get())) {
-                        DismantleCutNerfed.execute(entity.level(), entity);
-                    }
+            boolean isSukuna = false;
+            JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables());
+            
+            if ("Sukuna".equals(addonVars.Clans)) {
+                JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables());
+                if (baseVars.PlayerCurseTechnique2 == 1.0) {
+                    isSukuna = true;
                 }
-            } else if (sukuna) {
-                if (Math.random() < (1) / ((float) 40)) {
+            }
+
+            if (entity instanceof SukunaPerfectEntity || entity instanceof SukunaFushiguroEntity || isSukuna) {
+                if (Math.random() < (1.0 / 40.0)) {
                     if (!entity.hasEffect(JujutsucraftModMobEffects.COOLDOWN_TIME.get())) {
                         DismantleCutNerfed.execute(entity.level(), entity);
                     }
                 }
             }
         }
-
     }
 }

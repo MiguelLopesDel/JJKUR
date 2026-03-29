@@ -14,10 +14,8 @@ public abstract class PlayerRendererMixin {
 
     /**
      * @author Satushi
-     * @reason Changes Name Tag for Kenjaku Players
+     * @reason Intercepts and modifies the player's name tag for Kenjaku identity changes with debug logging
      */
-
-
     @ModifyVariable(
             method = "renderNameTag(Lnet/minecraft/client/player/AbstractClientPlayer;Lnet/minecraft/network/chat/Component;Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
             at = @At("HEAD"),
@@ -25,32 +23,35 @@ public abstract class PlayerRendererMixin {
             ordinal = 0
     )
     private Component modifyNameTag(Component component, AbstractClientPlayer abstractClientPlayer) {
-        final Component[] modifiedComponent = {component};
+        if (!abstractClientPlayer.isAlive()) return component;
 
-        if (abstractClientPlayer.isAlive()) {
-            abstractClientPlayer.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                if ("Kenjaku".equals(capability.Clans)) {
-                    String tag = capability.tag1;
-                    if (tag != null) {
-                        String skinName = switch (tag) {
-                            case "One" -> capability.SkinName1;
-                            case "Two" -> capability.SkinName2;
-                            case "Three" -> capability.SkinName3;
-                            default -> null;
-                        };
-                        if (skinName != null && !skinName.isEmpty()) {
-                            modifiedComponent[0] = Component.literal(skinName);
-                        }
+        // Use a wrapper to allow modification inside lambda
+        final Component[] result = {component};
+
+        abstractClientPlayer.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
+            if ("Kenjaku".equals(capability.Clans)) {
+                String tag = capability.tag1;
+                String skinName = null;
+
+                if (tag != null) {
+                    skinName = switch (tag) {
+                        case "One" -> capability.SkinName1;
+                        case "Two" -> capability.SkinName2;
+                        case "Three" -> capability.SkinName3;
+                        default -> null;
+                    };
+                }
+
+                if (skinName != null && !skinName.isEmpty()) {
+                    result[0] = Component.literal(skinName);
+                    // DEBUG LOG: Only log once or under specific conditions to avoid spam
+                    if (abstractClientPlayer.tickCount % 100 == 0) {
+                        JujutsucraftaddonMod.LOGGER.info("Renderer Sync: Displaying identity [" + skinName + "] for Kenjaku player [" + abstractClientPlayer.getName().getString() + "]");
                     }
                 }
-            });
-
-            // If capability is missing, log a warning
-            if (!abstractClientPlayer.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).isPresent()) {
-                JujutsucraftaddonMod.LOGGER.warn("PLAYER_VARIABLES_CAPABILITY is not present for player: " + abstractClientPlayer.getName().getString());
             }
-        }
+        });
 
-        return modifiedComponent[0];
+        return result[0];
     }
 }

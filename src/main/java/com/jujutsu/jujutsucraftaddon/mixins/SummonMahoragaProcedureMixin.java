@@ -4,7 +4,6 @@ import net.mcreator.jujutsucraft.procedures.SummonMahoragaProcedure;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -17,26 +16,37 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.Objects;
+
 @Mixin(value = SummonMahoragaProcedure.class, priority = -10000)
 public abstract class SummonMahoragaProcedureMixin {
 
     /**
      * @author Satushi
-     * @reason Add the advancement for sukuna progression when u summon mahoraga after adapted
+     * @reason Adds advancement for Sukuna progression when summoning a fully adapted Mahoraga.
      */
-
-
     @Inject(method = "execute", at = @At("HEAD"), remap = false)
-    private static void execute(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo cir) {
-        if (entity instanceof ServerPlayer _plr0 && _plr0.level() instanceof ServerLevel && _plr0.getAdvancements().getOrStartProgress(_plr0.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:bath_ritual"))).isDone()) {
-            if ((ForgeRegistries.ITEMS.getKey((entity instanceof LivingEntity _entGetArmor ? _entGetArmor.getItemBySlot(EquipmentSlot.HEAD) : ItemStack.EMPTY).getItem()).toString()).contains("wheel")) {
-                if ((entity instanceof LivingEntity _entGetArmor ? _entGetArmor.getItemBySlot(EquipmentSlot.HEAD) : ItemStack.EMPTY).getOrCreateTag().getDouble("jujutsucraft:gojo_satoru") >= 10) {
-                    if (entity instanceof ServerPlayer _player) {
-                        Advancement _adv = _player.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:save_me_mahoraga"));
-                        AdvancementProgress _ap = _player.getAdvancements().getOrStartProgress(_adv);
-                        if (!_ap.isDone()) {
-                            for (String criteria : _ap.getRemainingCriteria())
-                                _player.getAdvancements().award(_adv, criteria);
+    private static void onExecuteHead(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
+        if (entity instanceof ServerPlayer _sp && _sp.server != null) {
+            // Check for Bath Ritual completion
+            Advancement bathAdv = _sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:bath_ritual"));
+            if (bathAdv != null && _sp.getAdvancements().getOrStartProgress(bathAdv).isDone()) {
+                
+                ItemStack headItem = (_sp.getItemBySlot(EquipmentSlot.HEAD)).copy();
+                String itemName = ForgeRegistries.ITEMS.getKey(headItem.getItem()).toString();
+
+                // If holding/wearing the Mahoraga Wheel
+                if (itemName.contains("wheel")) {
+                    // Check adaptation level against Gojo (10+ ticks)
+                    if (headItem.getOrCreateTag().getDouble("jujutsucraft:gojo_satoru") >= 10.0) {
+                        Advancement saveMeAdv = _sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:save_me_mahoraga"));
+                        if (saveMeAdv != null) {
+                            AdvancementProgress progress = _sp.getAdvancements().getOrStartProgress(saveMeAdv);
+                            if (!progress.isDone()) {
+                                for (String criteria : progress.getRemainingCriteria()) {
+                                    _sp.getAdvancements().award(saveMeAdv, criteria);
+                                }
+                            }
                         }
                     }
                 }

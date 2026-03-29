@@ -13,34 +13,28 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
 @Mixin(value = SelectTechniqueButtonMessage.class, priority = -10000)
-public class SelectTechniqueButtonMessageMixin {
-    @Inject(at = @At("TAIL"), method = "handleButtonAction", remap = false)
-    private static void handleButtonAction(Player entity, int buttonID, int x, int y, int z, HashMap<String, String> textstate, CallbackInfo ci) {
+public abstract class SelectTechniqueButtonMessageMixin {
+
+    /**
+     * @author Satushi
+     * @reason Consolidated Mixin to handle custom technique selections (Wukong, JinWoo, and Addon Changer)
+     */
+    @Inject(method = "handleButtonAction", at = @At("HEAD"), remap = false)
+    private static void onHandleButtonAction(Player entity, int buttonID, int x, int y, int z, HashMap<String, String> textstate, CallbackInfo ci) {
+        if (entity == null) return;
+        
         Level world = entity.level();
-        HashMap guistate = SelectTechniqueMenu.guistate;
-        Iterator var8 = textstate.entrySet().iterator();
+        
+        // Sync textstate to Menu's guistate (v43 standard)
+        textstate.forEach(SelectTechniqueMenu.guistate::put);
 
-        while (var8.hasNext()) {
-            Map.Entry<String, String> entry = (Map.Entry) var8.next();
-            String key = (String) entry.getKey();
-            String value = (String) entry.getValue();
-            guistate.put(key, value);
-        }
-
-        if (buttonID == 1000) {
-            CustomCursedTechniqueChangerRightclickedProcedureProcedure.execute(world, x, y, z, entity);
-        }
-
-        if (buttonID == 100) {
-            SelectWukongProcedure.execute(world, (double) x, (double) y, (double) z, entity, guistate);
-        }
-
-        if (buttonID == 101) {
-            SelectJinWooProcedure.execute(world, (double) x, (double) y, (double) z, entity, guistate);
+        // JJKUR Custom Button Actions
+        switch (buttonID) {
+            case 1000 -> CustomCursedTechniqueChangerRightclickedProcedureProcedure.execute(world, x, y, z, entity);
+            case 100 -> SelectWukongProcedure.execute(world, x, y, z, entity);
+            case 101 -> SelectJinWooProcedure.execute(world, x, y, z, entity);
         }
     }
 }

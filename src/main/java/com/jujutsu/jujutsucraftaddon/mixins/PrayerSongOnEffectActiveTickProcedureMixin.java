@@ -26,167 +26,97 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
-
 @Mixin(value = PrayerSongOnEffectActiveTickProcedure.class, priority = -10000)
 public abstract class PrayerSongOnEffectActiveTickProcedureMixin {
 
+    /**
+     * @author Satushi
+     * @reason Refactored for v43 with optimized entity search while preserving JJKUR's progressive weakness and debuffs.
+     */
     @Inject(at = @At("HEAD"), method = "execute", remap = false, cancellable = true)
     private static void execute(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
         ci.cancel();
-        if (entity != null) {
-            double tick = 0.0;
-            double level = 0.0;
-            LivingEntity _livEnt13;
-            if (entity.isAlive()) {
-                double var10000;
-                label111: {
-                    if (entity instanceof LivingEntity) {
-                        _livEnt13 = (LivingEntity)entity;
-                        if (_livEnt13.hasEffect((MobEffect)JujutsucraftModMobEffects.PRAYER_SONG.get())) {
-                            var10000 = (double)_livEnt13.getEffect((MobEffect)JujutsucraftModMobEffects.PRAYER_SONG.get()).getAmplifier();
-                            break label111;
-                        }
-                    }
+        if (entity == null) return;
 
-                    var10000 = 0.0;
-                }
+        if (entity.isAlive() && entity instanceof LivingEntity _liv) {
+            MobEffect prayerSong = (MobEffect) JujutsucraftModMobEffects.PRAYER_SONG.get();
+            if (!_liv.hasEffect(prayerSong)) return;
 
-                label106: {
-                    if (entity instanceof LivingEntity) {
-                        _livEnt13 = (LivingEntity)entity;
-                        if (_livEnt13.hasEffect((MobEffect)JujutsucraftModMobEffects.PRAYER_SONG.get())) {
-                            var10000 = (double)_livEnt13.getEffect((MobEffect)JujutsucraftModMobEffects.PRAYER_SONG.get()).getDuration();
-                            break label106;
-                        }
-                    }
+            int duration = _liv.getEffect(prayerSong).getDuration();
+            int tick = duration;
 
-                    var10000 = 0.0;
-                }
-
-                LivingEntity _livEnt14;
-                label101: {
-                    tick = var10000;
-                    if (entity instanceof LivingEntity) {
-                        _livEnt13 = (LivingEntity)entity;
-                        if (_livEnt13.hasEffect((MobEffect)JujutsucraftModMobEffects.ZONE.get())) {
-                            break label101;
-                        }
-                    }
-
-                    if (entity instanceof LivingEntity) {
-                        _livEnt14 = (LivingEntity)entity;
-                        if (!_livEnt14.level().isClientSide()) {
-                            _livEnt14.addEffect(new MobEffectInstance((MobEffect)JujutsucraftModMobEffects.ZONE.get(), 5, 0, false, false));
-                        }
-                    }
-                }
-
-                LivingEntity _livingEntity9;
-                if (entity.onGround()) {
-                    label122: {
-                        if (entity instanceof LivingEntity) {
-                            _livEnt13 = (LivingEntity)entity;
-                            if (_livEnt13.hasEffect((MobEffect)JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())) {
-                                break label122;
-                            }
-                        }
-
-                        if (entity instanceof LivingEntity) {
-                            _livEnt14 = (LivingEntity)entity;
-                            if (_livEnt14.hasEffect((MobEffect)JujutsucraftModMobEffects.GUARD.get())) {
-                                break label122;
-                            }
-                        }
-
-                        if (tick % 3.0 == 0.0 && world instanceof Level) {
-                            Level _level = (Level)world;
-                            if (!_level.isClientSide()) {
-                                _level.playSound((Player)null, BlockPos.containing(x, y, z), (SoundEvent)ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("block.glass.fall")), SoundSource.NEUTRAL, 2.0F, 2.0F);
-                            } else {
-                                _level.playLocalSound(x, y, z, (SoundEvent)ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("block.glass.fall")), SoundSource.NEUTRAL, 2.0F, 2.0F, false);
-                            }
-                        }
-
-                        if (tick % 5.0 == 0.0) {
-                            if (entity instanceof LivingEntity) {
-                                _livingEntity9 = (LivingEntity)entity;
-                                if (_livingEntity9.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get())) {
-                                    _livingEntity9.getAttribute((Attribute)JujutsucraftModAttributes.ANIMATION_1.get()).setBaseValue(-15.0);
-                                }
-                            }
-
-                            PlayAnimationProcedure.execute(world, entity);
-                        }
-                    }
-                }
-
-                if (tick % 5.0 == 0.0) {
-                    Vec3 _center = new Vec3(x, y, z);
-                    List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, (new AABB(_center, _center)).inflate(12.0), (e) -> {
-                        return true;
-                    }).stream().sorted(Comparator.comparingDouble((_entcnd) -> {
-                        return _entcnd.distanceToSqr(_center);
-                    })).toList();
-                    Iterator var20 = _entfound.iterator();
-
-                    while(var20.hasNext()) {
-                        Entity entityiterator = (Entity)var20.next();
-                        if (entity != entityiterator && LogicAttackProcedure.execute(world, entity, entityiterator) && entityiterator instanceof LivingEntity) {
-                            LivingEntity _entity = (LivingEntity)entityiterator;
-                            if (!_entity.level().isClientSide()) {
-                                MobEffectInstance currentEffect = _entity.getEffect(MobEffects.WEAKNESS);
-                                int currentAmplifier = 0;
-
-                                // If the Weakness effect exists, get its current amplifier and increment it by 1
-                                if (currentEffect != null && currentEffect.getAmplifier() < 50) {
-                                    currentAmplifier = currentEffect.getAmplifier() + 1;
-                                }
-
-                                if (Math.random() < (1) / ((float) 40)) {
-                                    _entity.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1200, currentAmplifier));
-                                }
-
-                                _entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 30, 0));
-                                _entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.UNSTABLE.get(), 30, 0));
-
-                                if (Math.random() < (1) / ((float) 200)) {
-                                    _entity.removeEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get());
-                                }
-                            }
-                        }
-                    }
-                }
-
-                label120: {
-                    if (entity instanceof LivingEntity) {
-                        _livEnt13 = (LivingEntity)entity;
-                        if (_livEnt13.hasEffect((MobEffect)JujutsucraftModMobEffects.UNSTABLE.get())) {
-                            break label120;
-                        }
-                    }
-
-                    if (!(entity instanceof LivingEntity)) {
-                        return;
-                    }
-
-                    _livEnt14 = (LivingEntity)entity;
-                    if (!_livEnt14.hasEffect((MobEffect)JujutsucraftModMobEffects.DOMAIN_AMPLIFICATION.get())) {
-                        return;
-                    }
-                }
-
-                if (entity instanceof LivingEntity) {
-                    _livingEntity9 = (LivingEntity)entity;
-                    _livingEntity9.removeEffect((MobEffect)JujutsucraftModMobEffects.PRAYER_SONG.get());
-                }
-            } else if (entity instanceof LivingEntity) {
-                _livEnt13 = (LivingEntity)entity;
-                _livEnt13.removeEffect((MobEffect)JujutsucraftModMobEffects.PRAYER_SONG.get());
+            // 1. Maintain Zone Effect
+            if (!_liv.hasEffect((MobEffect) JujutsucraftModMobEffects.ZONE.get()) && !_liv.level().isClientSide()) {
+                _liv.addEffect(new MobEffectInstance((MobEffect) JujutsucraftModMobEffects.ZONE.get(), 5, 0, false, false));
             }
 
+            // 2. Sound and Animation Logic (On Ground)
+            if (entity.onGround()) {
+                boolean isUsingTech = _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.CURSED_TECHNIQUE.get());
+                boolean isGuarding = _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.GUARD.get());
+
+                if (!isUsingTech && !isGuarding) {
+                    // Periodic Sound (3 ticks)
+                    if (tick % 3 == 0 && world instanceof Level _level) {
+                        SoundEvent glassSound = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("block.glass.fall"));
+                        if (!_level.isClientSide()) {
+                            _level.playSound(null, BlockPos.containing(x, y, z), glassSound, SoundSource.NEUTRAL, 2.0F, 2.0F);
+                        } else {
+                            _level.playLocalSound(x, y, z, glassSound, SoundSource.NEUTRAL, 2.0F, 2.0F, false);
+                        }
+                    }
+
+                    // Periodic Animation (5 ticks)
+                    if (tick % 5 == 0) {
+                        if (_liv.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get())) {
+                            _liv.getAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get()).setBaseValue(-15.0);
+                        }
+                        PlayAnimationProcedure.execute(world, entity);
+                    }
+                }
+            }
+
+            // 3. Entity Debuff Logic (v43 Optimized Loop)
+            if (tick % 5 == 0) {
+                Vec3 center = new Vec3(x, y, z);
+                AABB range = new AABB(center, center).inflate(12.0);
+                
+                for (Entity target : world.getEntitiesOfClass(Entity.class, range, e -> true)) {
+                    if (entity != target && target instanceof LivingEntity _target && LogicAttackProcedure.execute(world, entity, target)) {
+                        if (!_target.level().isClientSide()) {
+                            // Progressive Weakness (JJKUR Feature)
+                            MobEffectInstance currentWeakness = _target.getEffect(MobEffects.WEAKNESS);
+                            int nextAmplifier = 0;
+                            if (currentWeakness != null && currentWeakness.getAmplifier() < 50) {
+                                nextAmplifier = currentWeakness.getAmplifier() + 1;
+                            }
+
+                            if (Math.random() < 0.025) { // 1/40
+                                _target.addEffect(new MobEffectInstance(MobEffects.WEAKNESS, 1200, nextAmplifier));
+                            }
+
+                            // JJKUR Additional Debuffs
+                            _target.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 30, 0));
+                            _target.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.UNSTABLE.get(), 30, 0));
+
+                            // Concentration Break (1/200)
+                            if (Math.random() < 0.005) {
+                                _target.removeEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get());
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. Cancellation Logic
+            boolean isUnstable = _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.UNSTABLE.get());
+            boolean isAmpActive = _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.DOMAIN_AMPLIFICATION.get());
+
+            if (isUnstable || isAmpActive) {
+                _liv.removeEffect(prayerSong);
+            }
+        } else if (entity instanceof LivingEntity _liv) {
+            _liv.removeEffect((MobEffect) JujutsucraftModMobEffects.PRAYER_SONG.get());
         }
     }
 }

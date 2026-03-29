@@ -13,43 +13,39 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyConstant;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(
-        value = ReverseCursedTechniqueOnEffectActiveTickProcedure.class,
-        remap = false
-)
+@Mixin(value = ReverseCursedTechniqueOnEffectActiveTickProcedure.class, priority = -10000)
 public abstract class RCTActiveMixin {
-    public RCTActiveMixin() {
-    }
 
     /**
      * @author Satushi
-     * @reason Changing the value of RCT Fatigue Rate with a gamerule lines: 37 to 42. Add a procedure for play, lines: 47 to 51
+     * @reason Modifies RCT Fatigue rate via Gamerule and Healer profession. Also triggers custom Addon RCT output logic.
      */
-
-    @ModifyConstant(
-            method = {"execute"},
-            constant = {@Constant(
-                    intValue = 20
-            )},
-            remap = false
-    )
-    private static int injection0(int value, LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (world != null) {
-            int valueNew = world.getLevelData().getGameRules().getInt(JujutsucraftaddonModGameRules.JJKU_FATIGUE_RATE);
-            if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Profession).equals("Healer")) {
-                return valueNew / 2;
+    @ModifyConstant(method = "execute", constant = @Constant(intValue = 20), remap = false)
+    private static int modifyFatigueIncrement(int value, LevelAccessor world, double x, double y, double z, Entity entity) {
+        if (world != null && entity != null) {
+            int customFatigue = world.getLevelData().getGameRules().getInt(JujutsucraftaddonModGameRules.JJKU_FATIGUE_RATE);
+            
+            // Healer Profession Bonus: 50% less fatigue increment
+            JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null)
+                    .orElse(new JujutsucraftaddonModVariables.PlayerVariables());
+            
+            if ("Healer".equals(addonVars.Profession)) {
+                return customFatigue / 2;
             }
-            return valueNew;
-        } else {
-            return value;
+            return customFatigue;
         }
+        return value;
     }
 
-
     @Inject(method = "execute", at = @At("HEAD"), remap = false)
-    private static void execute(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
-        if (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables()).RCTOutputActive) {
-            RctOutputProcedure.execute(world, entity);
+    private static void onExecuteHead(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
+        if (entity != null) {
+            JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null)
+                    .orElse(new JujutsucraftaddonModVariables.PlayerVariables());
+            
+            if (addonVars.RCTOutputActive) {
+                RctOutputProcedure.execute(world, entity);
+            }
         }
     }
 }
