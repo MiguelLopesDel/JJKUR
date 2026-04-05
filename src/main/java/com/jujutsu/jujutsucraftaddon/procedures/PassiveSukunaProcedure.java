@@ -15,7 +15,6 @@ import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationRegistry;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,567 +26,166 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraftforge.registries.ForgeRegistries;
 
-public class PassiveSukunaProcedure {
-    public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (entity == null)
-            return;
-        if (!(entity instanceof LivingEntity _livEnt0 && _livEnt0.hasEffect(JujutsucraftaddonModMobEffects.WORLD_SLASH_EFFECT.get()))) {
-            if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Dismantle")) {
-                if (entity.onGround()) {
-                    if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower > 100) {
-                        if (((JujutsucraftModVariables.PlayerVariables) entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, (Direction) null).orElse(new JujutsucraftModVariables.PlayerVariables())).BodyItem.getCount() >= 5.0) {
-                            if (Math.random() < (1) / ((float) 25)) {
-                                int horizontalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                int verticalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                int yIterationsSphere = verticalRadiusSphere;
-                                for (int i = -yIterationsSphere; i <= yIterationsSphere; i++) {
-                                    for (int xi = -horizontalRadiusSphere; xi <= horizontalRadiusSphere; xi++) {
-                                        for (int zi = -horizontalRadiusSphere; zi <= horizontalRadiusSphere; zi++) {
-                                            double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (i * i) / (double) (verticalRadiusSphere * verticalRadiusSphere)
-                                                    + (zi * zi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere);
-                                            if (distanceSq <= 1.0) {
-                                                if (world instanceof ServerLevel projectileLevel) {
-                                                    Projectile _entityToSpawn = new Object() {
-                                                        public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                            AbstractArrow entityToSpawn = new DismantleEntity(JujutsucraftaddonModEntities.DISMANTLE.get(), level);
-                                                            entityToSpawn.setOwner(shooter);
-                                                            entityToSpawn.setBaseDamage(damage);
-                                                            entityToSpawn.setKnockback(knockback);
-                                                            entityToSpawn.setSilent(true);
-                                                            entityToSpawn.setPierceLevel(piercing);
-                                                            return entityToSpawn;
-                                                        }
-                                                    }.getArrow(projectileLevel, entity,
-                                                            (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                                    _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                                    _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                                    projectileLevel.addFreshEntity(_entityToSpawn);
-                                                }
-                                                if (world instanceof Level _level) {
-                                                    if (!_level.isClientSide()) {
-                                                        _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1);
-                                                    } else {
-                                                        _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1, false);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                                {
-                                    double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                    entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                        capability.PlayerCursePower = _setval;
-                                        capability.syncPlayerVariables(entity);
-                                    });
-                                }
-                            } else {
-                                {
-                                    Entity _shootFrom = entity;
-                                    Level projectileLevel = _shootFrom.level();
-                                    if (!projectileLevel.isClientSide()) {
-                                        Projectile _entityToSpawn = new Object() {
-                                            public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                AbstractArrow entityToSpawn = new DismantleEntity(JujutsucraftaddonModEntities.DISMANTLE.get(), level);
-                                                entityToSpawn.setOwner(shooter);
-                                                entityToSpawn.setBaseDamage(damage);
-                                                entityToSpawn.setKnockback(knockback);
-                                                entityToSpawn.setSilent(true);
-                                                entityToSpawn.setPierceLevel(piercing);
-                                                return entityToSpawn;
-                                            }
-                                        }.getArrow(projectileLevel, entity,
-                                                (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                        _entityToSpawn.setPos(_shootFrom.getX(), _shootFrom.getEyeY() - 0.1, _shootFrom.getZ());
-                                        _entityToSpawn.shoot(_shootFrom.getLookAngle().x, _shootFrom.getLookAngle().y, _shootFrom.getLookAngle().z, 10, 0);
-                                        projectileLevel.addFreshEntity(_entityToSpawn);
-                                    }
-                                }
-                                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                                {
-                                    double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                    entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                        capability.PlayerCursePower = _setval;
-                                        capability.syncPlayerVariables(entity);
-                                    });
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower > 100) {
-                        if (world.isClientSide()) {
-                            if (entity instanceof AbstractClientPlayer player) {
-                                var animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                if (animation != null && !animation.isActive()) {
-                                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", ("dismantleback" + Mth.nextInt(RandomSource.create(), 1, 2))))));
-                                }
-                            }
-                        }
-                        if (((JujutsucraftModVariables.PlayerVariables) entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, (Direction) null).orElse(new JujutsucraftModVariables.PlayerVariables())).BodyItem.getCount() >= 5.0) {
-                            if (Math.random() < (1) / ((float) 25)) {
-                                int horizontalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                int verticalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                int yIterationsSphere = verticalRadiusSphere;
-                                for (int i = -yIterationsSphere; i <= yIterationsSphere; i++) {
-                                    for (int xi = -horizontalRadiusSphere; xi <= horizontalRadiusSphere; xi++) {
-                                        for (int zi = -horizontalRadiusSphere; zi <= horizontalRadiusSphere; zi++) {
-                                            double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (i * i) / (double) (verticalRadiusSphere * verticalRadiusSphere)
-                                                    + (zi * zi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere);
-                                            if (distanceSq <= 1.0) {
-                                                if (world instanceof ServerLevel projectileLevel) {
-                                                    Projectile _entityToSpawn = new Object() {
-                                                        public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                            AbstractArrow entityToSpawn = new DismantleVariantEntity(JujutsucraftaddonModEntities.DISMANTLE_VARIANT.get(), level);
-                                                            entityToSpawn.setOwner(shooter);
-                                                            entityToSpawn.setBaseDamage(damage);
-                                                            entityToSpawn.setKnockback(knockback);
-                                                            entityToSpawn.setSilent(true);
-                                                            entityToSpawn.setPierceLevel(piercing);
-                                                            return entityToSpawn;
-                                                        }
-                                                    }.getArrow(projectileLevel, entity,
-                                                            (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                                    _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                                    _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                                    projectileLevel.addFreshEntity(_entityToSpawn);
-                                                }
-                                                if (world instanceof Level _level) {
-                                                    if (!_level.isClientSide()) {
-                                                        _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1);
-                                                    } else {
-                                                        _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1, false);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                {
-                                    double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                    entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                        capability.PlayerCursePower = _setval;
-                                        capability.syncPlayerVariables(entity);
-                                    });
-                                }
-                                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                            } else {
-                                {
-                                    Entity _shootFrom = entity;
-                                    Level projectileLevel = _shootFrom.level();
-                                    if (!projectileLevel.isClientSide()) {
-                                        Projectile _entityToSpawn = new Object() {
-                                            public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                AbstractArrow entityToSpawn = new DismantleVariantEntity(JujutsucraftaddonModEntities.DISMANTLE_VARIANT.get(), level);
-                                                entityToSpawn.setOwner(shooter);
-                                                entityToSpawn.setBaseDamage(damage);
-                                                entityToSpawn.setKnockback(knockback);
-                                                entityToSpawn.setSilent(true);
-                                                entityToSpawn.setPierceLevel(piercing);
-                                                return entityToSpawn;
-                                            }
-                                        }.getArrow(projectileLevel, entity,
-                                                (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                        _entityToSpawn.setPos(_shootFrom.getX(), _shootFrom.getEyeY() - 0.1, _shootFrom.getZ());
-                                        _entityToSpawn.shoot(_shootFrom.getLookAngle().x, _shootFrom.getLookAngle().y, _shootFrom.getLookAngle().z, 10, 0);
-                                        projectileLevel.addFreshEntity(_entityToSpawn);
-                                    }
-                                }
-                                if (world instanceof Level _level) {
-                                    if (!_level.isClientSide()) {
-                                        _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1);
-                                    } else {
-                                        _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1, false);
-                                    }
-                                }
-                                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                                {
-                                    double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                    entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                        capability.PlayerCursePower = _setval;
-                                        capability.syncPlayerVariables(entity);
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-            } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Cleave")) {
-                if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower > 500) {
-                    if (((JujutsucraftModVariables.PlayerVariables) entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, (Direction) null).orElse(new JujutsucraftModVariables.PlayerVariables())).BodyItem.getCount() >= 14.0){
-                        if (!entity.onGround()) {
-                            if (world.isClientSide()) {
-                                if (entity instanceof AbstractClientPlayer player) {
-                                    var animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                    if (animation != null && !animation.isActive()) {
-                                        animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "dismantleback2"))));
-                                    }
-                                }
-                            }
+import java.util.function.BiFunction;
 
-                        }
-                        int horizontalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel * 2) - 1;
-                        int verticalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel * 2) - 1;
-                        int yIterationsSphere = verticalRadiusSphere;
-                        for (int i = -yIterationsSphere; i <= yIterationsSphere; i++) {
-                            for (int xi = -horizontalRadiusSphere; xi <= horizontalRadiusSphere; xi++) {
-                                for (int zi = -horizontalRadiusSphere; zi <= horizontalRadiusSphere; zi++) {
-                                    double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (i * i) / (double) (verticalRadiusSphere * verticalRadiusSphere)
-                                            + (zi * zi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere);
-                                    if (distanceSq <= 1.0) {
-                                        if (world instanceof ServerLevel projectileLevel) {
-                                            Projectile _entityToSpawn = new Object() {
-                                                public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                    AbstractArrow entityToSpawn = new DismantleVariantEntity(JujutsucraftaddonModEntities.DISMANTLE_VARIANT.get(), level);
-                                                    entityToSpawn.setOwner(shooter);
-                                                    entityToSpawn.setBaseDamage(damage);
-                                                    entityToSpawn.setKnockback(knockback);
-                                                    entityToSpawn.setSilent(true);
-                                                    entityToSpawn.setPierceLevel(piercing);
-                                                    return entityToSpawn;
-                                                }
-                                            }.getArrow(projectileLevel, entity,
-                                                    (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                            _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                            _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                            projectileLevel.addFreshEntity(_entityToSpawn);
-                                        }
-                                        if (world instanceof ServerLevel projectileLevel) {
-                                            Projectile _entityToSpawn = new Object() {
-                                                public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                    AbstractArrow entityToSpawn = new DismantleEntity(JujutsucraftaddonModEntities.DISMANTLE.get(), level);
-                                                    entityToSpawn.setOwner(shooter);
-                                                    entityToSpawn.setBaseDamage(damage);
-                                                    entityToSpawn.setKnockback(knockback);
-                                                    entityToSpawn.setSilent(true);
-                                                    entityToSpawn.setPierceLevel(piercing);
-                                                    return entityToSpawn;
-                                                }
-                                            }.getArrow(projectileLevel, entity,
-                                                    (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                            _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                            _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                            projectileLevel.addFreshEntity(_entityToSpawn);
-                                        }
-                                        if (world instanceof Level _level) {
-                                            if (!_level.isClientSide()) {
-                                                _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1);
-                                            } else {
-                                                _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1, false);
-                                            }
-                                        }
-                                        if (world instanceof Level _level) {
-                                            if (!_level.isClientSide()) {
-                                                _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1);
-                                            } else {
-                                                _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1, false);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                            _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                        {
-                            double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 500);
-                            entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                capability.PlayerCursePower = _setval;
-                                capability.syncPlayerVariables(entity);
-                            });
-                        }
-                    }
+public class PassiveSukunaProcedure {
+
+    public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
+        if (entity == null) return;
+
+        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(baseVars -> {
+            entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(addonVars -> {
+                boolean hasWSEffect = (entity instanceof LivingEntity living && living.hasEffect(JujutsucraftaddonModMobEffects.WORLD_SLASH_EFFECT.get()));
+
+                if (!hasWSEffect) {
+                    handleNormalState(world, x, y, z, entity, baseVars, addonVars);
+                } else {
+                    handleEnhancedState(world, x, y, z, entity, baseVars, addonVars);
                 }
+            });
+        });
+    }
+
+    private static void handleNormalState(LevelAccessor world, double x, double y, double z, Entity entity, JujutsucraftModVariables.PlayerVariables base, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (addon.Mode.equals("Dismantle")) {
+            if (base.PlayerCursePower <= 100 || base.BodyItem.getCount() < 5.0) return;
+
+            if (entity.onGround()) {
+                executeDismantle(world, x, y, z, entity, addon.OutputLevel, false, false);
+            } else {
+                playClientAnimation(entity, "dismantleback" + Mth.nextInt(RandomSource.create(), 1, 2));
+                executeDismantle(world, x, y, z, entity, addon.OutputLevel, true, false);
             }
+            consumeEnergy(entity, 50);
+
+        } else if (addon.Mode.equals("Cleave")) {
+            if (base.PlayerCursePower <= 500 || base.BodyItem.getCount() < 14.0) return;
+
+            if (!entity.onGround()) playClientAnimation(entity, "dismantleback2");
+            executeCleave(world, x, y, z, entity, addon.OutputLevel, false);
+            consumeEnergy(entity, 500);
+        }
+    }
+
+    private static void handleEnhancedState(LevelAccessor world, double x, double y, double z, Entity entity, JujutsucraftModVariables.PlayerVariables base, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        ItemStack chest = (entity instanceof LivingEntity living ? living.getItemBySlot(EquipmentSlot.CHEST) : ItemStack.EMPTY);
+        ResourceLocation registryName = ForgeRegistries.ITEMS.getKey(chest.getItem());
+        String armorName = registryName != null ? registryName.toString() : "";
+        boolean hasArmor = armorName.equals("jujutsucraft:sukuna_body_chestplate") || chest.getItem() == JujutsucraftaddonModItems.SUKUNA_ARMOR_THREE_CHESTPLATE.get();
+
+        if (!hasArmor) return;
+
+        if (addon.Mode.equals("Dismantle")) {
+            if (base.PlayerCursePower <= 100 || base.BodyItem.getCount() < 5.0) return;
+
+            if (entity.onGround()) {
+                executeDismantle(world, x, y, z, entity, addon.OutputLevel, false, true);
+            } else {
+                playClientAnimation(entity, "dismantleback" + Mth.nextInt(RandomSource.create(), 1, 2));
+                executeDismantle(world, x, y, z, entity, addon.OutputLevel, true, true);
+            }
+            consumeEnergy(entity, 50);
+
+        } else if (addon.Mode.equals("Cleave")) {
+            if (!(entity instanceof ServerPlayer && world instanceof ServerLevel)) return;
+            if (base.PlayerCursePower <= 500 || base.BodyItem.getCount() < 14.0) return;
+
+            if (!entity.onGround()) playClientAnimation(entity, "dismantleback2");
+            executeCleave(world, x, y, z, entity, addon.OutputLevel, true);
+            consumeEnergy(entity, 500);
+        }
+    }
+
+    private static void executeDismantle(LevelAccessor world, double x, double y, double z, Entity entity, double output, boolean isAir, boolean isWS) {
+        String sound = isAir ? "jujutsucraftaddon:kai" : "jujutsucraftaddon:dismantle";
+        BiFunction<Level, Entity, AbstractArrow> factory = (lvl, shooter) -> {
+            if (isWS) return new WorldSlashVariantEntity(JujutsucraftaddonModEntities.WORLD_SLASH_VARIANT.get(), (LivingEntity) shooter, lvl);
+            return isAir ? new DismantleVariantEntity(JujutsucraftaddonModEntities.DISMANTLE_VARIANT.get(), (LivingEntity) shooter, lvl)
+                         : new DismantleEntity(JujutsucraftaddonModEntities.DISMANTLE.get(), (LivingEntity) shooter, lvl);
+        };
+
+        if (Math.random() < 0.04) {
+            spawnSphere(world, x, y, z, entity, (int) output - 1, output, factory, sound);
         } else {
-            if ((ForgeRegistries.ITEMS.getKey((entity instanceof LivingEntity _entGetArmor ? _entGetArmor.getItemBySlot(EquipmentSlot.CHEST) : ItemStack.EMPTY).getItem()).toString()).equals("jujutsucraft:sukuna_body_chestplate")
-                    || (entity instanceof LivingEntity _entGetArmor ? _entGetArmor.getItemBySlot(EquipmentSlot.CHEST) : ItemStack.EMPTY).getItem() == JujutsucraftaddonModItems.SUKUNA_ARMOR_THREE_CHESTPLATE.get()) {
-                if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Dismantle")) {
-                    if (entity.onGround()) {
-                        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower > 100) {
-                            if (((JujutsucraftModVariables.PlayerVariables) entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, (Direction) null).orElse(new JujutsucraftModVariables.PlayerVariables())).BodyItem.getCount() >= 5.0) {
-                                if (Math.random() < (1) / ((float) 25)) {
-                                    int horizontalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                    int verticalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                    int yIterationsSphere = verticalRadiusSphere;
-                                    for (int i = -yIterationsSphere; i <= yIterationsSphere; i++) {
-                                        for (int xi = -horizontalRadiusSphere; xi <= horizontalRadiusSphere; xi++) {
-                                            for (int zi = -horizontalRadiusSphere; zi <= horizontalRadiusSphere; zi++) {
-                                                double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (i * i) / (double) (verticalRadiusSphere * verticalRadiusSphere)
-                                                        + (zi * zi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere);
-                                                if (distanceSq <= 1.0) {
-                                                    if (world instanceof ServerLevel projectileLevel) {
-                                                        Projectile _entityToSpawn = new Object() {
-                                                            public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                                AbstractArrow entityToSpawn = new WorldSlashVariantEntity(JujutsucraftaddonModEntities.WORLD_SLASH_VARIANT.get(), level);
-                                                                entityToSpawn.setOwner(shooter);
-                                                                entityToSpawn.setBaseDamage(damage);
-                                                                entityToSpawn.setKnockback(knockback);
-                                                                entityToSpawn.setSilent(true);
-                                                                entityToSpawn.setPierceLevel(piercing);
-                                                                return entityToSpawn;
-                                                            }
-                                                        }.getArrow(projectileLevel, entity,
-                                                                (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0,
-                                                                (byte) 1);
-                                                        _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                                        _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                                        projectileLevel.addFreshEntity(_entityToSpawn);
-                                                    }
-                                                    if (world instanceof Level _level) {
-                                                        if (!_level.isClientSide()) {
-                                                            _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1);
-                                                        } else {
-                                                            _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1, false);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                                    {
-                                        double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                            capability.PlayerCursePower = _setval;
-                                            capability.syncPlayerVariables(entity);
-                                        });
-                                    }
-                                } else {
-                                    {
-                                        Entity _shootFrom = entity;
-                                        Level projectileLevel = _shootFrom.level();
-                                        if (!projectileLevel.isClientSide()) {
-                                            Projectile _entityToSpawn = new Object() {
-                                                public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                    AbstractArrow entityToSpawn = new WorldSlashVariantEntity(JujutsucraftaddonModEntities.WORLD_SLASH_VARIANT.get(), level);
-                                                    entityToSpawn.setOwner(shooter);
-                                                    entityToSpawn.setBaseDamage(damage);
-                                                    entityToSpawn.setKnockback(knockback);
-                                                    entityToSpawn.setSilent(true);
-                                                    entityToSpawn.setPierceLevel(piercing);
-                                                    return entityToSpawn;
-                                                }
-                                            }.getArrow(projectileLevel, entity,
-                                                    (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                            _entityToSpawn.setPos(_shootFrom.getX(), _shootFrom.getEyeY() - 0.1, _shootFrom.getZ());
-                                            _entityToSpawn.shoot(_shootFrom.getLookAngle().x, _shootFrom.getLookAngle().y, _shootFrom.getLookAngle().z, 10, 0);
-                                            projectileLevel.addFreshEntity(_entityToSpawn);
-                                        }
-                                    }
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                                    {
-                                        double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                            capability.PlayerCursePower = _setval;
-                                            capability.syncPlayerVariables(entity);
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower > 100) {
-                            if (world.isClientSide()) {
-                                if (entity instanceof AbstractClientPlayer player) {
-                                    var animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                    if (animation != null && !animation.isActive()) {
-                                        animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", ("dismantleback" + Mth.nextInt(RandomSource.create(), 1, 2))))));
-                                    }
-                                }
-                            }
-                            if (((JujutsucraftModVariables.PlayerVariables) entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, (Direction) null).orElse(new JujutsucraftModVariables.PlayerVariables())).BodyItem.getCount() >= 5.0) {
-                                if (Math.random() < (1) / ((float) 25)) {
-                                    int horizontalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                    int verticalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel) - 1;
-                                    int yIterationsSphere = verticalRadiusSphere;
-                                    for (int i = -yIterationsSphere; i <= yIterationsSphere; i++) {
-                                        for (int xi = -horizontalRadiusSphere; xi <= horizontalRadiusSphere; xi++) {
-                                            for (int zi = -horizontalRadiusSphere; zi <= horizontalRadiusSphere; zi++) {
-                                                double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (i * i) / (double) (verticalRadiusSphere * verticalRadiusSphere)
-                                                        + (zi * zi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere);
-                                                if (distanceSq <= 1.0) {
-                                                    if (world instanceof ServerLevel projectileLevel) {
-                                                        Projectile _entityToSpawn = new Object() {
-                                                            public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                                AbstractArrow entityToSpawn = new WorldSlashVariantEntity(JujutsucraftaddonModEntities.WORLD_SLASH_VARIANT.get(), level);
-                                                                entityToSpawn.setOwner(shooter);
-                                                                entityToSpawn.setBaseDamage(damage);
-                                                                entityToSpawn.setKnockback(knockback);
-                                                                entityToSpawn.setSilent(true);
-                                                                entityToSpawn.setPierceLevel(piercing);
-                                                                return entityToSpawn;
-                                                            }
-                                                        }.getArrow(projectileLevel, entity,
-                                                                (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0,
-                                                                (byte) 1);
-                                                        _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                                        _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                                        projectileLevel.addFreshEntity(_entityToSpawn);
-                                                    }
-                                                    if (world instanceof Level _level) {
-                                                        if (!_level.isClientSide()) {
-                                                            _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1);
-                                                        } else {
-                                                            _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1, false);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    {
-                                        double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                            capability.PlayerCursePower = _setval;
-                                            capability.syncPlayerVariables(entity);
-                                        });
-                                    }
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                                } else {
-                                    {
-                                        Entity _shootFrom = entity;
-                                        Level projectileLevel = _shootFrom.level();
-                                        if (!projectileLevel.isClientSide()) {
-                                            Projectile _entityToSpawn = new Object() {
-                                                public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                    AbstractArrow entityToSpawn = new WorldSlashVariantEntity(JujutsucraftaddonModEntities.WORLD_SLASH_VARIANT.get(), level);
-                                                    entityToSpawn.setOwner(shooter);
-                                                    entityToSpawn.setBaseDamage(damage);
-                                                    entityToSpawn.setKnockback(knockback);
-                                                    entityToSpawn.setSilent(true);
-                                                    entityToSpawn.setPierceLevel(piercing);
-                                                    return entityToSpawn;
-                                                }
-                                            }.getArrow(projectileLevel, entity,
-                                                    (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                            _entityToSpawn.setPos(_shootFrom.getX(), _shootFrom.getEyeY() - 0.1, _shootFrom.getZ());
-                                            _entityToSpawn.shoot(_shootFrom.getLookAngle().x, _shootFrom.getLookAngle().y, _shootFrom.getLookAngle().z, 10, 0);
-                                            projectileLevel.addFreshEntity(_entityToSpawn);
-                                        }
-                                    }
-                                    if (world instanceof Level _level) {
-                                        if (!_level.isClientSide()) {
-                                            _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1);
-                                        } else {
-                                            _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1, false);
-                                        }
-                                    }
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                                    {
-                                        double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 50);
-                                        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                            capability.PlayerCursePower = _setval;
-                                            capability.syncPlayerVariables(entity);
-                                        });
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Cleave")) {
-                    if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower > 500) {
-                        if (entity instanceof ServerPlayer && entity.level() instanceof ServerLevel
-                                && (((JujutsucraftModVariables.PlayerVariables) entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, (Direction) null).orElse(new JujutsucraftModVariables.PlayerVariables())).BodyItem.getCount() >= 14.0)) {
-                            if (!entity.onGround()) {
-                                if (world.isClientSide()) {
-                                    if (entity instanceof AbstractClientPlayer player) {
-                                        var animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                        if (animation != null && !animation.isActive()) {
-                                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "dismantleback2"))));
-                                        }
-                                    }
-                                }
-                            }
-                            int horizontalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel * 2) - 1;
-                            int verticalRadiusSphere = (int) ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel * 2) - 1;
-                            int yIterationsSphere = verticalRadiusSphere;
-                            for (int i = -yIterationsSphere; i <= yIterationsSphere; i++) {
-                                for (int xi = -horizontalRadiusSphere; xi <= horizontalRadiusSphere; xi++) {
-                                    for (int zi = -horizontalRadiusSphere; zi <= horizontalRadiusSphere; zi++) {
-                                        double distanceSq = (xi * xi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere) + (i * i) / (double) (verticalRadiusSphere * verticalRadiusSphere)
-                                                + (zi * zi) / (double) (horizontalRadiusSphere * horizontalRadiusSphere);
-                                        if (distanceSq <= 1.0) {
-                                            if (world instanceof ServerLevel projectileLevel) {
-                                                Projectile _entityToSpawn = new Object() {
-                                                    public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                        AbstractArrow entityToSpawn = new WorldSlashVariantEntity(JujutsucraftaddonModEntities.WORLD_SLASH_VARIANT.get(), level);
-                                                        entityToSpawn.setOwner(shooter);
-                                                        entityToSpawn.setBaseDamage(damage);
-                                                        entityToSpawn.setKnockback(knockback);
-                                                        entityToSpawn.setSilent(true);
-                                                        entityToSpawn.setPierceLevel(piercing);
-                                                        return entityToSpawn;
-                                                    }
-                                                }.getArrow(projectileLevel, entity,
-                                                        (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                                _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                                _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                                projectileLevel.addFreshEntity(_entityToSpawn);
-                                            }
-                                            if (world instanceof ServerLevel projectileLevel) {
-                                                Projectile _entityToSpawn = new Object() {
-                                                    public Projectile getArrow(Level level, Entity shooter, float damage, int knockback, byte piercing) {
-                                                        AbstractArrow entityToSpawn = new WorldSlashFinalEntity(JujutsucraftaddonModEntities.WORLD_SLASH_FINAL.get(), level);
-                                                        entityToSpawn.setOwner(shooter);
-                                                        entityToSpawn.setBaseDamage(damage);
-                                                        entityToSpawn.setKnockback(knockback);
-                                                        entityToSpawn.setSilent(true);
-                                                        entityToSpawn.setPierceLevel(piercing);
-                                                        return entityToSpawn;
-                                                    }
-                                                }.getArrow(projectileLevel, entity,
-                                                        (float) (10 * (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel), 0, (byte) 1);
-                                                _entityToSpawn.setPos(x + xi, entity.getEyeY(), z + zi);
-                                                _entityToSpawn.shoot(entity.getLookAngle().x, entity.getLookAngle().y, entity.getLookAngle().z, 10, 0);
-                                                projectileLevel.addFreshEntity(_entityToSpawn);
-                                            }
-                                            if (world instanceof Level _level) {
-                                                if (!_level.isClientSide()) {
-                                                    _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1);
-                                                } else {
-                                                    _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:kai")), SoundSource.NEUTRAL, 1, 1, false);
-                                                }
-                                            }
-                                            if (world instanceof Level _level) {
-                                                if (!_level.isClientSide()) {
-                                                    _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1);
-                                                } else {
-                                                    _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:dismantle")), SoundSource.NEUTRAL, 1, 1, false);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
-                            {
-                                double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 500);
-                                entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.PlayerCursePower = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        }
+            spawnProjectile(world, entity.getX(), entity.getEyeY() - 0.1, entity.getZ(), entity, output, factory);
+            playSound(world, x, y, z, sound);
+        }
+        applyAnimationEffect(entity);
+    }
+
+    private static void executeCleave(LevelAccessor world, double x, double y, double z, Entity entity, double output, boolean isWS) {
+        int radius = (int) (output * 2) - 1;
+        
+        BiFunction<Level, Entity, AbstractArrow> f1 = (lvl, shooter) -> isWS ? new WorldSlashVariantEntity(JujutsucraftaddonModEntities.WORLD_SLASH_VARIANT.get(), (LivingEntity) shooter, lvl) 
+                                                                            : new DismantleVariantEntity(JujutsucraftaddonModEntities.DISMANTLE_VARIANT.get(), (LivingEntity) shooter, lvl);
+        BiFunction<Level, Entity, AbstractArrow> f2 = (lvl, shooter) -> isWS ? new WorldSlashFinalEntity(JujutsucraftaddonModEntities.WORLD_SLASH_FINAL.get(), (LivingEntity) shooter, lvl) 
+                                                                            : new DismantleEntity(JujutsucraftaddonModEntities.DISMANTLE.get(), (LivingEntity) shooter, lvl);
+
+        spawnSphere(world, x, y, z, entity, radius, output, f1, "jujutsucraftaddon:kai");
+        spawnSphere(world, x, y, z, entity, radius, output, f2, "jujutsucraftaddon:dismantle");
+        applyAnimationEffect(entity);
+    }
+
+    private static void spawnSphere(LevelAccessor world, double x, double y, double z, Entity entity, int radius, double output, BiFunction<Level, Entity, AbstractArrow> factory, String sound) {
+        if (!(world instanceof ServerLevel)) return;
+        for (int i = -radius; i <= radius; i++) {
+            for (int xi = -radius; xi <= radius; xi++) {
+                for (int zi = -radius; zi <= radius; zi++) {
+                    double dist = (double)(xi * xi) / (radius * radius) + (double)(i * i) / (radius * radius) + (double)(zi * zi) / (radius * radius);
+                    if (dist <= 1.0) {
+                        spawnProjectile(world, x + xi, entity.getEyeY(), z + zi, entity, output, factory);
                     }
                 }
             }
         }
+        playSound(world, x, y, z, sound);
+    }
+
+    private static void spawnProjectile(LevelAccessor world, double px, double py, double pz, Entity owner, double output, BiFunction<Level, Entity, AbstractArrow> factory) {
+        if (!(world instanceof ServerLevel sLevel)) return;
+        AbstractArrow arrow = factory.apply(sLevel, owner);
+        arrow.setOwner(owner);
+        arrow.setBaseDamage(10 * output);
+        arrow.setKnockback(0);
+        arrow.setSilent(true);
+        arrow.setPierceLevel((byte) 1);
+        arrow.setPos(px, py, pz);
+        arrow.shoot(owner.getLookAngle().x, owner.getLookAngle().y, owner.getLookAngle().z, 10, 0);
+        sLevel.addFreshEntity(arrow);
+    }
+
+    private static void playSound(LevelAccessor world, double x, double y, double z, String soundPath) {
+        if (world instanceof Level lvl) {
+            ResourceLocation res = new ResourceLocation(soundPath);
+            if (!world.isClientSide()) lvl.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(res), SoundSource.NEUTRAL, 1, 1);
+            else lvl.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(res), SoundSource.NEUTRAL, 1, 1, false);
+        }
+    }
+
+    private static void playClientAnimation(Entity entity, String animName) {
+        if (entity.level().isClientSide() && entity instanceof AbstractClientPlayer player) {
+            var anim = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
+            if (anim != null && !anim.isActive()) {
+                anim.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", animName))));
+            }
+        }
+    }
+
+    private static void applyAnimationEffect(Entity entity) {
+        if (entity instanceof LivingEntity living && !living.level().isClientSide()) {
+            living.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION.get(), 1, 1, false, false));
+        }
+    }
+
+    private static void consumeEnergy(Entity entity, double amount) {
+        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(cap -> {
+            cap.PlayerCursePower -= amount;
+            cap.syncPlayerVariables(entity);
+        });
     }
 }

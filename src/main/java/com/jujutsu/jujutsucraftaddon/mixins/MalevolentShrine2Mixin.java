@@ -2,8 +2,10 @@ package com.jujutsu.jujutsucraftaddon.mixins;
 
 import com.jujutsu.jujutsucraftaddon.entity.ItadoriShinjukuEntity;
 import com.jujutsu.jujutsucraftaddon.entity.MalevolentShrineEntity;
+import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModEntities;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
+import net.mcreator.jujutsucraft.entity.EntityMalevolentShrine2Entity;
 import net.mcreator.jujutsucraft.entity.EntityMalevolentShrineEntity;
 import net.mcreator.jujutsucraft.entity.EntityTreeEntity;
 import net.mcreator.jujutsucraft.entity.SukunaFushiguroEntity;
@@ -27,13 +29,11 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.InteractionHand;
-import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.MobSpawnType;
-import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.phys.AABB;
@@ -47,213 +47,216 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 @Mixin(value = MalevolentShrineProcedure.class, priority = -10000)
 public abstract class MalevolentShrine2Mixin {
 
     @Inject(at = @At("HEAD"), method = "execute", remap = false, cancellable = true)
-    private static void execute(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
+    private static void onExecute(LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
         ci.cancel();
-
         if (entity == null) return;
 
         double radius = JujutsucraftModVariables.MapVariables.get(world).DomainExpansionRadius;
         int amplifier = 0;
-        if (entity instanceof LivingEntity _liv && _liv.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-            amplifier = _liv.getEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get()).getAmplifier();
+
+        if (entity instanceof LivingEntity living) {
+            MobEffectInstance effect = living.getEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get());
+            if (effect != null) {
+                amplifier = effect.getAmplifier();
+            }
         }
 
-        double dis = radius * (amplifier > 0 ? 6.0 : 2.0);
+        double totalRadius = radius * (amplifier > 0 ? 6 : 2);
         entity.getPersistentData().putDouble("select", 1.0);
         DomainExpansionCreateBarrierProcedure.execute(world, x, y, z, entity);
 
         double cnt1 = entity.getPersistentData().getDouble("cnt1");
-        if (cnt1 <= 0.0) {
-            PlayAnimationProcedure.execute(world, entity);
-            return;
+        if (cnt1 > 0) {
+            handleShrinePhases(world, x, y, z, entity, totalRadius, radius, cnt1);
         }
 
-        // Addon Condition: Itadori Shinjuku Tree Domain
-        JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables());
-        boolean isItadoriSpecial = entity instanceof ItadoriShinjukuEntity || 
-            ("Itadori".equals(addonVars.Clans) && entity instanceof ServerPlayer _sp && 
-             _sp.getAdvancements().getOrStartProgress(_sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:enchained"))).isDone() && 
-             _sp.getAdvancements().getOrStartProgress(_sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:soul_research"))).isDone());
-
-        if (isItadoriSpecial) {
-            if (cnt1 == 34.0) {
-                if (entity.getPersistentData().getDouble("NameRanged") == 0.0) {
-                    entity.getPersistentData().putDouble("NameRanged", Math.random());
-                }
-
-                for (int i = 0; i < 12; i++) {
-                    double angle = Math.toRadians(Math.random() * 720.0);
-                    double dist = 0.0;
-                    for (int j = 0; j < 32; j++) {
-                        dist = Math.random();
-                        if (dist > 0.5) {
-                            dist *= (radius - 4.0);
-                            break;
-                        }
-                    }
-                    
-                    double x_tree = entity.getPersistentData().getDouble("x_pos_doma") + Math.sin(angle) * dist;
-                    double y_tree = entity.getPersistentData().getDouble("y_pos_doma") + 1.0;
-                    double z_tree = entity.getPersistentData().getDouble("z_pos_doma") + Math.cos(angle) * dist;
-
-                    for (int j = 0; j < 16; j++) {
-                        if (world.getBlockState(BlockPos.containing(x_tree, y_tree, z_tree)).canOcclude()) y_tree++;
-                        else if (!world.getBlockState(BlockPos.containing(x_tree, y_tree - 1.0, z_tree)).canOcclude()) y_tree--;
-                        else {
-                            y_tree = Math.floor(y_tree);
-                            break;
-                        }
-                    }
-
-                    if (world instanceof ServerLevel _level) {
-                        double rot = Math.random() * 360.0;
-                        _level.getServer().getCommands().performPrefixedCommand(
-                            new CommandSourceStack(CommandSource.NULL, new Vec3(x_tree, y_tree, z_tree), Vec2.ZERO, _level, 4, "", Component.literal(""), _level.getServer(), null).withSuppressedOutput(),
-                            "summon jujutsucraft:entity_tree ~ ~ ~ {NoAI:1b,Invulnerable:1b,Rotation:[" + rot + "F," + (Math.random() - 0.5) * 30.0 + "F]}"
-                        );
-
-                        final double fx = x_tree;
-                        final double fy = y_tree;
-                        final double fz = z_tree;
-                        List<EntityTreeEntity> trees = _level.getEntitiesOfClass(EntityTreeEntity.class, new AABB(fx - 0.5, fy - 0.5, fz - 0.5, fx + 0.5, fy + 0.5, fz + 0.5));
-                        if (!trees.isEmpty()) {
-                            EntityTreeEntity tree = trees.stream().min(Comparator.comparingDouble(t -> t.distanceToSqr(fx, fy, fz))).get();
-                            tree.getPersistentData().putDouble("NameRanged_ranged", entity.getPersistentData().getDouble("NameRanged"));
-                            tree.getPersistentData().putString("OWNER_UUID", entity.getStringUUID());
-                            tree.getAttribute(JujutsucraftModAttributes.SIZE.get()).setBaseValue(2.0 + Math.random());
-                        }
-                    }
-                }
-            }
-        } else {
-            if (cnt1 == 1.0) {
-                if (entity instanceof LivingEntity _liv) _liv.swing(InteractionHand.MAIN_HAND, true);
-
-                Vec3 center = new Vec3(entity.getPersistentData().getDouble("x_pos_doma"), entity.getPersistentData().getDouble("y_pos_doma"), entity.getPersistentData().getDouble("z_pos_doma"));
-                for (Entity targetFound : world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(dis / 2.0), e -> true)) {
-                    if (targetFound instanceof LivingEntity _target && !targetFound.level().isClientSide() && targetFound.getServer() != null) {
-                        targetFound.getServer().getCommands().performPrefixedCommand(
-                            new CommandSourceStack(CommandSource.NULL, targetFound.position(), targetFound.getRotationVector(), (ServerLevel)targetFound.level(), 4, targetFound.getName().getString(), targetFound.getDisplayName(), targetFound.level().getServer(), targetFound),
-                            "effect give @s blindness 2 0 true"
-                        );
-                    }
-                }
-
-                if (world instanceof Level _level) {
-                    SoundEvent chime = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:wind_chime"));
-                    SoundEvent slowEnd = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:slow_motion_end"));
-                    _level.playSound(null, BlockPos.containing(x, y, z), chime, SoundSource.NEUTRAL, 3.0F, 1.0F);
-                    _level.playSound(null, BlockPos.containing(x, y, z), slowEnd, SoundSource.NEUTRAL, 3.0F, 1.0F);
-                }
-            }
-
-            if (cnt1 == 34.0) {
-                float yaw = entity.getYRot();
-                float pitch = entity.getXRot();
-
-                LivingEntity targetEntity = null;
-                if (entity instanceof Mob _mob) targetEntity = _mob.getTarget();
-
-                if (targetEntity != null) {
-                    RotateEntityProcedure.execute(targetEntity.getX(), targetEntity.getY(), targetEntity.getZ(), entity);
-                } else {
-                    RotateEntityProcedure.execute(entity.getPersistentData().getDouble("x_pos_doma"), entity.getPersistentData().getDouble("y_pos_doma"), entity.getPersistentData().getDouble("z_pos_doma"), entity);
-                }
-
-                entity.setXRot(0.0F);
-                entity.setYBodyRot(entity.getYRot());
-                entity.setYHeadRot(entity.getYRot());
-                entity.yRotO = entity.getYRot();
-                entity.xRotO = entity.getXRot();
-                if (entity instanceof LivingEntity _liv) {
-                    _liv.yBodyRotO = _liv.getYRot();
-                    _liv.yHeadRotO = _liv.getYRot();
-                    if (!_liv.level().isClientSide() && _liv.getServer() != null) {
-                        _liv.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _liv.position(), _liv.getRotationVector(), (ServerLevel)_liv.level(), 4, _liv.getName().getString(), _liv.getDisplayName(), _liv.level().getServer(), _liv), "effect give @s slowness 1 10 true");
-                    }
-                }
-
-                double x_doma = entity.getPersistentData().getDouble("x_pos_doma");
-                double y_doma = entity.getPersistentData().getDouble("y_pos_doma");
-                double z_doma = entity.getPersistentData().getDouble("z_pos_doma");
-                entity.getPersistentData().putDouble("x_pos", x_doma);
-                entity.getPersistentData().putDouble("z_pos", z_doma);
-
-                for (int k = 0; k < 100; k++) {
-                    if (!world.getBlockState(BlockPos.containing(x_doma, y_doma - 1.0, z_doma)).canOcclude()) {
-                        y_doma -= 1.0;
-                        if (y_doma <= 0.0) {
-                            y_doma = 0.0;
-                            break;
-                        }
-                    } else break;
-                }
-                entity.getPersistentData().putDouble("y_pos", y_doma);
-
-                double yawRad = Math.toRadians(entity.getYRot() + 90.0F);
-                double distShrine = radius - 5.0;
-                double x_shrine = x_doma - Math.cos(yawRad) * distShrine;
-                double y_shrine = y_doma;
-                double z_shrine = z_doma - Math.sin(yawRad) * distShrine;
-
-                if (entity.getPersistentData().getDouble("NameRanged") == 0.0) {
-                    entity.getPersistentData().putDouble("NameRanged", Math.random());
-                }
-
-                if (world instanceof ServerLevel _level) {
-                    boolean isPerfect = entity instanceof SukunaPerfectEntity || (entity instanceof LivingEntity _liv && _liv.hasEffect(JujutsucraftaddonModMobEffects.HEIAN_FORM.get())) || (entity instanceof SukunaFushiguroEntity _fushi && _fushi.getEntityData().get(SukunaFushiguroEntity.DATA_perfect_mode));
-                    boolean isLowHealth = false;
-                    EntityType<?> shrineType;
-
-                    if (isPerfect) {
-                        shrineType = (EntityType<?>)ForgeRegistries.ENTITY_TYPES.getValue(new ResourceLocation("jujutsucraftaddon:malevolent_shrine"));
-                    } else {
-                        if (entity instanceof LivingEntity _liv && _liv.getHealth() <= _liv.getMaxHealth() * 0.5) {
-                            shrineType = (EntityType<?>)JujutsucraftModEntities.ENTITY_MALEVOLENT_SHRINE_2.get();
-                            isLowHealth = true;
-                        } else {
-                            shrineType = (EntityType<?>)JujutsucraftModEntities.ENTITY_MALEVOLENT_SHRINE.get();
-                        }
-                    }
-                    
-                    if (shrineType != null) {
-                        Entity shrine = shrineType.create(_level, null, null, BlockPos.containing(x_shrine, y_shrine, z_shrine), MobSpawnType.MOB_SUMMONED, false, false);
-                        if (shrine != null) {
-                            shrine.setInvulnerable(true);
-                            if (isLowHealth && shrine instanceof Mob _shrineMob) _shrineMob.setNoAi(true);
-                            
-                            int shrineRot = (entity.getDirection() != Direction.NORTH && entity.getDirection() != Direction.SOUTH) ? 90 : 0;
-                            shrine.setYRot(shrineRot);
-                            shrine.setXRot(0.0F);
-                            if (shrine instanceof LivingEntity _sLiv) {
-                                _sLiv.setYBodyRot(shrineRot);
-                                _sLiv.setYHeadRot(shrineRot);
-                                _sLiv.yBodyRotO = _sLiv.yHeadRotO = shrineRot;
-                            }
-                            shrine.getPersistentData().putDouble("NameRanged_ranged", entity.getPersistentData().getDouble("NameRanged"));
-                            shrine.getPersistentData().putString("OWNER_UUID", entity.getStringUUID());
-                            
-                            _level.addFreshEntity(shrine);
-                            _level.playSound(null, BlockPos.containing(x_shrine, y_shrine, z_shrine), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:piano_horror")), SoundSource.NEUTRAL, 3.0F, 0.75F);
-                        }
-                    }
-                }
-
-                entity.getPersistentData().putDouble("y_pos_doma", y_shrine + 1.0);
-                entity.setYRot(yaw);
-                entity.setXRot(pitch);
-            }
-        }
-        entity.yRotO = entity.getYRot();
-        entity.xRotO = entity.getXRot();
-        if (entity instanceof LivingEntity _liv) {
-            _liv.yBodyRotO = _liv.yHeadRotO = _liv.getYRot();
-        }
         PlayAnimationProcedure.execute(world, entity);
+    }
+
+    private static void handleShrinePhases(LevelAccessor world, double x, double y, double z, Entity entity, double totalRadius, double baseRadius, double cnt1) {
+        if (cnt1 == 34.0) {
+            if (isItadoriSpecialDomain(entity)) {
+                spawnItadoriSoulTrees(world, entity, baseRadius);
+            } else {
+                handleMalevolentShrineSpawning(world, entity, baseRadius);
+            }
+        } else if (cnt1 == 1.0) {
+            handleInitialBlindness(world, entity, totalRadius);
+        }
+    }
+
+    private static boolean isItadoriSpecialDomain(Entity entity) {
+        if (entity instanceof ItadoriShinjukuEntity) return true;
+        if (entity instanceof ServerPlayer player) {
+            boolean hasEnchained = player.getAdvancements().getOrStartProgress(Objects.requireNonNull(player.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:enchained")))).isDone();
+            boolean hasSoulResearch = player.getAdvancements().getOrStartProgress(Objects.requireNonNull(player.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:soul_research")))).isDone();
+            String clan = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables()).Clans;
+            return hasEnchained && hasSoulResearch && clan.equals("Itadori");
+        }
+        return false;
+    }
+
+    private static void spawnItadoriSoulTrees(LevelAccessor world, Entity entity, double baseRadius) {
+        if (entity.getPersistentData().getDouble("NameRanged") == 0.0) {
+            entity.getPersistentData().putDouble("NameRanged", Math.random());
+        }
+
+        for (int i = 0; i < 12; i++) {
+            double angle = Math.toRadians(Math.random() * 720.0);
+            double dist = 0;
+            for (int j = 0; j < 32; j++) {
+                dist = Math.random();
+                if (dist > 0.5) {
+                    dist *= (baseRadius - 4.0);
+                    break;
+                }
+            }
+
+            double px = entity.getPersistentData().getDouble("x_pos_doma") + Math.sin(angle) * dist;
+            double py = findGroundY(world, px, entity.getPersistentData().getDouble("y_pos_doma") + 1.0, entity.getPersistentData().getDouble("z_pos_doma") + Math.cos(angle) * dist);
+            double pz = entity.getPersistentData().getDouble("z_pos_doma") + Math.cos(angle) * dist;
+
+            if (world instanceof ServerLevel serverLevel) {
+                String cmd = String.format("summon jujutsucraft:entity_tree %f %f %f {NoAI:1b,Invulnerable:1b,Rotation:[%fF,%fF]}", 
+                    px, py, pz, (float)(Math.random() * 360.0), (float)((Math.random() - 0.5) * 30.0));
+                serverLevel.getServer().getCommands().performPrefixedCommand(createCommandSource(serverLevel, px, py, pz), cmd);
+
+                List<EntityTreeEntity> trees = world.getEntitiesOfClass(EntityTreeEntity.class, AABB.ofSize(new Vec3(px, py, pz), 1.0, 1.0, 1.0), e -> true);
+                trees.stream().min(Comparator.comparingDouble(e -> e.distanceToSqr(px, py, pz))).ifPresent(tree -> {
+                    tree.getPersistentData().putDouble("NameRanged_ranged", entity.getPersistentData().getDouble("NameRanged"));
+                    tree.getPersistentData().putString("OWNER_UUID", entity.getStringUUID());
+                    tree.getAttribute(JujutsucraftModAttributes.SIZE.get()).setBaseValue(2.0 + Math.random());
+                });
+            }
+        }
+    }
+
+    private static void handleMalevolentShrineSpawning(LevelAccessor world, Entity entity, double baseRadius) {
+        float originalYaw = entity.getYRot();
+        float originalPitch = entity.getXRot();
+
+        Entity target = (entity instanceof net.minecraft.world.entity.Mob _mob) ? _mob.getTarget() : null;
+        if (target instanceof LivingEntity) {
+            RotateEntityProcedure.execute(target.getX(), target.getY(), target.getZ(), entity);
+        } else {
+            RotateEntityProcedure.execute(entity.getPersistentData().getDouble("x_pos_doma"), entity.getPersistentData().getDouble("y_pos_doma"), entity.getPersistentData().getDouble("z_pos_doma"), entity);
+        }
+        syncRotation(entity, entity.getYRot(), 0.0F);
+
+        if (world instanceof ServerLevel serverLevel) {
+            serverLevel.getServer().getCommands().performPrefixedCommand(createCommandSource(serverLevel, entity.position().x, entity.position().y, entity.position().z), "effect give @s slowness 1 10 true");
+        }
+
+        double spawnX = entity.getPersistentData().getDouble("x_pos_doma");
+        double spawnY = entity.getPersistentData().getDouble("y_pos_doma");
+        double spawnZ = entity.getPersistentData().getDouble("z_pos_doma");
+
+        for (int i = 0; i < 100 && !world.getBlockState(BlockPos.containing(spawnX, spawnY - 1.0, spawnZ)).canOcclude(); i++) {
+            spawnY--;
+            if (spawnY <= 0) { spawnY = 0; break; }
+        }
+
+        double offset = baseRadius - 5.0;
+        double rad = Math.toRadians(entity.getYRot() + 90.0F);
+        double finalX = spawnX - Math.cos(rad) * offset;
+        double finalZ = spawnZ - Math.sin(rad) * offset;
+
+        if (world instanceof ServerLevel serverLevel) {
+            boolean isLowHealth = (entity instanceof LivingEntity living) && living.getHealth() <= living.getMaxHealth() * 0.5;
+            boolean isHeian = (entity instanceof SukunaPerfectEntity) || 
+                             (entity instanceof LivingEntity livingEnt && livingEnt.hasEffect(JujutsucraftaddonModMobEffects.HEIAN_FORM.get())) ||
+                             (entity instanceof SukunaFushiguroEntity fushi && fushi.getEntityData().get(SukunaFushiguroEntity.DATA_perfect_mode));
+
+            EntityType<?> type;
+            if (isLowHealth) {
+                type = (EntityType<?>) JujutsucraftModEntities.ENTITY_MALEVOLENT_SHRINE_2.get();
+            } else {
+                type = isHeian ? (EntityType<?>) JujutsucraftaddonModEntities.MALEVOLENT_SHRINE.get() : (EntityType<?>) JujutsucraftModEntities.ENTITY_MALEVOLENT_SHRINE.get();
+            }
+
+            Entity shrine = type.create(serverLevel, null, null, BlockPos.containing(finalX, spawnY, finalZ), MobSpawnType.MOB_SUMMONED, false, false);
+            if (shrine != null) {
+                shrine.setYRot(entity.getDirection() != Direction.NORTH && entity.getDirection() != Direction.SOUTH ? 90 : 0);
+                shrine.setXRot(0.0F);
+                syncRotation(shrine, shrine.getYRot(), 0.0F);
+
+                if (entity.getPersistentData().getDouble("NameRanged") == 0.0) {
+                    entity.getPersistentData().putDouble("NameRanged", Math.random());
+                }
+                shrine.getPersistentData().putDouble("NameRanged_ranged", entity.getPersistentData().getDouble("NameRanged"));
+                shrine.getPersistentData().putString("OWNER_UUID", entity.getStringUUID());
+
+                if (shrine.getServer() != null) {
+                    String nbt = isLowHealth ? "{NoAI:1b,Invulnerable:1b}" : "{Invulnerable:1b}";
+                    shrine.getServer().getCommands().performPrefixedCommand(
+                        new CommandSourceStack(CommandSource.NULL, shrine.position(), shrine.getRotationVector(), serverLevel, 4, shrine.getName().getString(), shrine.getDisplayName(), shrine.getServer(), shrine),
+                        "data merge entity @s " + nbt
+                    );
+                }
+
+                serverLevel.addFreshEntity(shrine);
+                playSound(world, finalX, spawnY, finalZ, "jujutsucraft:piano_horror", 3.0F, 0.75F);
+            }
+        }
+
+        entity.getPersistentData().putDouble("y_pos_doma", spawnY + 1.0);
+        syncRotation(entity, originalYaw, originalPitch);
+    }
+
+    private static void handleInitialBlindness(LevelAccessor world, Entity entity, double totalRadius) {
+        if (entity instanceof LivingEntity living) living.swing(InteractionHand.MAIN_HAND, true);
+
+        Vec3 center = new Vec3(entity.getPersistentData().getDouble("x_pos_doma"), entity.getPersistentData().getDouble("y_pos_doma"), entity.getPersistentData().getDouble("z_pos_doma"));
+        List<Entity> targets = world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(totalRadius / 2.0), e -> true);
+        
+        for (Entity target : targets) {
+            if (target instanceof LivingEntity livingTarget && !target.level().isClientSide() && target.getServer() != null) {
+                target.getServer().getCommands().performPrefixedCommand(createCommandSource((ServerLevel)target.level(), target.getX(), target.getY(), target.getZ()), "effect give @s blindness 2 0 true");
+            }
+        }
+
+        playSound(world, entity.getX(), entity.getY(), entity.getZ(), "jujutsucraft:wind_chime", 3.0F, 1.0F);
+        playSound(world, entity.getX(), entity.getY(), entity.getZ(), "jujutsucraft:slow_motion_end", 3.0F, 1.0F);
+    }
+
+    private static double findGroundY(LevelAccessor world, double x, double y, double z) {
+        double currentY = y;
+        for (int i = 0; i < 16; i++) {
+            if (world.getBlockState(BlockPos.containing(x, currentY, z)).canOcclude()) currentY++;
+            else if (!world.getBlockState(BlockPos.containing(x, currentY - 1.0, z)).canOcclude()) currentY--;
+            else break;
+        }
+        return Math.floor(currentY);
+    }
+
+    private static void syncRotation(Entity ent, float yaw, float pitch) {
+        ent.setYRot(yaw);
+        ent.setXRot(pitch);
+        ent.setYBodyRot(yaw);
+        ent.setYHeadRot(yaw);
+        ent.yRotO = yaw;
+        ent.xRotO = pitch;
+        if (ent instanceof LivingEntity living) {
+            living.yBodyRotO = yaw;
+            living.yHeadRotO = yaw;
+        }
+    }
+
+    private static CommandSourceStack createCommandSource(ServerLevel level, double x, double y, double z) {
+        return new CommandSourceStack(CommandSource.NULL, new Vec3(x, y, z), Vec2.ZERO, level, 4, "", Component.literal(""), level.getServer(), null).withSuppressedOutput();
+    }
+
+    private static void playSound(LevelAccessor world, double x, double y, double z, String soundId, float vol, float pitch) {
+        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(soundId));
+        if (sound != null && world instanceof Level level) {
+            if (!level.isClientSide()) level.playSound(null, BlockPos.containing(x, y, z), sound, SoundSource.NEUTRAL, vol, pitch);
+            else level.playLocalSound(x, y, z, sound, SoundSource.NEUTRAL, vol, pitch, false);
+        }
     }
 }

@@ -6,7 +6,6 @@ import net.mcreator.jujutsucraft.procedures.TechniqueNeedleProcedure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -22,93 +21,58 @@ import java.util.Comparator;
 import java.util.List;
 
 public class YorozuzuAttackProcedure {
+
     public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (entity == null)
-            return;
-        if (Math.random() < (1) / ((float) 300)) {
-            {
-                final Vec3 _center = new Vec3(x, y, z);
-                List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(30 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
-                for (Entity entityiterator : _entfound) {
-                    if (!(entityiterator == entity)) {
-                        if (world instanceof ServerLevel _serverLevel) {
-                            Entity entitytospawn = JujutsucraftModEntities.NEEDLE.get().spawn(_serverLevel, BlockPos.containing((entityiterator.getX()), (entityiterator.getY()), (entityiterator.getZ())), MobSpawnType.MOB_SUMMONED);
-                            if (entitytospawn != null) {
-                                entitytospawn.setYRot(world.getRandom().nextFloat() * 360.0F);
-                                {
-                                    CompoundTag dataIndex = new CompoundTag();
-                                    (entitytospawn).saveWithoutId(dataIndex);
-                                    dataIndex.getCompound("ForgeData").putString("OWNER_UUID", (entity.getStringUUID()));
-                                    (entitytospawn).load(dataIndex);
-                                }
-                                {
-                                    Entity _ent = (entitytospawn);
-                                    _ent.teleportTo((x + Mth.nextInt(RandomSource.create(), -2, 2)), y, z);
-                                    if (_ent instanceof ServerPlayer _serverPlayer)
-                                        _serverPlayer.connection.teleport((x + Mth.nextInt(RandomSource.create(), -2, 2)), y, z, _ent.getYRot(), _ent.getXRot());
-                                }
-                                {
-                                    CompoundTag dataIndex = new CompoundTag();
-                                    (entitytospawn).saveWithoutId(dataIndex);
-                                    dataIndex.getCompound("ForgeData").putDouble("friend_num", (new Object() {
-                                        public double getValue() {
-                                            CompoundTag dataIndex = new CompoundTag();
-                                            entity.saveWithoutId(dataIndex);
-                                            return dataIndex.getCompound("ForgeData").getDouble("friend_num");
-                                        }
-                                    }.getValue()));
-                                    (entitytospawn).load(dataIndex);
-                                }
-                                {
-                                    CompoundTag dataIndex = new CompoundTag();
-                                    (entitytospawn).saveWithoutId(dataIndex);
-                                    dataIndex.getCompound("ForgeData").putDouble("friend_num2", (new Object() {
-                                        public double getValue() {
-                                            CompoundTag dataIndex = new CompoundTag();
-                                            entity.saveWithoutId(dataIndex);
-                                            return dataIndex.getCompound("ForgeData").getDouble("friend_num");
-                                        }
-                                    }.getValue()));
-                                    (entitytospawn).load(dataIndex);
-                                }
-                                {
-                                    CompoundTag dataIndex = new CompoundTag();
-                                    (entitytospawn).saveWithoutId(dataIndex);
-                                    dataIndex.getCompound("ForgeData").putDouble("skill", 2909);
-                                    (entitytospawn).load(dataIndex);
-                                }
-                                if ((entitytospawn) instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get(), 10000,
-                                            ((entitytospawn) instanceof LivingEntity _livEnt && _livEnt.hasEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())
-                                                    ? _livEnt.getEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get()).getAmplifier()
-                                                    : 0),
-                                            false, false));
-                                {
-                                    CompoundTag dataIndex = new CompoundTag();
-                                    (entitytospawn).saveWithoutId(dataIndex);
-                                    dataIndex.getCompound("ForgeData").putDouble("NameRanged_ranged", Math.random());
-                                    (entitytospawn).load(dataIndex);
-                                }
-                                {
-                                    CompoundTag dataIndex = new CompoundTag();
-                                    (entitytospawn).saveWithoutId(dataIndex);
-                                    dataIndex.getCompound("ForgeData").putDouble("NameRanged", Math.random());
-                                    (entitytospawn).load(dataIndex);
-                                }
-                                if ((entitytospawn) instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, -1, 3, false, false));
-                                if ((entitytospawn) instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                    _entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, -1,
-                                            entity instanceof LivingEntity _livEnt && _livEnt.hasEffect(MobEffects.DAMAGE_BOOST) ? _livEnt.getEffect(MobEffects.DAMAGE_BOOST).getAmplifier() : 0, false, false));
-                                if ((entitytospawn) instanceof LivingEntity _entity)
-                                    _entity.setHealth((entitytospawn) instanceof LivingEntity _livEnt ? _livEnt.getMaxHealth() : -1);
-                                _serverLevel.addFreshEntity(entitytospawn);
-                            }
-                        }
-                    }
+        if (entity == null) return;
+
+        if (Math.random() < 1.0 / 300.0) {
+            if (world instanceof ServerLevel serverLevel) {
+                CompoundTag entityNBT = entity.getPersistentData();
+                double friendNum = entityNBT.getDouble("friend_num");
+                String ownerUuid = entity.getStringUUID();
+                int damageBoostAmp = (entity instanceof LivingEntity living && living.hasEffect(MobEffects.DAMAGE_BOOST)) ? 
+                                     living.getEffect(MobEffects.DAMAGE_BOOST).getAmplifier() : 0;
+
+                Vec3 center = new Vec3(x, y, z);
+                List<Entity> targets = world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(15.0), e -> e != entity).stream()
+                        .sorted(Comparator.comparingDouble(e -> e.distanceToSqr(center))).toList();
+
+                for (Entity target : targets) {
+                    spawnNeedle(serverLevel, x, y, z, target, ownerUuid, friendNum, damageBoostAmp);
                 }
             }
-            TechniqueNeedleProcedure.execute(world, x, y, z, entity);
+            TechniqueNeedleProcedure.execute(world, entity);
+        }
+    }
+
+    private static void spawnNeedle(ServerLevel level, double x, double y, double z, Entity target, String ownerUuid, double friendNum, int damageBoostAmp) {
+        Entity needle = JujutsucraftModEntities.NEEDLE.get().spawn(level, target.blockPosition(), MobSpawnType.MOB_SUMMONED);
+        if (needle instanceof LivingEntity livingNeedle) {
+            needle.setYRot(level.getRandom().nextFloat() * 360.0F);
+            
+            CompoundTag nbt = needle.getPersistentData();
+            nbt.putString("OWNER_UUID", ownerUuid);
+            nbt.putDouble("friend_num", friendNum);
+            nbt.putDouble("friend_num2", friendNum);
+            nbt.putDouble("skill", 2909.0);
+            
+            double randomVal = Math.random();
+            nbt.putDouble("NameRanged_ranged", randomVal);
+            nbt.putDouble("NameRanged", randomVal);
+
+            double targetX = x + Mth.nextInt(RandomSource.create(), -2, 2);
+            needle.teleportTo(targetX, y, z);
+
+            if (!level.isClientSide()) {
+                int ctAmp = livingNeedle.hasEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get()) ? 
+                            livingNeedle.getEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get()).getAmplifier() : 0;
+                livingNeedle.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get(), 10000, ctAmp, false, false));
+                livingNeedle.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, -1, 3, false, false));
+                livingNeedle.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, -1, damageBoostAmp, false, false));
+            }
+
+            livingNeedle.setHealth(livingNeedle.getMaxHealth());
+            level.addFreshEntity(livingNeedle);
         }
     }
 }

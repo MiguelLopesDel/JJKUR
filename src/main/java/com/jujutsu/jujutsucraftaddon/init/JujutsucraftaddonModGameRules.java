@@ -82,4 +82,5 @@ public class JujutsucraftaddonModGameRules {
     public static final GameRules.Key<GameRules.BooleanValue> JJKU_FINGER_RESET = GameRules.register("jjkuFingerReset", GameRules.Category.MISC, GameRules.BooleanValue.create(false));
     public static final GameRules.Key<GameRules.BooleanValue> JJKU_DISABLE_BINDING_VOWS = GameRules.register("jjkuBindingVows", GameRules.Category.MISC, GameRules.BooleanValue.create(false));
     public static final GameRules.Key<GameRules.BooleanValue> JJKU_EXTRACTOR_ALLOW = GameRules.register("jjkuExtractorAllow", GameRules.Category.MISC, GameRules.BooleanValue.create(false));
+    public static final GameRules.Key<GameRules.BooleanValue> JJKU_OP_SUKUNA = GameRules.register("jjkuOPSukuna", GameRules.Category.MISC, GameRules.BooleanValue.create(false));
 }

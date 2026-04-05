@@ -2,14 +2,16 @@ package com.jujutsu.jujutsucraftaddon.network;
 
 import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod;
 import com.jujutsu.jujutsucraftaddon.procedures.RemoveCE;
+import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
 import net.mcreator.jujutsucraft.procedures.KeyStartTechniqueOnKeyPressedProcedure;
 import net.mcreator.jujutsucraft.procedures.StartCursedTechniqueProcedure;
+import net.minecraft.advancements.Advancement;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.player.Player;
@@ -23,140 +25,93 @@ import java.util.function.Supplier;
 
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class AltarMessageMegumi {
-    int page;
+    private final int page;
 
-    // Constructor
     public AltarMessageMegumi(int page) {
         this.page = page;
     }
 
-    // Decoder
     public AltarMessageMegumi(FriendlyByteBuf buffer) {
         this.page = buffer.readInt();
     }
 
-    // Encoder
     public static void buffer(AltarMessageMegumi message, FriendlyByteBuf buffer) {
         buffer.writeInt(message.page);
     }
 
-    // Handler
     public static void handler(AltarMessageMegumi message, Supplier<NetworkEvent.Context> contextSupplier) {
         NetworkEvent.Context context = contextSupplier.get();
-        context.enqueueWork(() -> {
-            pressAction(context.getSender(), message.page);
-        });
+        context.enqueueWork(() -> pressAction(context.getSender(), message.page));
         context.setPacketHandled(true);
     }
 
-    // Action logic based on type and pressed time
     public static void pressAction(Player entity, int page) {
+        if (entity == null) return;
         Level world = entity.level();
-        double x = entity.getX();
-        double y = entity.getY();
-        double z = entity.getZ();
+        if (!world.hasChunkAt(entity.blockPosition())) return;
 
-        // Check if the chunk is loaded
-        if (!world.hasChunkAt(entity.blockPosition()))
-            return;
-        // Ações feitas, cada page = um index, lembrando que começa por 0, não por 1
-        if (entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables()).PlayerCurseTechnique2 == 6 && entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables()).PlayerCursePower >= 500) {
-            if (entity instanceof ServerPlayer && ((ServerPlayer) entity).level() instanceof ServerLevel
-                    && ((ServerPlayer) entity).getAdvancements().getOrStartProgress(((ServerPlayer) entity).server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraft:sorcerer_grade_special"))).isDone()) {
-                if (page == 0) {
-                    entity.getPersistentData().putDouble("skill", 607);
-                    StartCursedTechniqueProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
+        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(vars -> {
+            boolean megumiIn1 = vars.PlayerCurseTechnique == TechniqueIDs.MEGUMI;
+            boolean megumiIn2 = vars.PlayerCurseTechnique2 == TechniqueIDs.MEGUMI;
+
+            if (!(megumiIn1 || megumiIn2) || vars.PlayerCursePower < 500) return;
+
+            if (entity instanceof ServerPlayer _plr) {
+                Advancement _adv = _plr.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraft:sorcerer_grade_special"));
+                if (_adv == null || !_plr.getAdvancements().getOrStartProgress(_adv).isDone()) return;
+
+                vars.SecondTechnique = megumiIn2;
+                CompoundTag nbt = entity.getPersistentData();
+                double skillId = -1;
+                double selectId = -1;
+                String skillName = "";
+                boolean useKeyStart = true;
+
+                switch (page) {
+                    case 0 -> { skillId = 607; selectId = 7; skillName = "Divine Dog: Totality"; useKeyStart = false; }
+                    case 1 -> { skillId = 608; selectId = 8; skillName = "Nue"; }
+                    case 2 -> { skillId = 609; selectId = 9; skillName = "Great Serpent"; }
+                    case 3 -> { skillId = 610; selectId = 10; skillName = "Toad"; }
+                    case 4 -> { skillId = 611; selectId = 11; skillName = "Max Elephant"; }
+                    case 5 -> { skillId = 612; selectId = 12; skillName = "Rabbit Escape"; }
+                    case 6 -> { skillId = 613; selectId = 13; skillName = "Round Deer"; }
+                    case 7 -> { skillId = 614; selectId = 14; skillName = "Piercing Ox"; }
+                    case 8 -> { skillId = 615; selectId = 15; skillName = "Tiger Funeral"; }
+                    case 9 -> {
+                        if (nbt.getDouble("TenShadowsTechnique13") > -1) {
+                            skillId = 617; selectId = 17; skillName = "Merged Beast Agito";
+                        }
                     }
-                } else if (page == 1) {
-                    entity.getPersistentData().putDouble("skill", 608);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
+                    case 10 -> {
+                        if (nbt.getDouble("TenShadowsTechnique14") > -1) {
+                            skillId = 618; selectId = 18; skillName = "Mahoraga"; nbt.putDouble("cnt9", 1.0);
+                        }
                     }
-                } else if (page == 2) {
-                    entity.getPersistentData().putDouble("skill", 609);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 3) {
-                    entity.getPersistentData().putDouble("skill", 610);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 4) {
-                    entity.getPersistentData().putDouble("skill", 611.0);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 5) {
-                    entity.getPersistentData().putDouble("skill", 612.0);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 6) {
-                    entity.getPersistentData().putDouble("skill", 613.0);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 7) {
-                    entity.getPersistentData().putDouble("skill", 614.0);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 8) {
-                    entity.getPersistentData().putDouble("skill", 615.0);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 9) {
-                    if (entity.getPersistentData().getDouble("TenShadowsTechnique13") > -1) {
-                        entity.getPersistentData().putDouble("skill", 617.0);
-                        KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    }
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 10) {
-                    if (entity.getPersistentData().getDouble("TenShadowsTechnique14") > -1) {
-                        entity.getPersistentData().putDouble("skill", 618.0);
-                        KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    }
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 11) {
-                    entity.getPersistentData().putDouble("skill", 1007.0);
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
-                } else if (page == 12) {
-                    entity.getPersistentData().putDouble("skill", 608);
-                    entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.PlayerSelectCurseTechniqueName = (Component.translatable("entity.jujutsucraft.nue_totality").getString());
-                        capability.syncPlayerVariables(entity);
-                    });
-                    KeyStartTechniqueOnKeyPressedProcedure.execute(world, x, y, z, entity);
-                    if (!entity.level().isClientSide()) {
-                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
-                    }
+                    case 11 -> { skillId = 1007; selectId = 7; skillName = Component.translatable("jujutsu.technique.choso3").getString(); }
+                    case 12 -> { skillId = 608; selectId = 8; skillName = Component.translatable("entity.jujutsucraft.nue_totality").getString(); }
                 }
 
-                RemoveCE.execute(entity, world);
-            }
-        }
+                if (skillId != -1) {
+                    vars.PlayerSelectCurseTechnique = selectId;
+                    vars.PlayerSelectCurseTechniqueName = skillName;
+                    vars.syncPlayerVariables(entity);
 
+                    nbt.putDouble("skill", skillId);
+                    if (useKeyStart) {
+                        KeyStartTechniqueOnKeyPressedProcedure.execute(world, entity.getX(), entity.getY(), entity.getZ(), entity);
+                    } else {
+                        StartCursedTechniqueProcedure.execute(world, entity.getX(), entity.getY(), entity.getZ(), entity);
+                    }
+
+                    if (!world.isClientSide()) {
+                        entity.addEffect(new MobEffectInstance(JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 120));
+                    }
+                    RemoveCE.execute(entity, world);
+                }
+            }
+        });
     }
-    // Registrando o Packet
+
     @SubscribeEvent
     public static void registerMessage(FMLCommonSetupEvent event) {
         JujutsucraftaddonMod.addNetworkMessage(AltarMessageMegumi.class, AltarMessageMegumi::buffer, AltarMessageMegumi::new, AltarMessageMegumi::handler);

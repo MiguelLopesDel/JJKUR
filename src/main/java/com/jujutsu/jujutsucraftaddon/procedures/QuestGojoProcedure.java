@@ -158,7 +158,7 @@ public class QuestGojoProcedure {
                     }
                 }
             }
-            if ((ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString()).equals("jujutsucraft:eight_handled_swrod_divergent_sila_divine_general_mahoraga")) {
+            if ((ForgeRegistries.ENTITY_TYPES.getKey(entity.getType()).toString()).equals("jujutsucraft:eight_handled_sword_divergent_sila_divine_general_mahoraga")) {
                 if ((sourceentity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).GojoQuest == 2.6) {
                     {
                         double _setval = 2.7;

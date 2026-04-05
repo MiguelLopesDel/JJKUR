@@ -1,577 +1,234 @@
 package com.jujutsu.jujutsucraftaddon.procedures;
 
+import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod;
+import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModItems;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
+import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import dev.kosmx.playerAnim.api.layered.IAnimation;
 import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
 import dev.kosmx.playerAnim.api.layered.ModifierLayer;
 import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess;
 import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationRegistry;
+import net.mcreator.jujutsucraft.JujutsucraftMod;
 import net.mcreator.jujutsucraft.init.JujutsucraftModAttributes;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
+import net.mcreator.jujutsucraft.procedures.GetEntityAnimationProcedure;
 import net.mcreator.jujutsucraft.procedures.LogicSwordProcedure;
+import net.mcreator.jujutsucraft.procedures.SetupAnimationsProcedure;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.network.PacketDistributor;
 
 import javax.annotation.Nullable;
 
 public class NewPlayAnimation {
+
     public static void execute(@Nullable Event event, LevelAccessor world, DamageSource damagesource, Entity entity) {
-        if (damagesource != null && entity != null) {
-            if (damagesource.is(ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("jujutsucraft:start_animation"))) && entity instanceof Player) {
-                boolean sword = false;
-                Entity entiry_a;
-                String STR1 = "";
-                entiry_a = entity;
-                double NUM2 = 0.0;
-                double NUM3 = 0.0;
-                double rnd = 0.0;
-                double NUM1 = 0.0;
-                ModifierLayer animation;
-                AbstractClientPlayer player;
-                if (world.isClientSide() && entiry_a instanceof AbstractClientPlayer) {
-                    // Ab Animations
-                    if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIM_1.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "ab1player"))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        if (damagesource == null || entity == null) return;
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIM_2.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "ab2player"))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        ResourceLocation animationDamage = new ResourceLocation("jujutsucraft:start_animation");
+        if (!damagesource.is(ResourceKey.create(Registries.DAMAGE_TYPE, animationDamage))) return;
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.MURASAKI_EFFECT.get()) && (!(((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.SOKA_MONA.get())))) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "murasaki"))));
-                        }
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.WORLD_GOJO.get())) {
-                        if ((entiry_a.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel >= 4) {
-                            player = (AbstractClientPlayer) entiry_a;
-                            animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                            if (animation != null) {
-                                animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "murasaki2"))));
-                            }
-                        }
+        if (!(entity instanceof Player player) || !(entity instanceof LivingEntity livingEntity)) return;
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIM_3.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "ab3player"))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        var anim1Attr = JujutsucraftModAttributes.ANIMATION_1.get();
+        var anim2Attr = JujutsucraftModAttributes.ANIMATION_2.get();
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIM_4.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "ab4player"))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        if (!livingEntity.getAttributes().hasAttribute(anim1Attr)) return;
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.DODGE.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null && !animation.isActive()) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", ("dodge" + Mth.nextInt(RandomSource.create(), 1, 21))))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        double num1 = livingEntity.getAttribute(anim1Attr).getBaseValue();
+        double num2 = livingEntity.getAttributes().hasAttribute(anim2Attr) ? livingEntity.getAttribute(anim2Attr).getBaseValue() : 0.0;
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.JACKPOT.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null && !animation.isActive()) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "tucadonca"))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables());
+        JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables());
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.SOKA_MONA.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null && !animation.isActive()) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "soka"))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        double processedNum1 = num1 + ((num1 <= -50.0 && num1 >= -100.0) ? 100 : 0);
+        double num3 = processedNum1 >= 0.0 ? processedNum1 % 100.0 : 100.0;
+        boolean sword = LogicSwordProcedure.execute(entity);
+        
+        String animeName = "";
+        boolean isAddonNamespace = false;
+        boolean logicHandled = false;
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.COUNTER.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null && !animation.isActive()) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", ("counterhr" + Mth.nextInt(RandomSource.create(), 1, 7))))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+        if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.ANIMATION_TWO.get())) {
+            isAddonNamespace = true;
+            logicHandled = true;
+            if (addonVars.AnimationYuzuki >= 1 && addonVars.AnimationYuzuki < 20) {
+                animeName = "swordnpc";
+                addonVars.AnimationYuzuki += 1;
+                addonVars.syncPlayerVariables(entity);
+            } else if (addonVars.AnimationYuzuki >= 20) {
+                addonVars.AnimationYuzuki = 0;
+                addonVars.syncPlayerVariables(entity);
+            }
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIMATION_HEIAN.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null && !animation.isActive()) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "heianform"))));
-                        }
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
+            if (animeName.isEmpty()) {
+                if (addonVars.AnimationDefense == 1) { animeName = "defensesword4"; addonVars.AnimationDefense = 0; }
+                else if (addonVars.AnimationDefense == 2) { animeName = "defensesword3"; addonVars.AnimationDefense = 0; }
+                else if (addonVars.AnimationDefense == 3) { animeName = "defensesword2"; addonVars.AnimationDefense = 0; }
+                else if (addonVars.AnimationDefense >= 4 && addonVars.AnimationDefense < 24) { animeName = "red"; addonVars.AnimationDefense += 1; }
+                else if (addonVars.AnimationDefense == 24) { addonVars.AnimationDefense = 0; }
+                else if (addonVars.AnimationDefense >= 106 && addonVars.AnimationDefense < 116) { animeName = "cleaveweb"; addonVars.AnimationDefense += 1; }
+                else if (addonVars.AnimationDefense == 116) { addonVars.AnimationDefense = 0; }
+                else if (addonVars.AnimationDefense >= 99 && addonVars.AnimationDefense < 109) { animeName = "barragekick"; addonVars.AnimationDefense += 1; }
+                else if (addonVars.AnimationDefense == 109) { addonVars.AnimationDefense = 0; }
+                
+                if (!animeName.isEmpty()) addonVars.syncPlayerVariables(entity);
+            }
+        }
 
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.WORLD_CUT.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 2
-                                || (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 3) {
-                            if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel <= 3) {
-                                animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                if (animation != null && !animation.isActive()) {
-                                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "rapiddismantle"))));
-                                }
-                                return;
-                            } else {
-
-
-                                animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                if (animation != null && !animation.isActive()) {
-                                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "maximum3"))));
-                                }
-                                return;
-
-                            }
-
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 1) {
-                            if (world.isClientSide()) {
-                                animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                if (animation != null && !animation.isActive()) {
-                                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "spiderwebanim"))));
-                                }
-                                return;
-                            }
-
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 4) {
-                            if (world.isClientSide()) {
-                                animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                if (animation != null && !animation.isActive()) {
-                                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", ("worldslash" + Mth.nextInt(RandomSource.create(), 1, 4))))));
-                                }
-                                return;
-                            }
-                        }
-
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
-
-                    } else if (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIMATION_TWO.get())) {
-                        player = (AbstractClientPlayer) entiry_a;
-                        animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationYuzuki >= 1
-                                && (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationYuzuki < 20) {
-                            if (world.isClientSide()) {
-                                animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                if (animation != null && !animation.isActive()) {
-                                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "swordnpc"))));
-                                }
-                            }
-
-
-                            {
-                                double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationYuzuki + 1;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationYuzuki = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationYuzuki >= 20) {
-                            {
-                                double _setval = 0;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationYuzuki = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        }
-                        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense == 1) {
-                            if (world.isClientSide()) {
-                                if (entity instanceof AbstractClientPlayer) {
-                                    animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                    if (animation != null) {
-                                        animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "defensesword4"))));
-                                    }
-                                }
-                            }
-
-                            {
-                                double _setval = 0;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense == 2) {
-                            if (world.isClientSide()) {
-
-                                animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                if (animation != null) {
-                                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "defensesword3"))));
-                                }
-
-                            }
-
-                            {
-                                double _setval = 0;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense == 3) {
-                            if (world.isClientSide()) {
-                                if (entity instanceof AbstractClientPlayer) {
-                                    animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                    if (animation != null) {
-                                        animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "defensesword2"))));
-                                    }
-                                }
-                            }
-
-                            {
-                                double _setval = 0;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        }
-                        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense >= 4
-                                && (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense < 24) {
-                            if (world.isClientSide()) {
-                                if (entity instanceof AbstractClientPlayer) {
-                                    animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                    if (animation != null && !animation.isActive()) {
-                                        animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "red"))));
-                                    }
-                                }
-                            }
-
-                            {
-                                double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense + 1;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense == 24) {
-                            {
-                                double _setval = 0;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense >= 106
-                                && (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense < 116) {
-                            if (world.isClientSide()) {
-                                if (entity instanceof AbstractClientPlayer) {
-                                    animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                    if (animation != null && !animation.isActive()) {
-                                        animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "cleaveweb"))));
-                                    }
-                                }
-                            }
-
-                            {
-                                double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense + 1;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense == 116) {
-                            {
-                                double _setval = 0;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        }
-                        if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense >= 99
-                                && (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense < 109) {
-                            if (world.isClientSide()) {
-                                if (entity instanceof AbstractClientPlayer) {
-                                    animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                                    if (animation != null && !animation.isActive()) {
-                                        animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "barragekick"))));
-                                    }
-                                }
-                            }
-
-                            {
-                                double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense + 1;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).AnimationDefense == 109) {
-                            {
-                                double _setval = 0;
-                                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                    capability.AnimationDefense = _setval;
-                                    capability.syncPlayerVariables(entity);
-                                });
-                            }
-                        }
-
-                        if (event != null && event.isCancelable()) {
-                            event.setCanceled(true);
-                        } else if (event != null && event.hasResult()) {
-                            event.setResult(Event.Result.DENY);
-                        }
-
-                    }
-                }
-
-
-                if (!(((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIMATION.get())) || (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.SOKA_MONA.get())) || (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIMATION_TWO.get())) || (((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.ANIMATION_HEIAN.get()) || ((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.JACKPOT.get()) || ((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.DODGE.get()) || ((LivingEntity) entiry_a).hasEffect(JujutsucraftaddonModMobEffects.WORLD_CUT.get()))) {
-                    LivingEntity _livingEntity36;
-                    double var10000;
-                    label1452:
-                    {
-                        entiry_a = entity;
-                        if (entity instanceof LivingEntity) {
-                            _livingEntity36 = (LivingEntity) entity;
-                            if (_livingEntity36.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get())) {
-                                var10000 = _livingEntity36.getAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get()).getBaseValue();
-                                break label1452;
-                            }
-                        }
-
-                        var10000 = 0.0;
-                    }
-
-                    label1447:
-                    {
-                        NUM1 = var10000;
-                        if (entity instanceof LivingEntity) {
-                            _livingEntity36 = (LivingEntity) entity;
-                            if (_livingEntity36.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_2.get())) {
-                                var10000 = _livingEntity36.getAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_2.get()).getBaseValue();
-                                break label1447;
-                            }
-                        }
-
-                        var10000 = 0.0;
-                    }
-                    LivingEntity _livingEntity6;
-                    String animation_name = "";
-                    NUM2 = var10000;
-                    NUM1 += (double) (NUM1 <= -50.0 && NUM1 >= -100.0 ? 100 : 0);
-                    NUM3 = NUM1 >= 0.0 ? NUM1 % 100.0 : 100.0;
-                    sword = LogicSwordProcedure.execute(entiry_a);
-                    STR1 = Math.random() > 0.5 ? "right" : "left";
-                    if (NUM3 >= 0.0 && NUM3 <= 4.0) {
-                        if (sword && NUM2 > 0.0) {
-                            if (NUM2 != 1.0 && NUM2 != 2.0 && NUM2 != 3.0) {
-                                if (NUM2 == 4.0 || NUM2 == 5.0 || NUM2 == 6.0) {
-                                    STR1 = "left";
-                                }
-                            } else {
-                                STR1 = "right";
-                            }
-                        }
-
-                        String var26;
-                        if (NUM3 != 0.0 && NUM3 != 2.0 && NUM3 != 3.0) {
-                            if (NUM3 == 1.0) {
-                                if (sword) {
-                                    animation_name = "sword_to_right";
-                                } else {
-                                    var26 = Math.random() > 0.75 ? "punch_" : "kick_";
-                                    animation_name = var26 + STR1;
-                                }
-                            } else if (NUM3 == 4.0) {
-                                animation_name = sword ? "sword_overhead" : "punch_overhead";
-                            }
-                        } else if (NUM2 != 0.0 && !(NUM2 >= 100.0)) {
-                            if (sword) {
-                                rnd = Math.ceil(Math.random() * 3.0);
-                                animation_name = rnd == 1.0 ? "sword_overhead" : "sword_to_" + STR1;
-                            } else {
-                                animation_name = "punch_" + STR1;
-                            }
-                        } else if (sword) {
-                            animation_name = "sword_to_" + STR1;
-                        } else {
-                            var26 = Math.random() > 0.5 ? "kick_" : "punch_";
-                            animation_name = var26 + STR1;
-                        }
-                    } else if (NUM3 == 20.0) {
-                        if (NUM1 == 220.0) {
-                            animation_name = "red";
-                        } else {
-                            animation_name = "domain_expansion1";
-                        }
-                    } else if (NUM1 < 0.0) {
-                        if (NUM1 >= -10.0) {
-                            if (NUM1 == -1.0) {
-                                animation_name = "backstep";
-                            } else if (NUM1 == -2.0) {
-                                animation_name = "death";
-                            } else if (NUM1 == -3.0) {
-                                animation_name = "right_arm_up";
-                            } else if (NUM1 == -4.0) {
-                                animation_name = "both_arm_front";
-                            } else if (NUM1 == -5.0) {
-                                animation_name = "sword_to_right";
-                            }
-
-                            if (NUM1 == -6.0) {
-                                animation_name = "kick_" + STR1;
-                            } else if (NUM1 == -7.0) {
-                                animation_name = "punch_" + STR1;
-                            } else if (NUM1 == -8.0) {
-                                if (NUM2 == 0.0) {
-                                    if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique != 100) {
-                                        animation_name = "rotation";
-                                    }
-                                } else if (NUM2 == 1.0) {
-                                    if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique != 100) {
-                                        animation_name = "rotation2";
-                                    }
-                                } else if (NUM2 == 2.0) {
-                                    animation_name = "ragnaraku2";
-                                }
-                            } else if (NUM1 == -9.0) {
-                                animation_name = "guard";
-                            } else if (NUM1 == -10.0) {
-                                animation_name = "fall1";
-                            }
-                        } else if (NUM1 >= -15.0) {
-                            animation_name = "dance" + Math.round(NUM1 + 16.0);
-                        } else if (NUM1 >= -20.0) {
-                            if (NUM1 == -16.0) {
-                                animation_name = NUM2 == 0.0 ? "simple_domain1" : "simple_domain2";
-                            } else if (NUM1 == -17.0) {
-                                animation_name = "clap";
-                            } else if (NUM1 == -18.0) {
-                                animation_name = "fly";
-                            }
-                        }
-                    } else {
-                        if (NUM1 == 107.0) {
-                            animation_name = "open";
-                        } else if (NUM1 == 207.0) {
-                            animation_name = "red";
-                        } else if (NUM1 == 618.0) {
-                            animation_name = "ten_shadows_technique_mahoraga";
-                        }
-
-                        if (NUM1 == 1706.0) {
-                            animation_name = "kick_flying";
-                        } else if (NUM1 == 1715.0) {
-                            animation_name = "wifi";
-                        } else if (NUM1 == 2015.0) {
-                            animation_name = "plus_ultra";
-                        }
-                    }
-
-                    if (!animation_name.isEmpty()) {
-                        if (world.isClientSide() && entiry_a instanceof AbstractClientPlayer) {
-                            AbstractClientPlayer player1 = (AbstractClientPlayer) entiry_a;
-                            ModifierLayer<IAnimation> animation1 = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player1).get(new ResourceLocation("jujutsucraft", "player_animation"));
-                            if (animation1 != null) {
-                                animation1.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraft", animation_name))));
-                            }
-                        }
-
-//                        if (!world.isClientSide() && entiry_a instanceof Player && world instanceof ServerLevel) {
-//                            ServerLevel srvLvl_ = (ServerLevel) world;
-//                            List<Connection> connections = srvLvl_.getServer().getConnection().getConnections();
-//                            synchronized (connections) {
-//                                Iterator<Connection> iterator = connections.iterator();
-//
-//                                while (iterator.hasNext()) {
-//                                    Connection connection = (Connection) iterator.next();
-//                                    if (!connection.isConnecting() && connection.isConnected()) {
-//                                        JujutsucraftMod.PACKET_HANDLER.sendTo(new SetupAnimationsProcedure.JujutsucraftModAnimationMessage(Component.literal(animation_name), entiry_a.getId(), true), connection, NetworkDirection.PLAY_TO_CLIENT);
-//                                    }
-//                                }
-//                            }
-//                        }
-                    }
-                }
-
-                if (entity instanceof LivingEntity _livingEntity6) {
-                    if (_livingEntity6.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get())) {
-                        _livingEntity6.getAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get()).setBaseValue(0.0);
-                    }
-                }
-
-                if (entity instanceof LivingEntity _livingEntity6) {
-                    if (_livingEntity6.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_2.get())) {
-                        _livingEntity6.getAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_2.get()).setBaseValue(0.0);
-                    }
-                }
-
-                if (event != null && event.isCancelable()) {
-                    event.setCanceled(true);
-                } else if (event != null && event.hasResult()) {
-                    event.setResult(Event.Result.DENY);
+        if (!logicHandled) {
+            if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.ANIM_1.get())) animeName = "ab1player";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.ANIM_2.get())) animeName = "ab2player";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.ANIM_3.get())) animeName = "ab3player";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.ANIM_4.get())) animeName = "ab4player";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.MURASAKI_EFFECT.get()) && !livingEntity.hasEffect(JujutsucraftaddonModMobEffects.SOKA_MONA.get())) animeName = "murasaki";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.WORLD_GOJO.get())) {
+                if (addonVars.OutputLevel >= 4) animeName = "murasaki2";
+            }
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.DODGE.get())) animeName = "dodge" + Mth.nextInt(RandomSource.create(), 1, 21);
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.JACKPOT.get())) animeName = "tucadonca";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.SOKA_MONA.get())) animeName = "soka";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.COUNTER.get())) animeName = "counterhr" + Mth.nextInt(RandomSource.create(), 1, 7);
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.ANIMATION_HEIAN.get())) animeName = "heianform";
+            else if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.WORLD_CUT.get())) {
+                if (addonVars.Moveset == 2 || addonVars.Moveset == 3) {
+                    animeName = (addonVars.OutputLevel <= 3) ? "rapiddismantle" : "maximum3";
+                } else if (addonVars.Moveset == 1) {
+                    animeName = "spiderwebanim";
+                } else if (addonVars.Moveset == 4) {
+                    animeName = "worldslash" + Mth.nextInt(RandomSource.create(), 1, 4);
                 }
             }
+
+            if (!animeName.isEmpty()) {
+                isAddonNamespace = true;
+                logicHandled = true;
+            }
+        }
+
+        if (!logicHandled) {
+            ItemStack mainHand = livingEntity.getMainHandItem();
+            boolean isWukongWeapon = mainHand.getItem() == JujutsucraftaddonModItems.WUKONG_STAFF_TRUE.get().asItem()
+                    || mainHand.getItem() == JujutsucraftaddonModItems.HAMMER_WUKONG.get().asItem()
+                    || mainHand.getItem() == JujutsucraftaddonModItems.HALBERD_WUKONG.get().asItem()
+                    || mainHand.getItem() == JujutsucraftaddonModItems.SWORD_WUKONG.get().asItem()
+                    || mainHand.getItem() == JujutsucraftaddonModItems.GREAT_SWORD_WUKONG.get().asItem();
+
+            if (isWukongWeapon) {
+                animeName = "wu" + Mth.nextInt(RandomSource.create(), 1, 17);
+                isAddonNamespace = true;
+                logicHandled = true;
+            }
+        }
+
+        if (!logicHandled || !livingEntity.hasEffect(JujutsucraftaddonModMobEffects.ANIMATION.get())) {
+            if (animeName.isEmpty()) {
+                String side = GetEntityAnimationProcedure.execute(entity);
+                if (side.contains("_right")) side = "left";
+                else if (side.contains("_left")) side = "right";
+                else side = Math.random() > 0.5 ? "right" : "left";
+
+                if (num3 >= 0.0 && num3 <= 4.0) {
+                    if (sword && num2 > 0.0) side = (num2 <= 3.0) ? "right" : "left";
+                    if (num3 != 0.0 && num3 != 2.0 && num3 != 3.0) {
+                        if (num3 == 1.0) animeName = sword ? "sword_to_right" : (Math.random() < 0.25 ? "punch_" : "kick_") + side;
+                        else if (num3 == 4.0) {
+                            if (num2 == 0.0 || num2 == 2.0 || num2 == 4.0) animeName = sword ? "sword_overhead" : "punch_overhead";
+                            else if (num2 == 1.0 || num2 == 3.0 || num2 == 5.0) animeName = sword ? "sword_overhead2" : "punch_overhead2";
+                        }
+                    } else if (sword) animeName = "sword_to_" + side;
+                    else animeName = (!(Math.random() < 0.25) && (num2 <= 0.0 || num2 >= 100.0) ? "kick_" : "punch_") + side;
+                } else if (num3 == 20.0) animeName = (num1 == 220.0) ? "red" : "domain_expansion1";
+                else if (num1 < 0.0) {
+                    if (num1 >= -10.0) {
+                        if (num1 == -1.0) animeName = "backstep";
+                        else if (num1 == -2.0) animeName = "death";
+                        else if (num1 == -3.0) animeName = "right_arm_up";
+                        else if (num1 == -4.0) animeName = "both_arm_front";
+                        else if (num1 == -5.0) animeName = (num2 == 1.0) ? "sword_to_left" : "sword_to_right";
+                        else if (num1 == -6.0) {
+                            if (num2 == 1.0) animeName = "kashimo_kick";
+                            else if (num2 == 2.0) animeName = "kick_right";
+                            else if (num2 == 3.0) animeName = "kick_left";
+                            else if (num2 == 4.0) animeName = "kick_rotate4";
+                            else animeName = "kick_" + side;
+                        } else if (num1 == -7.0) {
+                            if (num2 == 1.0) animeName = "combo1";
+                            else if (num2 == 2.0) animeName = "combo2";
+                            else if (num2 == 3.0) animeName = "combo3";
+                            else animeName = "punch_" + side;
+                        } else if (num1 == -8.0) {
+                            if (num2 == 1.0) animeName = "rotation2";
+                            else if (num2 == 2.0) animeName = "ragnaraku2";
+                            else if (baseVars.PlayerCurseTechnique != TechniqueIDs.WUKONG) animeName = "rotation";
+                        } else if (num1 == -9.0) animeName = "guard";
+                        else if (num1 == -10.0) animeName = "fall1";
+                    } else if (num1 >= -15.0) animeName = "dance" + Math.round(num1 + 16.0);
+                    else if (num1 >= -20.0) {
+                        if (num1 == -16.0) animeName = (num2 == 0.0) ? "simple_domain1" : "simple_domain2";
+                        else if (num1 == -17.0) animeName = "clap";
+                        else if (num1 == -18.0) animeName = "fly";
+                        else if (num1 == -19.0) animeName = (num2 == 1.0) ? "breath2" : "breath1";
+                        else if (num1 == -20.0) {
+                            if (num2 == 1.0) animeName = "step_right";
+                            else if (num2 == 2.0) animeName = "step_left";
+                            else if (num2 == 3.0) animeName = "step_front";
+                            else animeName = "step_back";
+                        }
+                    } else if (num1 >= -25.0) {
+                        if (num1 == -21.0) animeName = "invisibility";
+                        else if (num1 == -22.0 && num2 == 1.0) animeName = "swim_butterfly";
+                    } else if (num1 == -49.0) animeName = "cancel";
+                } else {
+                    if (num1 == 107.0) animeName = "open";
+                    else if (num1 == 207.0) animeName = "red";
+                    else if (num1 == 215.0) animeName = (num2 == 1.0) ? "charge2" : "charge1";
+                    else if (num1 == 618.0) animeName = "ten_shadows_technique_mahoraga";
+                    else if (num1 == 1706.0) animeName = "kick_flying";
+                    else if (num1 == 1715.0) animeName = "wifi";
+                    else if (num1 == 2015.0) animeName = "plus_ultra";
+                }
+                isAddonNamespace = false;
+            }
+        }
+
+        if (!animeName.isEmpty()) {
+            String namespace = isAddonNamespace ? "jujutsucraftaddon" : "jujutsucraft";
+            if (world.isClientSide() && player instanceof AbstractClientPlayer acp) {
+                var animation = (ModifierLayer<IAnimation>) PlayerAnimationAccess.getPlayerAssociatedData(acp).get(new ResourceLocation(namespace, "player_animation"));
+                if (animation != null) {
+                    animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation(namespace, animeName))));
+                }
+            } else {
+                var msg = new SetupAnimationsProcedure.JujutsucraftModAnimationMessage(animeName, player.getId(), true);
+                if (player instanceof ServerPlayer sp) {
+                    JujutsucraftMod.PACKET_HANDLER.send(PacketDistributor.PLAYER.with(() -> sp), msg);
+                }
+                JujutsucraftMod.PACKET_HANDLER.send(PacketDistributor.TRACKING_ENTITY.with(() -> player), msg);
+            }
+        }
+
+        livingEntity.getAttribute(anim1Attr).setBaseValue(0.0);
+        if (livingEntity.getAttributes().hasAttribute(anim2Attr)) {
+            livingEntity.getAttribute(anim2Attr).setBaseValue(0.0);
+        }
+
+        if (event != null && event.isCancelable()) {
+            event.setCanceled(true);
         }
     }
 }
-

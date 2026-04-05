@@ -1,16 +1,15 @@
 package com.jujutsu.jujutsucraftaddon.procedures;
 
+import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
-import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
-import dev.kosmx.playerAnim.api.layered.ModifierLayer;
-import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess;
-import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationRegistry;
+import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
+import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
+import net.mcreator.jujutsucraft.JujutsucraftMod;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
-import net.minecraft.client.player.AbstractClientPlayer;
+import net.mcreator.jujutsucraft.procedures.SetupAnimationsProcedure;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
@@ -18,89 +17,101 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraftforge.network.PacketDistributor;
 
 public class PassiveKeybindOnKeyPressedProcedure {
+
     public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (entity == null)
-            return;
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 1) {
-            PassiveSukunaProcedure.execute(world, x, y, z, entity);
-        }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 2) {
-            if ((entity instanceof LivingEntity) && ((LivingEntity) entity).hasEffect(JujutsucraftModMobEffects.SIX_EYES.get())) {
-                if (world.isClientSide()) {
-                    if (entity instanceof AbstractClientPlayer player) {
-                        var animation = (ModifierLayer) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                        if (animation != null && !animation.isActive()) {
-                            animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "pressure"))));
-                        }
-                    }
-                }
+        if (entity == null) return;
 
-                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide() && !_entity.hasEffect(JujutsucraftaddonModMobEffects.HWB.get()))
-                     _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.HWB.get(), 40, 1, false, false));
-            }
+        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(vars -> {
+            boolean opSukuna = world.getLevelData().getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_OP_SUKUNA);
+            double techniqueId;
 
-        } else if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 6) {
-            if (entity instanceof ServerPlayer _plr9 && _plr9.level() instanceof ServerLevel
-                    && _plr9.getAdvancements().getOrStartProgress(_plr9.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:extension_technique"))).isDone()) {
-                Buff2Procedure.execute(world, x, y, z, entity);
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Buffed Shikigamis"), false);
-            }
-
-//                {
-//                    final Vec3 _center = new Vec3(x, y, z);
-//                    List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(100 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
-//                    for (Entity entityiterator : _entfound) {
-//                        if ((new Object() {
-//                            public String getValue() {
-//                                CompoundTag dataIndex = new CompoundTag();
-//                                entityiterator.saveWithoutId(dataIndex);
-//                                return dataIndex.getCompound("ForgeData").getString("OWNER_UUID");
-//                            }
-//                        }.getValue()).equals(entity.getStringUUID())) {
-//                            if (entityiterator.getPersistentData().getDouble("NoAttac1") == 0) {
-//                                entityiterator.getPersistentData().putDouble("NoAttac1", 1);
-//                                if (entityiterator instanceof LivingEntity _entity && !_entity.level().isClientSide())
-//                                    _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.AI.get(), -1, 1, false, false));
-//                                if (entity instanceof Player _player && !_player.level().isClientSide())
-//                                    _player.displayClientMessage(Component.literal("Disabled Shikigami Attack"), false);
-//                            } else if (entityiterator.getPersistentData().getDouble("NoAttac1") == 1) {
-//                                entityiterator.getPersistentData().putDouble("NoAttac1", 0);
-//                                if (entityiterator instanceof LivingEntity _entity)
-//                                    _entity.removeEffect(JujutsucraftaddonModMobEffects.AI.get());
-//                                if (entity instanceof Player _player && !_player.level().isClientSide())
-//                                    _player.displayClientMessage(Component.literal("Enabled Shikigami Attack"), false);
-//                            }
-//                        }
-//                    }
-        }  else if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 9) {
-            if (entity instanceof ServerPlayer _plr56 && _plr56.level() instanceof ServerLevel
-                    && _plr56.getAdvancements().getOrStartProgress(_plr56.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:extension_technique"))).isDone()) {
-                Buff2Procedure.execute(world, x, y, z, entity);
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Buffed!!"), false);
-            }
-        } else if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 7) {
-            PassiveKashimoProcedure.execute(world, entity);
-        }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique == 38) {
-            if (!(entity instanceof LivingEntity _livEnt71 && _livEnt71.hasEffect(MobEffects.INVISIBILITY))) {
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Used Sky Manipulation To Hide Yourself"), false);
-                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                    _entity.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, -1, 254, false, false));
-                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                    _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.URO_SNEAKY.get(), -1, 254, false, false));
+            if (opSukuna) {
+                techniqueId = vars.SecondTechnique ? vars.PlayerCurseTechnique2 : vars.PlayerCurseTechnique;
             } else {
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Removed Sky Manipulation To Hide Yourself"), false);
-                if (entity instanceof LivingEntity _entity)
-                    _entity.removeEffect(MobEffects.INVISIBILITY);
-                if (entity instanceof LivingEntity _entity)
-                    _entity.removeEffect(JujutsucraftaddonModMobEffects.URO_SNEAKY.get());
+                techniqueId = vars.PlayerCurseTechnique2;
             }
+            
+            if (techniqueId == TechniqueIDs.SUKUNA) {
+                PassiveSukunaProcedure.execute(world, x, y, z, entity);
+            } else if (techniqueId == TechniqueIDs.GOJO) {
+                handleGojoPassive(entity);
+            } else if (techniqueId == TechniqueIDs.MEGUMI) {
+                handleMegumiPassive(world, x, y, z, entity);
+            } else if (techniqueId == TechniqueIDs.TSUKUMO) {
+                handleTsukumoPassive(world, x, y, z, entity);
+            } else if (techniqueId == TechniqueIDs.KASHIMO) {
+                PassiveKashimoProcedure.execute(world, entity);
+            }
+
+            double uroCheck = opSukuna ? (vars.SecondTechnique ? vars.PlayerCurseTechnique2 : vars.PlayerCurseTechnique) : vars.PlayerCurseTechnique;
+            if (uroCheck == TechniqueIDs.URO) {
+                handleUroLogic(entity);
+            }
+        });
+    }
+
+    private static void handleGojoPassive(Entity entity) {
+        if (entity instanceof LivingEntity living && living.hasEffect(JujutsucraftModMobEffects.SIX_EYES.get())) {
+            playAnimation(entity, "pressure");
+            if (!living.hasEffect(JujutsucraftaddonModMobEffects.HWB.get()) && !entity.level().isClientSide()) {
+                living.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.HWB.get(), 40, 1, false, false));
+            }
+        }
+    }
+
+    private static void handleMegumiPassive(LevelAccessor world, double x, double y, double z, Entity entity) {
+        if (hasAdvancement(entity, "extension_technique")) {
+            Buff2Procedure.execute(world, x, y, z, entity);
+            sendActionMessage(entity, "Buffed Shikigamis");
+        }
+    }
+
+    private static void handleTsukumoPassive(LevelAccessor world, double x, double y, double z, Entity entity) {
+        if (hasAdvancement(entity, "extension_technique")) {
+            Buff2Procedure.execute(world, x, y, z, entity);
+            sendActionMessage(entity, "Buffed!!");
+        }
+    }
+
+    private static void handleUroLogic(Entity entity) {
+        if (entity instanceof LivingEntity living) {
+            if (!living.hasEffect(MobEffects.INVISIBILITY)) {
+                sendActionMessage(entity, "Used Sky Manipulation To Hide Yourself");
+                if (!entity.level().isClientSide()) {
+                    living.addEffect(new MobEffectInstance(MobEffects.INVISIBILITY, -1, 254, false, false));
+                    living.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.URO_SNEAKY.get(), -1, 254, false, false));
+                }
+            } else {
+                sendActionMessage(entity, "Removed Sky Manipulation To Hide Yourself");
+                living.removeEffect(MobEffects.INVISIBILITY);
+                living.removeEffect(JujutsucraftaddonModMobEffects.URO_SNEAKY.get());
+            }
+        }
+    }
+
+    private static void playAnimation(Entity entity, String animName) {
+        if (!entity.level().isClientSide() && entity instanceof ServerPlayer sp) {
+            SetupAnimationsProcedure.JujutsucraftModAnimationMessage msg = new SetupAnimationsProcedure.JujutsucraftModAnimationMessage(animName, entity.getId(), true);
+            JujutsucraftMod.PACKET_HANDLER.send(PacketDistributor.PLAYER.with(() -> sp), msg);
+            JujutsucraftMod.PACKET_HANDLER.send(PacketDistributor.TRACKING_ENTITY.with(() -> entity), msg);
+        }
+    }
+
+    private static boolean hasAdvancement(Entity entity, String name) {
+        if (entity instanceof ServerPlayer player) {
+            ResourceLocation advLoc = new ResourceLocation("jujutsucraftaddon:" + name);
+            net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(advLoc);
+            return adv != null && player.getAdvancements().getOrStartProgress(adv).isDone();
+        }
+        return false;
+    }
+
+    private static void sendActionMessage(Entity entity, String text) {
+        if (entity instanceof Player player && !entity.level().isClientSide()) {
+            player.displayClientMessage(Component.literal(text), false);
         }
     }
 }

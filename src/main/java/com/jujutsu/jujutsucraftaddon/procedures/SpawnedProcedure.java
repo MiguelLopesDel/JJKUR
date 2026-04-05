@@ -4,20 +4,23 @@ import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.mojang.util.UUIDTypeAdapter;
 import net.mcreator.jujutsucraft.entity.*;
+import net.mcreator.jujutsucraft.init.JujutsucraftModAttributes;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
+import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
 import net.mcreator.jujutsucraft.procedures.SizeByNBTProcedure;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.*;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -31,12 +34,16 @@ import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 @Mod.EventBusSubscriber
 public class SpawnedProcedure {
+
     @SubscribeEvent
     public static void onEntitySpawned(EntityJoinLevelEvent event) {
-        execute(event, event.getLevel(), event.getEntity().getX(), event.getEntity().getY(), event.getEntity().getZ(), event.getEntity());
+        if (event != null && event.getEntity() != null) {
+            execute(event, event.getLevel(), event.getEntity().getX(), event.getEntity().getY(), event.getEntity().getZ(), event.getEntity());
+        }
     }
 
     public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
@@ -44,241 +51,193 @@ public class SpawnedProcedure {
     }
 
     private static void execute(@Nullable Event event, LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (!(entity instanceof LivingEntity livingEntity))
-            return;
+        if (!(entity instanceof LivingEntity livingEntity)) return;
+
+        CompoundTag persistentData = entity.getPersistentData();
 
         if (world instanceof ServerLevel serverLevel) {
             if (serverLevel.getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_NO_VANILLA)) {
                 if (entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:vanilla_mob")))) {
                     cancelEvent(event);
+                    return;
                 }
             }
         }
 
-        if ((entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("jujutsucraft:ten_shadows_technique")))) && !(entity instanceof EightHandledSwrodDivergentSilaDivineGeneralMahoragaEntity)) {
-            if (!(((new Object() {
-                public Entity get(LevelAccessor _world, String _uuid) {
-                    try {
-                        if (_world instanceof ServerLevel _serverLevel) {
-                            return _serverLevel.getEntity(UUIDTypeAdapter.fromString(_uuid));
-                        }
-                    } catch (Exception _e) {
-                    }
-                    return null;
-                }
-            }).get(world, (entity.getPersistentData().getString("OWNER_UUID")))) == null)) {
-                if (((new Object() {
-                    public Entity get(LevelAccessor _world, String _uuid) {
-                        try {
-                            if (_world instanceof ServerLevel _serverLevel) {
-                                return _serverLevel.getEntity(UUIDTypeAdapter.fromString(_uuid));
-                            }
-                        } catch (Exception _e) {
-                        }
-                        return null;
-                    }
-                }).get(world, (entity.getPersistentData().getString("OWNER_UUID")))) instanceof SukunaFushiguroEntity) {
-                    ((LivingEntity) entity).getAttribute(ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation("jujutsucraft:size")))
-                            .setBaseValue((((LivingEntity) entity).getAttribute(ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation("jujutsucraft:size"))).getBaseValue() * 2));
-                    if (entity instanceof LivingEntity _livingEntity9 && _livingEntity9.getAttributes().hasAttribute(Attributes.MAX_HEALTH))
-                        _livingEntity9.getAttribute(Attributes.MAX_HEALTH)
-                                .setBaseValue(((entity instanceof LivingEntity _livingEntity8 && _livingEntity8.getAttributes().hasAttribute(Attributes.MAX_HEALTH) ? _livingEntity8.getAttribute(Attributes.MAX_HEALTH).getBaseValue() : 0) * 2));
-                    if (entity instanceof LivingEntity _entity)
-                        _entity.setHealth(entity instanceof LivingEntity _livEnt ? _livEnt.getMaxHealth() : -1);
-                    if (entity instanceof LivingEntity _livingEntity12 && _livingEntity12.getAttributes().hasAttribute(Attributes.ARMOR))
-                        _livingEntity12.getAttribute(Attributes.ARMOR)
-                                .setBaseValue(((entity instanceof LivingEntity _livingEntity11 && _livingEntity11.getAttributes().hasAttribute(Attributes.ARMOR) ? _livingEntity11.getAttribute(Attributes.ARMOR).getBaseValue() : 0) + 2));
-                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                        _entity.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, -1,
-                                (int) ((entity instanceof LivingEntity _livEnt && _livEnt.hasEffect(MobEffects.DAMAGE_BOOST) ? _livEnt.getEffect(MobEffects.DAMAGE_BOOST).getAmplifier() : 0) + 4), false, false));
-                }
-            }
-
-        }
+        handleTenShadowsLogic(world, entity, persistentData);
 
         ResourceLocation entityTypeKey = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
-        if (entityTypeKey == null || !entityTypeKey.toString().startsWith("jujutsucraft"))
-            return;
+        if (entityTypeKey == null || !entityTypeKey.toString().startsWith("jujutsucraft")) return;
 
-        if (entity instanceof TodoAoiEntity || entity instanceof HigurumaHiromiEntity || entity instanceof MiguelEntity || entity instanceof MiguelDancerEntity) {
-            LivingEntity livingEntity2 = (LivingEntity) entity;
-            AttributeInstance maxHealthAttr = livingEntity2.getAttribute(Attributes.MAX_HEALTH);
-            maxHealthAttr.setBaseValue(900);
-            AttributeInstance maxHealthAttr1 = livingEntity2.getAttribute(Attributes.ARMOR);
-            maxHealthAttr1.setBaseValue(30);
-            if (entity instanceof TodoAoiEntity) {
-                AttributeInstance maxHealthAttr2 = livingEntity2.getAttribute(Attributes.ARMOR_TOUGHNESS);
-                maxHealthAttr2.setBaseValue(20);
-            } else {
-                AttributeInstance maxHealthAttr2 = livingEntity2.getAttribute(Attributes.ARMOR_TOUGHNESS);
-                maxHealthAttr2.setBaseValue(10);
-            }
-            livingEntity2.setHealth(livingEntity2.getMaxHealth());
+        handleBossStats(entity);
+        handlePurpleLogic(world, x, y, z, entity, persistentData);
+        handleMahoragaLogic(world, x, y, z, entity, persistentData);
+
+        if (!persistentData.getString("OWNER_UUID").isEmpty()) return;
+
+        handleRedSize(entity);
+
+        if (!world.isClientSide()) {
+            livingEntity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.RESPAWNED_JUJUTSU.get(), 20, 1, false, false));
         }
 
-        if (entity instanceof PurpleEntity) {
-            if (entity.getPersistentData().getDouble("Full") == 1) {
-                {
-                    final Vec3 _center = new Vec3(x, y, z);
-                    List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(300 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
-                    for (Entity entityiterator : _entfound) {
-                        if (!(entityiterator == entity)) {
-                            if (entityiterator instanceof GojoSatoruEntity || entityiterator instanceof SukunaFushiguroEntity) {
-                                if (entityiterator instanceof LivingEntity _ent) {
-                                    _ent.setHealth(_ent.getMaxHealth());
-                                }
+        MobSpawnType spawnType = entity instanceof PathfinderMob _pathfinder ? _pathfinder.getSpawnType() : null;
+        if (spawnType != null) {
+            handleEntitySpawnLogic(event, world, entity, spawnType);
+        }
+    }
 
-                                if (entityiterator instanceof SukunaFushiguroEntity) {
-                                    if (entityiterator instanceof SukunaFushiguroEntity _entity1) {
-                                        if (!_entity1.level().isClientSide()) {
-                                            _entity1.addEffect(new MobEffectInstance((MobEffect) JujutsucraftaddonModMobEffects.BINDING_VOW_COOLDOWN.get(), (int) 1200, 0, false, false));
-                                        }
-                                    }
-                                    if (entityiterator instanceof SukunaFushiguroEntity _datEntL5 && !_datEntL5.getEntityData().get(SukunaFushiguroEntity.DATA_world_cut)) {
-                                        _datEntL5.getEntityData().set(SukunaFushiguroEntity.DATA_world_cut, true);
-                                    }
-                                    entityiterator.getPersistentData().putDouble("skill", 105);
-                                    entityiterator.getPersistentData().putDouble("cnt6", 20);
-                                    if (entityiterator instanceof LivingEntity _entity) {
-                                        if (!_entity.level().isClientSide()) {
-                                            _entity.addEffect(new MobEffectInstance((MobEffect) JujutsucraftModMobEffects.COOLDOWN_TIME.get(), (int) 100, 0, false, false));
-                                            _entity.addEffect(new MobEffectInstance((MobEffect) JujutsucraftModMobEffects.CURSED_TECHNIQUE.get(), Integer.MAX_VALUE, 0, false, false));
-                                        }
-                                    }
-                                }
+    private static void handleTenShadowsLogic(LevelAccessor world, Entity entity, CompoundTag persistentData) {
+        if (entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("jujutsucraft:ten_shadows_technique"))) && !(entity instanceof EightHandledSwordDivergentSilaDivineGeneralMahoragaEntity)) {
+            String ownerUuidStr = persistentData.getString("OWNER_UUID");
+            if (!ownerUuidStr.isEmpty()) {
+                try {
+                    Entity owner = null;
+                    if (world instanceof ServerLevel serverLevel) {
+                        owner = serverLevel.getEntity(UUID.fromString(ownerUuidStr));
+                    }
+                    if (owner instanceof SukunaFushiguroEntity && entity instanceof LivingEntity living) {
+                        var sizeAttr = ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation("jujutsucraft:size"));
+                        if (sizeAttr != null && living.getAttributes().hasAttribute(sizeAttr)) {
+                            living.getAttribute(sizeAttr).setBaseValue(living.getAttribute(sizeAttr).getBaseValue() * 2);
+                        }
+                        if (living.getAttributes().hasAttribute(Attributes.MAX_HEALTH)) {
+                            living.getAttribute(Attributes.MAX_HEALTH).setBaseValue(living.getAttribute(Attributes.MAX_HEALTH).getBaseValue() * 2);
+                            living.setHealth(living.getMaxHealth());
+                        }
+                        if (living.getAttributes().hasAttribute(Attributes.ARMOR)) {
+                            living.getAttribute(Attributes.ARMOR).setBaseValue(living.getAttribute(Attributes.ARMOR).getBaseValue() + 2);
+                        }
+                        if (!world.isClientSide()) {
+                            int amp = living.hasEffect(MobEffects.DAMAGE_BOOST) ? living.getEffect(MobEffects.DAMAGE_BOOST).getAmplifier() : 0;
+                            living.addEffect(new MobEffectInstance(MobEffects.DAMAGE_BOOST, -1, amp + 4, false, false));
+                        }
+                    }
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private static void handleBossStats(Entity entity) {
+        if (entity instanceof TodoAoiEntity || entity instanceof HigurumaHiromiEntity || entity instanceof MiguelEntity || entity instanceof MiguelDancerEntity) {
+            LivingEntity living = (LivingEntity) entity;
+            AttributeInstance maxHealth = living.getAttribute(Attributes.MAX_HEALTH);
+            AttributeInstance armor = living.getAttribute(Attributes.ARMOR);
+            AttributeInstance toughness = living.getAttribute(Attributes.ARMOR_TOUGHNESS);
+
+            if (maxHealth != null) maxHealth.setBaseValue(900);
+            if (armor != null) armor.setBaseValue(30);
+            if (toughness != null) toughness.setBaseValue(entity instanceof TodoAoiEntity ? 20 : 10);
+            living.setHealth(living.getMaxHealth());
+        }
+    }
+
+    private static void handlePurpleLogic(LevelAccessor world, double x, double y, double z, Entity entity, CompoundTag persistentData) {
+        if (entity instanceof PurpleEntity && persistentData.getDouble("Full") == 1) {
+            Vec3 center = new Vec3(x, y, z);
+            List<Entity> entities = world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(150.0), e -> e != entity);
+            for (Entity target : entities) {
+                if (target instanceof GojoSatoruEntity || target instanceof SukunaFushiguroEntity) {
+                    if (target instanceof LivingEntity living) {
+                        living.setHealth(living.getMaxHealth());
+                        if (target instanceof SukunaFushiguroEntity sukunaF) {
+                            if (!world.isClientSide()) {
+                                sukunaF.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.BINDING_VOW_COOLDOWN.get(), 1200, 0, false, false));
+                                sukunaF.addEffect(new MobEffectInstance(net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects.COOLDOWN_TIME.get(), 100, 0, false, false));
+                                sukunaF.addEffect(new MobEffectInstance(net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects.CURSED_TECHNIQUE.get(), Integer.MAX_VALUE, 0, false, false));
                             }
+                            if (!sukunaF.getEntityData().get(SukunaFushiguroEntity.DATA_world_cut)) {
+                                sukunaF.getEntityData().set(SukunaFushiguroEntity.DATA_world_cut, true);
+                            }
+                            sukunaF.getPersistentData().putDouble("skill", 105);
+                            sukunaF.getPersistentData().putDouble("cnt6", 20);
                         }
                     }
                 }
             }
         }
+    }
 
+    private static void handleMahoragaLogic(LevelAccessor world, double x, double y, double z, Entity entity, CompoundTag persistentData) {
+        KenjakuDomainSummoningProcedure.execute(world, x, y, z, entity);
+        if (persistentData.getDouble("Mahoraga") == 1 && entity instanceof EightHandledSwordDivergentSilaDivineGeneralMahoragaEntity && !world.isClientSide()) {
+            ((LivingEntity) entity).addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.MAHO_EFFECTO.get(), 40, 1, false, false));
+        }
+    }
 
-        handleMahoragaLogic(world, x, y, z, entity);
+    private static void handleRedSize(Entity entity) {
+        if (entity instanceof RedEntity redEntity) {
+            redEntity.getDimensions(redEntity.getPose()).scale((float) SizeByNBTProcedure.execute(entity));
+        }
+    }
 
-        if (!entity.getPersistentData().getString("OWNER_UUID").isEmpty()) {
+    private static void handleEntitySpawnLogic(Event event, LevelAccessor world, Entity entity, MobSpawnType spawnType) {
+        if (spawnType == MobSpawnType.COMMAND) {
+            handleBuffModification(world, entity);
             return;
         }
 
-
-
-        if (entity instanceof RedEntity redEntity) {
-            Pose pose = redEntity.getPose();
-            redEntity.getDimensions(pose).scale((float) SizeByNBTProcedure.execute(entity));
-        }
-
-        boolean isServerSide = !livingEntity.level().isClientSide();
-
-        if (isServerSide) {
-            livingEntity.addEffect(new MobEffectInstance(
-                    JujutsucraftaddonModMobEffects.RESPAWNED_JUJUTSU.get(), 20, 1, false, false
-            ));
-        }
-
-        MobSpawnType spawnType = entity instanceof PathfinderMob ? ((PathfinderMob) entity).getSpawnType() : null;
-        if (spawnType != null) {
-            handleEntitySpawnLogic(event, world, entity, spawnType, entityTypeKey);
-        }
-
-    }
-
-    private static void handleEntitySpawnLogic(Event event, LevelAccessor world, Entity entity, MobSpawnType
-            spawnType, ResourceLocation entityTypeKey) {
-        String spawnTypeName = spawnType.toString();
-        boolean isCommandSpawn = "COMMAND".equals(spawnTypeName);
-
-        if (!isCommandSpawn) {
-            cancelEventIfRuleMet(event, world, JujutsucraftaddonModGameRules.JJKU_NO_STEVENSON, entity instanceof StevensonScreenEntity);
-            cancelEventIfRuleMet(event, world, JujutsucraftaddonModGameRules.JJKU_NO_ARMORY_SPIRIT, entity instanceof CursedSpiritGrade37Entity);
-            cancelEventIfChanceFails(event, world, entity, spawnTypeName, JujutsucraftaddonModGameRules.JJKU_SUKUNA_RATE, SukunaEntity.class, SukunaFushiguroEntity.class, SukunaPerfectEntity.class);
-            cancelEventIfChanceFails(event, world, entity, spawnTypeName, JujutsucraftaddonModGameRules.JJKU_GOJO_RATE, GojoSatoruSchoolDaysEntity.class, GojoSatoruEntity.class);
-            cancelEventIfChanceFails(event, world, entity, spawnTypeName, JujutsucraftaddonModGameRules.JJKU_TOJI_RATE, FushiguroTojiEntity.class, FushiguroTojiBugEntity.class);
-            cancelEventIfPersistentData(event, world, entity, "CursedSpirit", JujutsucraftaddonModGameRules.JJKU_CURSED_SPIRIT_RATE, spawnTypeName);
-            cancelEventIfPersistentData(event, world, entity, "CurseUser", JujutsucraftaddonModGameRules.JJKU_CURSE_USERS_RATE, spawnTypeName);
-            cancelEventIfPersistentData(event, world, entity, "JujutsuSorcerer", JujutsucraftaddonModGameRules.JJKU_SORCERERS_RATE, spawnTypeName);
-        }
+        cancelEventIfRuleMet(event, world, JujutsucraftaddonModGameRules.JJKU_NO_STEVENSON, entity instanceof StevensonScreenEntity);
+        cancelEventIfRuleMet(event, world, JujutsucraftaddonModGameRules.JJKU_NO_ARMORY_SPIRIT, entity instanceof CursedSpiritGrade37Entity);
+        
+        GameRules rules = world.getLevelData().getGameRules();
+        cancelEventIfChanceFails(event, rules, entity, JujutsucraftaddonModGameRules.JJKU_SUKUNA_RATE, SukunaEntity.class, SukunaFushiguroEntity.class, SukunaPerfectEntity.class);
+        cancelEventIfChanceFails(event, rules, entity, JujutsucraftaddonModGameRules.JJKU_GOJO_RATE, GojoSatoruSchoolDaysEntity.class, GojoSatoruEntity.class);
+        cancelEventIfChanceFails(event, rules, entity, JujutsucraftaddonModGameRules.JJKU_TOJI_RATE, FushiguroTojiEntity.class, FushiguroTojiBugEntity.class);
+        
+        cancelEventIfPersistentData(event, rules, entity, "CursedSpirit", JujutsucraftaddonModGameRules.JJKU_CURSED_SPIRIT_RATE);
+        cancelEventIfPersistentData(event, rules, entity, "CurseUser", JujutsucraftaddonModGameRules.JJKU_CURSE_USERS_RATE);
+        cancelEventIfPersistentData(event, rules, entity, "JujutsuSorcerer", JujutsucraftaddonModGameRules.JJKU_SORCERERS_RATE);
 
         handleBuffModification(world, entity);
     }
 
     private static void handleBuffModification(LevelAccessor world, Entity entity) {
-        if (entity.getPersistentData().getDouble("CursedSpirit") == 1
-                || entity.getPersistentData().getDouble("CurseUser") == 1
-                || entity.getPersistentData().getDouble("JujutsuSorcerer") == 1) {
-
-            CompoundTag forgeData = entity.getPersistentData().getCompound("ForgeData");
-            if (forgeData.getDouble("buff") != 1) {
-                LivingEntity livingEntity = (LivingEntity) entity;
-                AttributeInstance maxHealthAttr = livingEntity.getAttribute(Attributes.MAX_HEALTH);
-                if (maxHealthAttr != null) {
-                    double gameDifficulty = world.getLevelData().getGameRules().getInt(JujutsucraftaddonModGameRules.JJKU_DIFFICULTY);
-                    double newMaxHealth = 100.0 / gameDifficulty * maxHealthAttr.getBaseValue();
-                    maxHealthAttr.setBaseValue(newMaxHealth);
-                    livingEntity.setHealth(livingEntity.getMaxHealth());
+        CompoundTag nbt = entity.getPersistentData();
+        if (nbt.getDouble("CursedSpirit") == 1 || nbt.getDouble("CurseUser") == 1 || nbt.getDouble("JujutsuSorcerer") == 1) {
+            if (nbt.getDouble("buff") != 1 && entity instanceof LivingEntity living) {
+                AttributeInstance maxHealth = living.getAttribute(Attributes.MAX_HEALTH);
+                if (maxHealth != null) {
+                    double difficulty = world.getLevelData().getGameRules().getInt(JujutsucraftaddonModGameRules.JJKU_DIFFICULTY);
+                    maxHealth.setBaseValue(100.0 / difficulty * maxHealth.getBaseValue());
+                    living.setHealth(living.getMaxHealth());
                 }
-                forgeData.putDouble("buff", 1);
-                entity.getPersistentData().put("ForgeData", forgeData);
+                nbt.putDouble("buff", 1);
             }
         }
     }
 
-    private static void handleMahoragaLogic(LevelAccessor world, double x, double y, double z, Entity entity) {
-        KenjakuDomainSummoningProcedure.execute(world, x, y, z, entity);
-        if (entity.getPersistentData().getDouble("Mahoraga") == 1
-                && entity instanceof EightHandledSwrodDivergentSilaDivineGeneralMahoragaEntity
-                && entity instanceof LivingEntity livingEntity
-                && !livingEntity.level().isClientSide()) {
-            livingEntity.addEffect(new MobEffectInstance(
-                    JujutsucraftaddonModMobEffects.MAHO_EFFECTO.get(), 40, 1, false, false
-            ));
-        }
-    }
-
-
-    private static void cancelEventIfRuleMet(Event event, LevelAccessor
-            world, GameRules.Key<GameRules.BooleanValue> rule, boolean condition) {
-        if (world.getLevelData().getGameRules().getBoolean(rule) && condition) {
+    private static void cancelEventIfRuleMet(Event event, LevelAccessor world, GameRules.Key<GameRules.BooleanValue> rule, boolean condition) {
+        if (condition && world.getLevelData().getGameRules().getBoolean(rule)) {
             cancelEvent(event);
         }
     }
 
-    private static void cancelEventIfChanceFails(Event event, LevelAccessor world, Entity entity, String
-            spawnTypeName, GameRules.Key<GameRules.IntegerValue> rule, Class<?>... entityClasses) {
-        if (Arrays.stream(entityClasses).anyMatch(clazz -> clazz.isInstance(entity))
-                && Math.random() >= 0.01 * world.getLevelData().getGameRules().getInt(rule)) {
-            if (entity.getPersistentData().getString("OWNER_UUID").isEmpty()) {
-                if (entity.getPersistentData().getDouble("friend_num") == 0) {
-                    if (entity.getPersistentData().getDouble("Spirit") == 0) {
-                        cancelEvent(event);
-                    }
-                }
+    private static void cancelEventIfChanceFails(Event event, GameRules rules, Entity entity, GameRules.Key<GameRules.IntegerValue> rule, Class<?>... classes) {
+        if (Arrays.stream(classes).anyMatch(c -> c.isInstance(entity))) {
+            if (Math.random() >= 0.01 * rules.getInt(rule)) {
+                if (shouldCancelSpawn(entity)) cancelEvent(event);
             }
         }
     }
 
-    private static void cancelEventIfPersistentData(Event event, LevelAccessor world, Entity entity, String
-            key, GameRules.Key<GameRules.IntegerValue> rule, String spawnTypeName) {
-        if (entity.getPersistentData().getDouble(key) == 1
-                && Math.random() >= 0.01 * world.getLevelData().getGameRules().getInt(rule)) {
-            if (entity.getPersistentData().getString("OWNER_UUID").isEmpty()) {
-                if (entity.getPersistentData().getDouble("friend_num") == 0) {
-                    if (entity.getPersistentData().getDouble("Spirit") == 0) {
-                        cancelEvent(event);
-                    }
-                }
+    private static void cancelEventIfPersistentData(Event event, GameRules rules, Entity entity, String key, GameRules.Key<GameRules.IntegerValue> rule) {
+        if (entity.getPersistentData().getDouble(key) == 1) {
+            if (Math.random() >= 0.01 * rules.getInt(rule)) {
+                if (shouldCancelSpawn(entity)) cancelEvent(event);
             }
         }
+    }
+
+    private static boolean shouldCancelSpawn(Entity entity) {
+        CompoundTag nbt = entity.getPersistentData();
+        return nbt.getString("OWNER_UUID").isEmpty() && nbt.getDouble("friend_num") == 0 && nbt.getDouble("Spirit") == 0;
     }
 
     private static void cancelEvent(Event event) {
         if (event != null) {
-            if (event.isCancelable()) {
-                event.setCanceled(true);
-            } else if (event.hasResult()) {
-                event.setResult(Event.Result.DENY);
-            }
+            if (event.isCancelable()) event.setCanceled(true);
+            else if (event.hasResult()) event.setResult(Event.Result.DENY);
         }
     }
-
-
 }

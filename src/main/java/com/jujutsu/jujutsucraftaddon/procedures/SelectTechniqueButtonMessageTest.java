@@ -12,7 +12,6 @@ import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -21,7 +20,7 @@ public class SelectTechniqueButtonMessageTest {
     private final int x;
     private final int y;
     private final int z;
-    private HashMap<String, String> textstate;
+    private final HashMap<String, String> textstate;
 
     public SelectTechniqueButtonMessageTest(FriendlyByteBuf buffer) {
         this.buttonID = buffer.readInt();
@@ -48,41 +47,29 @@ public class SelectTechniqueButtonMessageTest {
     }
 
     public static void handler(SelectTechniqueButtonMessageTest message, Supplier<NetworkEvent.Context> contextSupplier) {
-        NetworkEvent.Context context = (NetworkEvent.Context)contextSupplier.get();
+        NetworkEvent.Context context = contextSupplier.get();
         context.enqueueWork(() -> {
             Player entity = context.getSender();
-            int buttonID = message.buttonID;
-            int x = message.x;
-            int y = message.y;
-            int z = message.z;
-            HashMap<String, String> textstate = message.textstate;
-            handleButtonAction(entity, buttonID, x, y, z, textstate);
+            if (entity != null) {
+                handleButtonAction(entity, message.buttonID, message.x, message.y, message.z, message.textstate);
+            }
         });
         context.setPacketHandled(true);
     }
 
-
     public static void handleButtonAction(Player entity, int buttonID, int x, int y, int z, HashMap<String, String> textstate) {
         Level world = entity.level();
-        HashMap guistate = SelectTechniqueMenu.guistate;
-        Iterator var8 = textstate.entrySet().iterator();
+        if (!world.hasChunkAt(new BlockPos(x, y, z))) return;
 
-        while(var8.hasNext()) {
-            Map.Entry<String, String> entry = (Map.Entry)var8.next();
-            String key = (String)entry.getKey();
-            String value = (String)entry.getValue();
-            guistate.put(key, value);
+        HashMap guistate = SelectTechniqueMenu.guistate;
+        for (Map.Entry<String, String> entry : textstate.entrySet()) {
+            guistate.put(entry.getKey(), entry.getValue());
         }
 
-        if (world.hasChunkAt(new BlockPos(x, y, z))) {
-            if (buttonID == 100) {
-                SelectWukongProcedure.execute(world, (double)x, (double)y, (double)z, entity, guistate);
-            }
-
-            if (buttonID == 101) {
-                SelectJinWooProcedure.execute(world, (double)x, (double)y, (double)z, entity, guistate);
-            }
-
+        if (buttonID == 100) {
+            SelectWukongProcedure.execute(world, x, y, z, entity);
+        } else if (buttonID == 101) {
+            SelectJinWooProcedure.execute(world, x, y, z, entity);
         }
     }
 
@@ -93,26 +80,20 @@ public class SelectTechniqueButtonMessageTest {
 
     public static void writeTextState(HashMap<String, String> map, FriendlyByteBuf buffer) {
         buffer.writeInt(map.size());
-        Iterator var2 = map.entrySet().iterator();
-
-        while(var2.hasNext()) {
-            Map.Entry<String, String> entry = (Map.Entry)var2.next();
-            buffer.writeComponent(Component.literal((String)entry.getKey()));
-            buffer.writeComponent(Component.literal((String)entry.getValue()));
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            buffer.writeComponent(Component.literal(entry.getKey()));
+            buffer.writeComponent(Component.literal(entry.getValue()));
         }
-
     }
 
     public static HashMap<String, String> readTextState(FriendlyByteBuf buffer) {
         int size = buffer.readInt();
-        HashMap<String, String> map = new HashMap();
-
-        for(int i = 0; i < size; ++i) {
+        HashMap<String, String> map = new HashMap<>();
+        for (int i = 0; i < size; ++i) {
             String key = buffer.readComponent().getString();
             String value = buffer.readComponent().getString();
             map.put(key, value);
         }
-
         return map;
     }
 }

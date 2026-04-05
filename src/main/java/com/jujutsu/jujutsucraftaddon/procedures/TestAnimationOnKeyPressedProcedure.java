@@ -2,8 +2,8 @@ package com.jujutsu.jujutsucraftaddon.procedures;
 
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
+import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
@@ -17,363 +17,163 @@ import java.util.Comparator;
 import java.util.List;
 
 public class TestAnimationOnKeyPressedProcedure {
+
     public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (entity == null)
-            return;
-        if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Clans).equals("Kenjaku")) {
-            if (!entity.isShiftKeyDown()) {
-                if ((!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).tag1).equals("One")
-                        || ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).tag1).equals("Three"))
-                        && !((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).tag1).equals("Two")) {
-                    {
-                        String _setval = "One";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.tag1 = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Swapped For First Body"), true);
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).tag1).equals("One")) {
-                    {
-                        String _setval = "Two";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.tag1 = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Swapped For Second Body"), true);
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).tag1).equals("Two")) {
-                    {
-                        String _setval = "Three";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.tag1 = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Swapped For Third Body"), true);
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).tag1).equals("Three")) {
-                    {
-                        String _setval = "";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.tag1 = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Swapped For No Body"), true);
-                }
-            } else if (entity.isShiftKeyDown()) {
-                if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).tag2).equals("True")) {
-                    {
-                        boolean _setval = false;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.AgitoBeast = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    {
-                        String _setval = "False";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.tag2 = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("No Body"), true);
-                } else {
-                    {
-                        boolean _setval = true;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.AgitoBeast = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    {
-                        String _setval = "True";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.tag2 = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Copying Body"), true);
-                }
-            }
+        if (entity == null) return;
+
+        JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables());
+        JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables());
+
+        double techniqueId = baseVars.SecondTechnique ? baseVars.PlayerCurseTechnique2 : baseVars.PlayerCurseTechnique;
+
+        if (addonVars.Clans.equals("Kenjaku")) {
+            handleKenjakuLogic(entity, addonVars);
         }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 1) {
-            if (entity.isShiftKeyDown()) {
-                if (!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Dismantle")
-                        && !((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Cleave")
-                        || ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Base")) {
-                    {
-                        String _setval = "Dismantle";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Mode = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Dismantle Mode"), true);
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Dismantle")) {
-                    {
-                        String _setval = "Cleave";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Mode = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Cleave Mode"), true);
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Cleave")) {
-                    {
-                        String _setval = "Base";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Mode = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Base Mode"), true);
-                }
-            } else {
-                if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset < 5) {
-                    {
-                        double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset + 1;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Moveset = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 1) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("Cleave Web"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 2) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("Dismantle Net"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 3) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("WS: Dismantle Barrage"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 4) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("WS: Dismantle Impact"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 5) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("WS: Cleave Ground"), true);
-                    }
-                } else {
-                    {
-                        double _setval = 0;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Moveset = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("None"), true);
-                }
-            }
+
+        if (techniqueId == TechniqueIDs.SUKUNA) {
+            handleSukunaLogic(entity, addonVars);
+        } else if (techniqueId == TechniqueIDs.MEGUMI) {
+            handleMegumiLogic(entity, addonVars);
+        } else if (techniqueId == TechniqueIDs.KUSAKABE) {
+            handleKusakabeLogic(entity, addonVars);
+        } else if (techniqueId == TechniqueIDs.GOJO) {
+            handleGojoLogic(entity, addonVars);
+        } else if (techniqueId == TechniqueIDs.KASHIMO) {
+            handleKashimoLogic(entity, addonVars);
         }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique == 6) {
-            if (!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Shikigami Offensive")
-                    && !((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Shikigami Defensive")
-                    || ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Base")) {
-                {
-                    String _setval = "Shikigami Offensive";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Shikigami Mode"), true);
-            } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Shikigami Offensive")) {
-                {
-                    String _setval = "Shikigami Defensive";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Shikigami Guard Mode"), true);
-            } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Shikigami Defensive")) {
-                {
-                    String _setval = "Base";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Base Mode"), true);
-            }
+
+        if (baseVars.PlayerCurseTechnique2 == TechniqueIDs.MEGUMI) {
+            handleMegumiHidingLogic(world, x, y, z, entity);
         }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique == 31) {
-            if (!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("New Shadow Style: Defensive")
-                    || ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("New Shadow Style: Offensive")) {
-                {
-                    String _setval = "New Shadow Style: Defensive";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("New Shadow Style: Defensive Mode"), false);
-            } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("New Shadow Style: Defensive")) {
-                {
-                    String _setval = "New Shadow Style: Offensive";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("New Shadow Style: Offensive Mode"), false);
-            }
-        }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique == 2) {
-            if (entity.isShiftKeyDown()) {
-                if (!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Tatical Mode")
-                        && !((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Passive Mode")
-                        || ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Combat Mode")) {
-                    {
-                        String _setval = "Tatical Mode";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Mode = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Tatical Mode"), false);
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Tatical Mode")) {
-                    {
-                        String _setval = "Passive Mode";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Mode = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Passive Mode"), false);
-                } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Passive Mode")) {
-                    {
-                        String _setval = "Combat Mode";
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Mode = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("Combat Mode"), false);
-                }
-            } else {
-                if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset < 5) {
-                    {
-                        double _setval = (entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset + 1;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Moveset = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 1) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("Maximum Output: Blue"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 2) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("Maximum Output: Red"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 3) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("200% Purple"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 4) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("Unlimited Purple"), true);
-                    } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 5) {
-                        if (entity instanceof Player _player && !_player.level().isClientSide())
-                            _player.displayClientMessage(Component.literal("Blue Barrage"), true);
-                    }
-                } else {
-                    {
-                        double _setval = 0;
-                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.Moveset = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                        _player.displayClientMessage(Component.literal("None"), true);
-                }
-            }
-        }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique == 7) {
-            if (!((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Thunder Blitz")
-                    && !((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Thunder God")
-                    || ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Estrategic Mode")) {
-                {
-                    String _setval = "Thunder Blitz";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Thunder Blitz Mode"), true);
-            } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Thunder Blitz")) {
-                {
-                    String _setval = "Thunder God";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Thunder God Mode"), true);
-            } else if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Mode).equals("Thunder God")) {
-                {
-                    String _setval = "Estrategic Mode";
-                    entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                        capability.Mode = _setval;
-                        capability.syncPlayerVariables(entity);
-                    });
-                }
-                if (entity instanceof Player _player && !_player.level().isClientSide())
-                    _player.displayClientMessage(Component.literal("Estrategic Mode"), true);
-            }
-        }
-        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 6) {
-            if (entity.isShiftKeyDown()) {
-                {
-                    final Vec3 _center = new Vec3(x, y, z);
-                    List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(20 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
-                    for (Entity entityiterator : _entfound) {
-                        if (!(entityiterator == entity)) {
-                            if ((new Object() {
-                                public String getValue() {
-                                    CompoundTag dataIndex = new CompoundTag();
-                                    entityiterator.saveWithoutId(dataIndex);
-                                    return dataIndex.getCompound("ForgeData").getString("OWNER_UUID");
-                                }
-                            }.getValue()).equals(entity.getStringUUID())) {
-                                if (!(entity instanceof LivingEntity _livEnt46 && _livEnt46.hasEffect(JujutsucraftaddonModMobEffects.DASH_COOLDOWN.get()))) {
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.HIDING.get(), 100, 1, false, false));
-                                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                                        _player.displayClientMessage(Component.literal("Lovely..."), false);
-                                } else if (entity instanceof LivingEntity _livEnt49 && _livEnt49.hasEffect(JujutsucraftaddonModMobEffects.DASH_COOLDOWN.get())) {
-                                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                                        _player.displayClientMessage(Component.literal("Skill On Cooldown"), false);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+
         if (entity.isShiftKeyDown()) {
             PassiveKeybindOnKeyReleased1Procedure.execute(world, x, y, z, entity);
+        }
+    }
+
+    private static void handleKenjakuLogic(Entity entity, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (!entity.isShiftKeyDown()) {
+            String current = addon.tag1;
+            if (!current.equals("One") && !current.equals("Two") && !current.equals("Three")) {
+                addon.tag1 = "One";
+                sendActionMessage(entity, "Swapped For First Body");
+            } else if (current.equals("One")) {
+                addon.tag1 = "Two";
+                sendActionMessage(entity, "Swapped For Second Body");
+            } else if (current.equals("Two")) {
+                addon.tag1 = "Three";
+                sendActionMessage(entity, "Swapped For Third Body");
+            } else {
+                addon.tag1 = "";
+                sendActionMessage(entity, "Swapped For No Body");
+            }
+        } else {
+            if (addon.tag2.equals("True")) {
+                addon.AgitoBeast = false;
+                addon.tag2 = "False";
+                sendActionMessage(entity, "No Body");
+            } else {
+                addon.AgitoBeast = true;
+                addon.tag2 = "True";
+                sendActionMessage(entity, "Copying Body");
+            }
+        }
+        addon.syncPlayerVariables(entity);
+    }
+
+    private static void handleSukunaLogic(Entity entity, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (entity.isShiftKeyDown()) {
+            if (addon.Mode.equals("Dismantle")) addon.Mode = "Cleave";
+            else if (addon.Mode.equals("Cleave")) addon.Mode = "Base";
+            else addon.Mode = "Dismantle";
+            sendActionMessage(entity, addon.Mode + " Mode");
+        } else {
+            if (addon.Moveset < 5) addon.Moveset += 1;
+            else addon.Moveset = 0;
+            
+            String msg = switch ((int) addon.Moveset) {
+                case 1 -> "Cleave Web";
+                case 2 -> "Dismantle Net";
+                case 3 -> "WS: Dismantle Barrage";
+                case 4 -> "WS: Dismantle Impact";
+                case 5 -> "WS: Cleave Ground";
+                default -> "None";
+            };
+            sendActionMessage(entity, msg);
+        }
+        addon.syncPlayerVariables(entity);
+    }
+
+    private static void handleMegumiLogic(Entity entity, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (addon.Mode.equals("Shikigami Offensive")) addon.Mode = "Shikigami Defensive";
+        else if (addon.Mode.equals("Shikigami Defensive")) addon.Mode = "Base";
+        else addon.Mode = "Shikigami Offensive";
+        
+        String msg = addon.Mode.equals("Shikigami Defensive") ? "Shikigami Guard Mode" : addon.Mode + " Mode";
+        sendActionMessage(entity, msg);
+        addon.syncPlayerVariables(entity);
+    }
+
+    private static void handleKusakabeLogic(Entity entity, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (addon.Mode.equals("New Shadow Style: Defensive")) addon.Mode = "New Shadow Style: Offensive";
+        else addon.Mode = "New Shadow Style: Defensive";
+        sendActionMessage(entity, addon.Mode + " Mode");
+        addon.syncPlayerVariables(entity);
+    }
+
+    private static void handleGojoLogic(Entity entity, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (entity.isShiftKeyDown()) {
+            if (addon.Mode.equals("Tatical Mode")) addon.Mode = "Passive Mode";
+            else if (addon.Mode.equals("Passive Mode")) addon.Mode = "Combat Mode";
+            else addon.Mode = "Tatical Mode";
+            sendActionMessage(entity, addon.Mode);
+        } else {
+            if (addon.Moveset < 5) addon.Moveset += 1;
+            else addon.Moveset = 0;
+
+            String msg = switch ((int) addon.Moveset) {
+                case 1 -> "Maximum Output: Blue";
+                case 2 -> "Maximum Output: Red";
+                case 3 -> "200% Purple";
+                case 4 -> "Unlimited Purple";
+                case 5 -> "Blue Barrage";
+                default -> "None";
+            };
+            sendActionMessage(entity, msg);
+        }
+        addon.syncPlayerVariables(entity);
+    }
+
+    private static void handleKashimoLogic(Entity entity, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (addon.Mode.equals("Thunder Blitz")) addon.Mode = "Thunder God";
+        else if (addon.Mode.equals("Thunder God")) addon.Mode = "Estrategic Mode";
+        else addon.Mode = "Thunder Blitz";
+        sendActionMessage(entity, addon.Mode + " Mode");
+        addon.syncPlayerVariables(entity);
+    }
+
+    private static void handleMegumiHidingLogic(LevelAccessor world, double x, double y, double z, Entity entity) {
+        if (entity.isShiftKeyDown()) {
+            final Vec3 _center = new Vec3(x, y, z);
+            List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(10.0), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
+            for (Entity iterator : _entfound) {
+                if (iterator != entity && iterator.getPersistentData().getString("OWNER_UUID").equals(entity.getStringUUID())) {
+                    if (entity instanceof LivingEntity _liv && !_liv.hasEffect(JujutsucraftaddonModMobEffects.DASH_COOLDOWN.get())) {
+                        if (iterator instanceof LivingEntity _target && !_target.level().isClientSide()) {
+                            _target.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.HIDING.get(), 100, 1, false, false));
+                        }
+                        sendActionMessage(entity, "Lovely...");
+                    } else {
+                        sendActionMessage(entity, "Skill On Cooldown");
+                    }
+                }
+            }
+        }
+    }
+
+    private static void sendActionMessage(Entity entity, String text) {
+        if (entity instanceof Player _player && !_player.level().isClientSide()) {
+            _player.displayClientMessage(Component.literal(text), true);
         }
     }
 }

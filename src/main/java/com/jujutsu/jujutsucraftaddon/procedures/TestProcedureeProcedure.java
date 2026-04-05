@@ -14,9 +14,9 @@ import java.util.List;
 
 public class TestProcedureeProcedure {
     private static class CTRange {
-        String CT;
-        double startRange;
-        double endRange;
+        final String CT;
+        final double startRange;
+        final double endRange;
 
         public CTRange(String CT, double startRange, double endRange) {
             this.CT = CT;
@@ -90,145 +90,59 @@ public class TestProcedureeProcedure {
         totalSum += value;
     }
 
-    public static void execute(LevelAccessor world, double x, double y, double z, Player entity, HashMap guistate) {
-        if (entity != null && guistate != null) {
-            calculateCTRanges();
-            String selectedCT = selectRandomCT();
+    public static void execute(LevelAccessor world, double x, double y, double z, Player entity, HashMap<?, ?> guistate) {
+        if (entity == null || guistate == null) return;
 
-            if (selectedCT != null) {
-                switch (selectedCT) {
-                    case "SUKUNA":
-                        SelectSukunaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "GOJO":
-                        SelectGojoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "OGI":
-                        SelectOgiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "MAKI":
-                        SelectMakiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "DHRUV":
-                        SelectDhruvLakdawallaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "MAHORAGA":
-                        SelectMahoragaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "TSUKUMO":
-                        SelectTsukumoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "YAGA":
-                        SelectYagaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "KUROURUSHI":
-                        SelectKurourushiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "ISHIGORI":
-                        SelectIshigoriProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "NISHIMIYA":
-                        SelectNishimiyaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "TODO":
-                        SelectTodoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "DAGON":
-                        SelectDagonProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "MIGUEL":
-                        SelectMiguelProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "OKKOTSU":
-                        SelectOkkotsuProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "MEIMEI":
-                        SelectMeiMeiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "YOROZU":
-                        SelectYorozuProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "URAUME":
-                        SelectUraumeProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "GETO":
-                        SelectGetoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "CHOSO":
-                        SelectChosoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "TAKAKOURO":
-                        SelectTakakoUroProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "ITADORI":
-                        SelectItadoriProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "KUSAKABE":
-                        SelectKusakabeProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "JUNPE":
-                        SelectJunpeProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "JOGO":
-                        SelectJogoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "TAKABA":
-                        SelectTakabaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "HIGURUMA":
-                        SelectHigurumaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "ANGEL":
-                        SelectAngelProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "HAKARI":
-                        SelectHakariProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "MAHITO":
-                        SelectMahitoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "CHOJURO":
-                        SelectChojuroProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "NANAMI":
-                        SelectNanamiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "FUSHIGURO":
-                        SelectFushiguroProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "SMALLPOXDEITY":
-                        SelectSmallpoxDeityProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "INUMAKI":
-                        SelectInumakiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "KUGISAKI":
-                        SelectKugisakiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "HANAMI":
-                        SelectHanamiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "KASHIMO":
-                        SelectKashimoProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "JINICHI":
-                        SelectJinichiProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    case "NAOYA":
-                        SelectNaoyaProcedure.execute(world, x, y, z, entity, guistate);
-                        break;
-                    default:
-                        System.err.println("CT Don't Exists: " + selectedCT);
-                        break;
-                }
+        calculateCTRanges();
+        String selectedCT = selectRandomCT();
+        if (selectedCT == null) return;
 
-                RandomizedSelectionProcedure.execute(entity);
-
-                if (entity instanceof Player) {
-                    ItemStack stackToRemove = new ItemStack(JujutsucraftaddonModItems.RANDOM_CT_CHANGER.get());
-                    entity.getInventory().clearOrCountMatchingItems(p -> stackToRemove.getItem() == p.getItem(), 1, entity.inventoryMenu.getCraftSlots());
-                }
-            }
+        switch (selectedCT) {
+            case "SUKUNA" -> SelectSukunaProcedure.execute(world, x, y, z, entity);
+            case "GOJO" -> SelectGojoProcedure.execute(world, x, y, z, entity);
+            case "OGI" -> SelectOgiProcedure.execute(world, x, y, z, entity);
+            case "MAKI" -> SelectMakiProcedure.execute(world, x, y, z, entity);
+            case "DHRUV" -> SelectDhruvLakdawallaProcedure.execute(world, x, y, z, entity);
+            case "MAHORAGA" -> SelectMahoragaProcedure.execute(world, x, y, z, entity);
+            case "TSUKUMO" -> SelectTsukumoProcedure.execute(world, x, y, z, entity);
+            case "YAGA" -> SelectYagaProcedure.execute(world, x, y, z, entity);
+            case "KUROURUSHI" -> SelectKurourushiProcedure.execute(world, x, y, z, entity);
+            case "ISHIGORI" -> SelectIshigoriProcedure.execute(world, x, y, z, entity);
+            case "NISHIMIYA" -> SelectNishimiyaProcedure.execute(world, x, y, z, entity);
+            case "TODO" -> SelectTodoProcedure.execute(world, x, y, z, entity);
+            case "DAGON" -> SelectDagonProcedure.execute(world, x, y, z, entity);
+            case "MIGUEL" -> SelectMiguelProcedure.execute(world, x, y, z, entity);
+            case "OKKOTSU" -> SelectOkkotsuProcedure.execute(world, x, y, z, entity);
+            case "MEIMEI" -> SelectMeiMeiProcedure.execute(world, x, y, z, entity);
+            case "YOROZU" -> SelectYorozuProcedure.execute(world, x, y, z, entity);
+            case "URAUME" -> SelectUraumeProcedure.execute(world, x, y, z, entity);
+            case "GETO" -> SelectGetoProcedure.execute(world, x, y, z, entity);
+            case "CHOSO" -> SelectChosoProcedure.execute(world, x, y, z, entity);
+            case "TAKAKOURO" -> SelectTakakoUroProcedure.execute(world, x, y, z, entity);
+            case "ITADORI" -> SelectItadoriProcedure.execute(world, x, y, z, entity);
+            case "KUSAKABE" -> SelectKusakabeProcedure.execute(world, x, y, z, entity);
+            case "JUNPE" -> SelectJunpeProcedure.execute(world, x, y, z, entity);
+            case "JOGO" -> SelectJogoProcedure.execute(world, x, y, z, entity);
+            case "TAKABA" -> SelectTakabaProcedure.execute(world, x, y, z, entity);
+            case "HIGURUMA" -> SelectHigurumaProcedure.execute(world, x, y, z, entity);
+            case "ANGEL" -> SelectAngelProcedure.execute(world, x, y, z, entity);
+            case "HAKARI" -> SelectHakariProcedure.execute(world, x, y, z, entity);
+            case "MAHITO" -> SelectMahitoProcedure.execute(world, x, y, z, entity);
+            case "CHOJURO" -> SelectChojuroProcedure.execute(world, x, y, z, entity);
+            case "NANAMI" -> SelectNanamiProcedure.execute(world, x, y, z, entity);
+            case "FUSHIGURO" -> SelectFushiguroProcedure.execute(world, x, y, z, entity);
+            case "SMALLPOXDEITY" -> SelectSmallpoxDeityProcedure.execute(world, x, y, z, entity);
+            case "INUMAKI" -> SelectInumakiProcedure.execute(world, x, y, z, entity);
+            case "KUGISAKI" -> SelectKugisakiProcedure.execute(world, x, y, z, entity);
+            case "HANAMI" -> SelectHanamiProcedure.execute(world, x, y, z, entity);
+            case "KASHIMO" -> SelectKashimoProcedure.execute(world, x, y, z, entity);
+            case "JINICHI" -> SelectJinichiProcedure.execute(world, x, y, z, entity);
+            case "NAOYA" -> SelectNaoyaProcedure.execute(world, x, y, z, entity);
         }
+
+        RandomizedSelectionProcedure.execute(entity);
+
+        ItemStack stackToRemove = new ItemStack(JujutsucraftaddonModItems.RANDOM_CT_CHANGER.get());
+        entity.getInventory().clearOrCountMatchingItems(p -> stackToRemove.getItem() == p.getItem(), 1, entity.inventoryMenu.getCraftSlots());
     }
 }

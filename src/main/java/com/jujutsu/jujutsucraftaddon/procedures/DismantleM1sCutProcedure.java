@@ -6,6 +6,7 @@ import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
+import net.minecraft.core.particles.ParticleOptions;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -13,59 +14,55 @@ import net.minecraft.world.level.LevelAccessor;
 import net.minecraftforge.fml.ModList;
 
 public class DismantleM1sCutProcedure {
+
     public static void execute(LevelAccessor world, Entity entity, Entity sourceentity) {
-        if (entity == null || sourceentity == null)
+        if (entity == null || sourceentity == null) return;
+
+        if (sourceentity instanceof LivingEntity attacker && attacker.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
             return;
-        if (!(sourceentity instanceof LivingEntity && ((LivingEntity) sourceentity).hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get()))) {
-            if ((sourceentity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).WorldSlash) {
-                if ((sourceentity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower > 10) {
-                    if ((sourceentity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Moveset == 3) {
-                        if (ModList.get().isLoaded("jjkueffects")) {
-                            if (Math.random() < 0.5) {
-                                {
-                                    Entity _ent = entity;
-                                    if (!_ent.level().isClientSide() && _ent.getServer() != null) {
-                                        _ent.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _ent.position(), _ent.getRotationVector(),
-                                                        _ent.level() instanceof ServerLevel ? (ServerLevel) _ent.level() : null, 4, _ent.getName().getString(), _ent.getDisplayName(), _ent.level().getServer(), _ent),
-                                                "particle jjkueffects:de ~ ~1 ~ 0 0 0 1 1 force");
-                                    }
-                                }
-                            } else if (Math.random() > 0.5) {
-                                {
-                                    Entity _ent = entity;
-                                    if (!_ent.level().isClientSide() && _ent.getServer() != null) {
-                                        _ent.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _ent.position(), _ent.getRotationVector(),
-                                                        _ent.level() instanceof ServerLevel ? (ServerLevel) _ent.level() : null, 4, _ent.getName().getString(), _ent.getDisplayName(), _ent.level().getServer(), _ent),
-                                                "particle jjkueffects:de_2 ~ ~1 ~ 0 0 0 1 1 force");
-                                    }
-                                }
-                            }
-                        } else {
-                            if (Math.random() < 0.5) {
-                                if (world instanceof ServerLevel _level)
-                                    _level.sendParticles(JujutsucraftaddonModParticleTypes.KAI_5.get(), (entity.getX()), (entity.getY() + 1), (entity.getZ()), 0, 0, 0, 0, 1);
-                            } else if (Math.random() > 0.5) {
-                                if (world instanceof ServerLevel _level)
-                                    _level.sendParticles(JujutsucraftaddonModParticleTypes.HAITI_5.get(), (entity.getX()), (entity.getY() + 1), (entity.getZ()), 0, 0, 0, 0, 1);
-                            }
-                        }
-                    }
-                    {
-                        double _setval = ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 10);
-                        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.PlayerCursePower = _setval;
-                            capability.syncPlayerVariables(entity);
-                        });
-                    }
-                    {
-                        double _setval = ((sourceentity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCursePower - 10);
-                        sourceentity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                            capability.PlayerCursePower = _setval;
-                            capability.syncPlayerVariables(sourceentity);
-                        });
-                    }
-                }
-            }
         }
+
+        sourceentity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(addonVars -> {
+            if (addonVars.WorldSlash && addonVars.Moveset == 3) {
+                sourceentity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(baseVars -> {
+                    if (baseVars.PlayerCursePower > 10) {
+                        spawnImpactParticles(world, entity);
+                        drainEnergy(sourceentity, 10);
+                        drainEnergy(entity, 10);
+                    }
+                });
+            }
+        });
+    }
+
+    private static void spawnImpactParticles(LevelAccessor world, Entity target) {
+        if (!(world instanceof ServerLevel sLevel)) return;
+
+        double x = target.getX();
+        double y = target.getY() + 1;
+        double z = target.getZ();
+
+        if (ModList.get().isLoaded("jjkueffects")) {
+            String particle = Math.random() < 0.5 ? "particle jjkueffects:de ~ ~1 ~ 0 0 0 1 1 force"
+                                                  : "particle jjkueffects:de_2 ~ ~1 ~ 0 0 0 1 1 force";
+            
+            if (target.getServer() != null) {
+                target.getServer().getCommands().performPrefixedCommand(
+                    new CommandSourceStack(CommandSource.NULL, target.position(), target.getRotationVector(),
+                    sLevel, 4, target.getName().getString(), target.getDisplayName(), sLevel.getServer(), target),
+                    particle);
+            }
+        } else {
+            ParticleOptions particleType = Math.random() < 0.5 ? JujutsucraftaddonModParticleTypes.KAI_5.get() 
+                                                               : JujutsucraftaddonModParticleTypes.HAITI_5.get();
+            sLevel.sendParticles(particleType, x, y, z, 1, 0, 0, 0, 1);
+        }
+    }
+
+    private static void drainEnergy(Entity entity, double amount) {
+        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(vars -> {
+            vars.PlayerCursePower = Math.max(0, vars.PlayerCursePower - amount);
+            vars.syncPlayerVariables(entity);
+        });
     }
 }

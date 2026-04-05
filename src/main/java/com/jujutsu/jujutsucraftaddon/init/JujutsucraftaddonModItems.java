@@ -215,6 +215,6 @@ public class JujutsucraftaddonModItems {
     // Start of user code block custom items
     // End of user code block custom items
     private static RegistryObject<Item> block(RegistryObject<Block> block) {
-        return REGISTRY.register(block.getId().getPath(), () -> new BlockItem(block.get(), new Item.Properties()));
+        return REGISTRY.register(block.getId().toString().substring(block.getId().toString().indexOf(":") + 1), () -> new BlockItem(block.get(), new Item.Properties()));
     }
 }

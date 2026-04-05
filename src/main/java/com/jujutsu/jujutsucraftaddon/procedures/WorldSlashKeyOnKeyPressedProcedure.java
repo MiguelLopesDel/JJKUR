@@ -3,14 +3,11 @@ package com.jujutsu.jujutsucraftaddon.procedures;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModParticleTypes;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
-import dev.kosmx.playerAnim.api.layered.IAnimation;
-import dev.kosmx.playerAnim.api.layered.KeyframeAnimationPlayer;
-import dev.kosmx.playerAnim.api.layered.ModifierLayer;
-import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationAccess;
-import dev.kosmx.playerAnim.minecraftApi.PlayerAnimationRegistry;
+import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
+import net.mcreator.jujutsucraft.JujutsucraftMod;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
-import net.minecraft.client.player.AbstractClientPlayer;
+import net.mcreator.jujutsucraft.procedures.SetupAnimationsProcedure;
 import net.minecraft.core.BlockPos;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
@@ -24,103 +21,112 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraftforge.network.PacketDistributor;
 import net.minecraftforge.registries.ForgeRegistries;
 
 public class WorldSlashKeyOnKeyPressedProcedure {
-    public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (entity == null)
-            return;
-        String endtext = "";
-        double repeats = 0;
-        double xRadius = 0;
-        double loop = 0;
-        double zRadius = 0;
-        double particleAmount = 0;
-        if (((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).Clans).equals("Sukuna")) {
-            if (entity instanceof ServerPlayer _plr0 && _plr0.level() instanceof ServerLevel
-                    && _plr0.getAdvancements().getOrStartProgress(_plr0.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:world_slash_advancement"))).isDone()) {
-                if ((entity instanceof LivingEntity) && ((LivingEntity) entity).hasEffect(JujutsucraftModMobEffects.SUKUNA_EFFECT.get())) {
-                    if (!(entity instanceof LivingEntity _livEnt2 && _livEnt2.hasEffect(JujutsucraftaddonModMobEffects.MANIFESTATION.get()))) {
-                        if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 1
-                                || (entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique2 == 6) {
-                            if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).OutputLevel >= 5) {
-                                if (!(entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).WorldSlash) {
-                                    {
-                                        boolean _setval = true;
-                                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                            capability.WorldSlash = _setval;
-                                            capability.syncPlayerVariables(entity);
-                                        });
-                                    }
-                                    if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                                        _entity.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.WORLD_SLASH_EFFECT.get(), 3600, 1, false, false));
-                                    if (world instanceof ServerLevel _level)
-                                        _level.sendParticles(JujutsucraftaddonModParticleTypes.THUNDER_WHITE.get(), x, y, z, 1, 3, 3, 3, 1);
-                                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                                        _player.displayClientMessage(Component.literal((Component.translatable("dialoguews").getString() + ": On")), false);
-                                } else if ((entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables())).WorldSlash) {
-                                    {
-                                        boolean _setval = false;
-                                        entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
-                                            capability.WorldSlash = _setval;
-                                            capability.syncPlayerVariables(entity);
-                                        });
-                                    }
-                                    if (entity instanceof LivingEntity _entity)
-                                        _entity.removeEffect(JujutsucraftaddonModMobEffects.WORLD_SLASH_EFFECT.get());
-                                    if (entity instanceof Player _player && !_player.level().isClientSide())
-                                        _player.displayClientMessage(Component.literal((Component.translatable("dialoguews").getString() + ": Off")), false);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        } else {
-            if (entity instanceof ServerPlayer _plr12 && _plr12.level() instanceof ServerLevel
-                    && _plr12.getAdvancements().getOrStartProgress(_plr12.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:sorcerer_strongest_of_history"))).isDone()) {
-                if (world instanceof Level _level) {
-                    if (!_level.isClientSide()) {
-                        _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:wind_chime")), SoundSource.NEUTRAL, 1, 1);
-                    } else {
-                        _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:wind_chime")), SoundSource.NEUTRAL, 1, 1, false);
-                    }
-                }
-                {
-                    CompoundTag dataIndex = new CompoundTag();
-                    entity.saveWithoutId(dataIndex);
-                    dataIndex.getCompound("ForgeData").putBoolean("PRESS_ULT", true);
-                    entity.load(dataIndex);
-                }
-                if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique == 4) {
-                    if (world.isClientSide()) {
-                        if (entity instanceof AbstractClientPlayer player) {
-                            var animation = (ModifierLayer<IAnimation>) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                            if (animation != null && !animation.isActive()) {
-                                animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "fire1"))));
-                            }
-                        }
-                    }
-                }
-                if ((entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables())).PlayerCurseTechnique == 6) {
-                    if (world.isClientSide()) {
-                        if (entity instanceof AbstractClientPlayer player) {
-                            var animation = (ModifierLayer<IAnimation>) PlayerAnimationAccess.getPlayerAssociatedData(player).get(new ResourceLocation("jujutsucraftaddon", "player_animation"));
-                            if (animation != null && !animation.isActive()) {
-                                animation.setAnimation(new KeyframeAnimationPlayer(PlayerAnimationRegistry.getAnimation(new ResourceLocation("jujutsucraftaddon", "furubeyurayura"))));
-                            }
-                        }
-                    }
 
-                    if (world instanceof Level _level) {
-                        if (!_level.isClientSide()) {
-                            _level.playSound(null, BlockPos.containing(x, y, z), ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:furubeult")), SoundSource.NEUTRAL, 2, 1);
-                        } else {
-                            _level.playLocalSound(x, y, z, ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraftaddon:furubeult")), SoundSource.NEUTRAL, 2, 1, false);
-                        }
-                    }
+    public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
+        if (entity == null) return;
+
+        JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables());
+        JujutsucraftaddonModVariables.PlayerVariables addonVars = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftaddonModVariables.PlayerVariables());
+
+        if (addonVars.Clans.equals("Sukuna")) {
+            handleSukunaToggle(world, x, y, z, entity, baseVars, addonVars);
+        } else {
+            handleStrongestOfHistoryLogic(world, x, y, z, entity, baseVars);
+        }
+    }
+
+    private static void handleSukunaToggle(LevelAccessor world, double x, double y, double z, Entity entity, JujutsucraftModVariables.PlayerVariables base, JujutsucraftaddonModVariables.PlayerVariables addon) {
+        if (!(entity instanceof ServerPlayer serverPlayer && world instanceof ServerLevel)) return;
+        
+        if (!hasAdvancement(serverPlayer, "world_slash_advancement")) return;
+        if (!hasEffect(entity, JujutsucraftModMobEffects.SUKUNA_EFFECT.get())) return;
+        if (hasEffect(entity, JujutsucraftaddonModMobEffects.MANIFESTATION.get())) return;
+        
+        if (base.PlayerCurseTechnique2 == TechniqueIDs.SUKUNA || base.PlayerCurseTechnique2 == TechniqueIDs.MEGUMI) {
+            if (addon.OutputLevel >= 5) {
+                addon.WorldSlash = !addon.WorldSlash;
+                
+                if (addon.WorldSlash) {
+                    applyEffect(entity, JujutsucraftaddonModMobEffects.WORLD_SLASH_EFFECT.get(), 3600, 1);
+                    spawnParticles(world, x, y, z);
+                    sendActionMessage(entity, Component.translatable("dialoguews").getString() + ": On");
+                } else {
+                    removeEffect(entity, JujutsucraftaddonModMobEffects.WORLD_SLASH_EFFECT.get());
+                    sendActionMessage(entity, Component.translatable("dialoguews").getString() + ": Off");
                 }
+                
+                addon.syncPlayerVariables(entity);
             }
+        }
+    }
+
+    private static void handleStrongestOfHistoryLogic(LevelAccessor world, double x, double y, double z, Entity entity, JujutsucraftModVariables.PlayerVariables base) {
+        if (!(entity instanceof ServerPlayer serverPlayer && world instanceof ServerLevel)) return;
+        if (!hasAdvancement(serverPlayer, "sorcerer_strongest_of_history")) return;
+
+        playSound(world, x, y, z, "jujutsucraft:wind_chime", 1.0f, 1.0f);
+        entity.getPersistentData().putBoolean("PRESS_ULT", true);
+
+        if (base.PlayerCurseTechnique == TechniqueIDs.JOGO) {
+            playAnimation(entity, "fire1");
+        } else if (base.PlayerCurseTechnique == TechniqueIDs.MEGUMI) {
+            playAnimation(entity, "furubeyurayura");
+            playSound(world, x, y, z, "jujutsucraftaddon:furubeult", 1.0f, 2.0f);
+        }
+    }
+
+    private static void playAnimation(Entity entity, String animName) {
+        if (!entity.level().isClientSide() && entity instanceof ServerPlayer sp) {
+            SetupAnimationsProcedure.JujutsucraftModAnimationMessage msg = new SetupAnimationsProcedure.JujutsucraftModAnimationMessage(animName, entity.getId(), true);
+            JujutsucraftMod.PACKET_HANDLER.send(PacketDistributor.PLAYER.with(() -> sp), msg);
+            JujutsucraftMod.PACKET_HANDLER.send(PacketDistributor.TRACKING_ENTITY.with(() -> entity), msg);
+        }
+    }
+
+    private static void playSound(LevelAccessor world, double x, double y, double z, String path, float pitch, float volume) {
+        if (world instanceof Level lvl) {
+            var sound = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(path));
+            if (sound == null) return;
+            if (!lvl.isClientSide()) lvl.playSound(null, BlockPos.containing(x, y, z), sound, SoundSource.NEUTRAL, volume, pitch);
+            else lvl.playLocalSound(x, y, z, sound, SoundSource.NEUTRAL, volume, pitch, false);
+        }
+    }
+
+    private static void spawnParticles(LevelAccessor world, double x, double y, double z) {
+        if (world instanceof ServerLevel sLevel) {
+            sLevel.sendParticles(JujutsucraftaddonModParticleTypes.THUNDER_WHITE.get(), x, y, z, 1, 3, 3, 3, 1);
+        }
+    }
+
+    private static void applyEffect(Entity entity, net.minecraft.world.effect.MobEffect effect, int duration, int amplifier) {
+        if (entity instanceof LivingEntity living && !entity.level().isClientSide()) {
+            living.addEffect(new MobEffectInstance(effect, duration, amplifier, false, false));
+        }
+    }
+
+    private static void removeEffect(Entity entity, net.minecraft.world.effect.MobEffect effect) {
+        if (entity instanceof LivingEntity living) {
+            living.removeEffect(effect);
+        }
+    }
+
+    private static boolean hasEffect(Entity entity, net.minecraft.world.effect.MobEffect effect) {
+        return entity instanceof LivingEntity living && living.hasEffect(effect);
+    }
+
+    private static boolean hasAdvancement(ServerPlayer player, String name) {
+        ResourceLocation advLoc = new ResourceLocation("jujutsucraftaddon:" + name);
+        net.minecraft.advancements.Advancement adv = player.server.getAdvancements().getAdvancement(advLoc);
+        return adv != null && player.getAdvancements().getOrStartProgress(adv).isDone();
+    }
+
+    private static void sendActionMessage(Entity entity, String text) {
+        if (entity instanceof Player player && !entity.level().isClientSide()) {
+            player.displayClientMessage(Component.literal(text), false);
         }
     }
 }

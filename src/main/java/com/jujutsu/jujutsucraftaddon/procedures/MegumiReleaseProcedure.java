@@ -4,7 +4,6 @@ import net.mcreator.jujutsucraft.init.JujutsucraftModEntities;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -18,53 +17,66 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.registries.ForgeRegistries;
 
-import java.util.Comparator;
 import java.util.List;
 
 public class MegumiReleaseProcedure {
+
     public static void execute(LevelAccessor world, double x, double y, double z, Entity entity) {
-        if (entity == null)
-            return;
-        if (world instanceof ServerLevel _serverLevel) {
-            Entity entitytospawn = JujutsucraftModEntities.EIGHT_HANDLED_SWROD_DIVERGENT_SILA_DIVINE_GENERAL_MAHORAGA.get().spawn(_serverLevel, BlockPos.containing(x, y, z), MobSpawnType.MOB_SUMMONED);
-            if (entitytospawn != null) {
-                entitytospawn.setYRot(world.getRandom().nextFloat() * 360.0F);
-                ((LivingEntity) (entitytospawn)).getAttribute(ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation("jujutsucraft:size"))).setBaseValue(2);
-                if ((entitytospawn) instanceof LivingEntity _livingEntity5 && _livingEntity5.getAttributes().hasAttribute(Attributes.ATTACK_DAMAGE))
-                    _livingEntity5.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(
-                            (((entitytospawn) instanceof LivingEntity _livingEntity3 && _livingEntity3.getAttributes().hasAttribute(Attributes.ATTACK_DAMAGE) ? _livingEntity3.getAttribute(Attributes.ATTACK_DAMAGE).getBaseValue() : 0) * 6));
-                if ((entitytospawn) instanceof LivingEntity _livingEntity9 && _livingEntity9.getAttributes().hasAttribute(Attributes.MAX_HEALTH))
-                    _livingEntity9.getAttribute(Attributes.MAX_HEALTH)
-                            .setBaseValue((((entitytospawn) instanceof LivingEntity _livingEntity7 && _livingEntity7.getAttributes().hasAttribute(Attributes.MAX_HEALTH) ? _livingEntity7.getAttribute(Attributes.MAX_HEALTH).getBaseValue() : 0) * 6));
-                if ((entitytospawn) instanceof LivingEntity _entity)
-                    _entity.setHealth((entitytospawn) instanceof LivingEntity _livEnt ? _livEnt.getMaxHealth() : -1);
-                if ((entitytospawn) instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                    _entity.addEffect(new MobEffectInstance(MobEffects.REGENERATION, -1, 3, false, false));
-                if ((entitytospawn) instanceof LivingEntity _livingEntity17 && _livingEntity17.getAttributes().hasAttribute(Attributes.MOVEMENT_SPEED))
-                    _livingEntity17.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.4);
-                _serverLevel.addFreshEntity(entitytospawn);
-                {
-                    CompoundTag dataIndex = new CompoundTag();
-                    entitytospawn.saveWithoutId(dataIndex);
-                    dataIndex.getCompound("ForgeData").putBoolean("Buffed", true);
-                    entitytospawn.load(dataIndex);
-                }
+        if (entity == null || !(world instanceof ServerLevel serverLevel)) return;
+
+        Entity mahoraga = JujutsucraftModEntities.EIGHT_HANDLED_SWORD_DIVERGENT_SILA_DIVINE_GENERAL_MAHORAGA.get().spawn(serverLevel, BlockPos.containing(x, y, z), MobSpawnType.MOB_SUMMONED);
+        if (mahoraga instanceof LivingEntity livingMahoraga) {
+            mahoraga.setYRot(world.getRandom().nextFloat() * 360.0F);
+            
+            var sizeAttr = ForgeRegistries.ATTRIBUTES.getValue(new ResourceLocation("jujutsucraft:size"));
+            if (sizeAttr != null && livingMahoraga.getAttributes().hasAttribute(sizeAttr)) {
+                livingMahoraga.getAttribute(sizeAttr).setBaseValue(2.0);
             }
 
-            {
-                Entity _ent = entity;
-                if (!_ent.level().isClientSide() && _ent.getServer() != null) {
-                    _ent.getServer().getCommands().performPrefixedCommand(new CommandSourceStack(CommandSource.NULL, _ent.position(), _ent.getRotationVector(), _ent.level() instanceof ServerLevel ? (ServerLevel) _ent.level() : null, 4,
-                            _ent.getName().getString(), _ent.getDisplayName(), _ent.level().getServer(), _ent), "kill");
-                }
+            if (livingMahoraga.getAttributes().hasAttribute(Attributes.ATTACK_DAMAGE)) {
+                double baseDamage = livingMahoraga.getAttribute(Attributes.ATTACK_DAMAGE).getBaseValue();
+                livingMahoraga.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(baseDamage * 6.0);
             }
+
+            if (livingMahoraga.getAttributes().hasAttribute(Attributes.MAX_HEALTH)) {
+                double baseHealth = livingMahoraga.getAttribute(Attributes.MAX_HEALTH).getBaseValue();
+                livingMahoraga.getAttribute(Attributes.MAX_HEALTH).setBaseValue(baseHealth * 6.0);
+            }
+
+            livingMahoraga.setHealth(livingMahoraga.getMaxHealth());
+
+            if (!world.isClientSide()) {
+                livingMahoraga.addEffect(new MobEffectInstance(MobEffects.REGENERATION, -1, 3, false, false));
+            }
+
+            if (livingMahoraga.getAttributes().hasAttribute(Attributes.MOVEMENT_SPEED)) {
+                livingMahoraga.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.4);
+            }
+
+            livingMahoraga.getPersistentData().putBoolean("Buffed", true);
+            serverLevel.addFreshEntity(livingMahoraga);
         }
-        {
-            final Vec3 _center = new Vec3(x, y, z);
-            List<Entity> _entfound = world.getEntitiesOfClass(Entity.class, new AABB(_center, _center).inflate(30 / 2d), e -> true).stream().sorted(Comparator.comparingDouble(_entcnd -> _entcnd.distanceToSqr(_center))).toList();
-            for (Entity entityiterator : _entfound) {
-                if (entity instanceof LivingEntity _entity && !_entity.level().isClientSide())
-                    _entity.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 60, 254, false, false));
+
+        if (!world.isClientSide() && entity.getServer() != null) {
+            CommandSourceStack stack = new CommandSourceStack(
+                CommandSource.NULL, 
+                entity.position(), 
+                entity.getRotationVector(), 
+                serverLevel, 
+                4, 
+                entity.getName().getString(), 
+                entity.getDisplayName(), 
+                entity.getServer(), 
+                entity
+            );
+            entity.getServer().getCommands().performPrefixedCommand(stack, "kill");
+        }
+
+        Vec3 center = new Vec3(x, y, z);
+        List<Entity> entitiesInRange = world.getEntitiesOfClass(Entity.class, new AABB(center, center).inflate(15.0), e -> e != entity);
+        for (Entity target : entitiesInRange) {
+            if (target instanceof LivingEntity livingTarget && !world.isClientSide()) {
+                livingTarget.addEffect(new MobEffectInstance(MobEffects.DARKNESS, 60, 254, false, false));
             }
         }
     }
