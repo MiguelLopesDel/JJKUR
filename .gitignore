@@ -18,3 +18,18 @@ run/
 # Other Files (In Eclipse)
 .classpath
 .project
+.gemini/
+.gemini/settings.json
+GEMINI.md
+GUIA_SUKUNA_COMPLETO.md
+trabalho_descart/
+slash_system_report.md
+REFATORACAO_STANDARDS.md
+decisao_final.txt
+efeitos_jjkur_report.md
+gemini_backup/
+investigacao_sukuna.md
+organ.sh
+out/
+package-lock.json
+.devcontainer/

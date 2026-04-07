@@ -67,6 +67,7 @@
     "OverlayBackstepOverlayMixin",
     "OverlayDefaultOverlayMixin",
     "PacketAccessorMixin",
+    "ParticleGeneratorProcedureMixin",
     "PerfectSukunaModelMixin",
     "PhysicalGiftedMixin",
     "PlayAnimationEntity",

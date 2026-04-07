@@ -3,6 +3,7 @@ package com.jujutsu.jujutsucraftaddon.procedures;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModItems;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
+import com.jujutsu.jujutsucraftaddon.item.SukunaArmorThreeItem;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
 import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import net.mcreator.jujutsucraft.init.JujutsucraftModGameRules;
@@ -149,7 +150,7 @@ public class JJKURStartCursedTechniqueProcedure {
                 name.contains(Component.translatable("jujutsu.technique.mahito7").getString()) ||
                 name.contains(Component.translatable("jujutsu.technique.attack3").getString()) ||
                 name.contains(Component.translatable("jujutsu.technique.mahito_body_repel2").getString()) ||
-                name.contains("Mahoraga: World Slash") || id == 21.0);
+                name.contains("Mahoraga: World Slash") || name.contains("Agito") || id == 21.0);
     }
 
     private static boolean canTechniqueStart(Entity entity, LivingEntity living, boolean isItemUse, boolean freePower) {
@@ -272,7 +273,7 @@ public class JJKURStartCursedTechniqueProcedure {
                 if (s1 >= 0.0 && s1 <= 2.0) {
                     double duration = tick;
                     Item chest = living.getItemBySlot(EquipmentSlot.CHEST).getItem();
-                    if (chest == JujutsucraftModItems.SUKUNA_BODY_CHESTPLATE.get()) duration *= 0.5;
+                    if (chest == JujutsucraftModItems.SUKUNA_BODY_CHESTPLATE.get() || chest == JujutsucraftaddonModItems.SUKUNA_ARMOR_THREE_CHESTPLATE.get()) duration *= 0.5;
                     if (living.getAttributes().hasAttribute(Attributes.ATTACK_SPEED)) {
                         duration += 20.0 * Math.max(1.7 - living.getAttribute(Attributes.ATTACK_SPEED).getValue(), 0.0);
                     }

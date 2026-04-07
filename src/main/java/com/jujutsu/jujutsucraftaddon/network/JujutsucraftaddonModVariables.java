@@ -48,7 +48,7 @@ public class JujutsucraftaddonModVariables {
         @SubscribeEvent
         public static void onPlayerLoggedInSyncPlayerVariables(PlayerEvent.PlayerLoggedInEvent event) {
             if (!event.getEntity().level().isClientSide())
-                event.getEntity().getCapability(PLAYER_VARIABLES_CAPABILITY, null).orElse(new PlayerVariables()).syncPlayerVariables(event.getEntity());
+                event.getEntity().getCapability(PLAYER_VARIABLES_CAPABILITY, null).ifPresent(cap -> cap.syncPlayerVariables(event.getEntity()));
         }
 
         @SubscribeEvent

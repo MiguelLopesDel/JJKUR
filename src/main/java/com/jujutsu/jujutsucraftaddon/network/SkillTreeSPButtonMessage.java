@@ -17,20 +17,26 @@ import java.util.function.Supplier;
 
 @Mod.EventBusSubscriber(bus = Mod.EventBusSubscriber.Bus.MOD)
 public class SkillTreeSPButtonMessage {
-    private final int buttonID, x, y, z;
+    private final int buttonID, x, y, z, amount;
 
     public SkillTreeSPButtonMessage(FriendlyByteBuf buffer) {
         this.buttonID = buffer.readInt();
         this.x = buffer.readInt();
         this.y = buffer.readInt();
         this.z = buffer.readInt();
+        this.amount = buffer.readInt();
     }
 
     public SkillTreeSPButtonMessage(int buttonID, int x, int y, int z) {
+        this(buttonID, x, y, z, 1);
+    }
+
+    public SkillTreeSPButtonMessage(int buttonID, int x, int y, int z, int amount) {
         this.buttonID = buttonID;
         this.x = x;
         this.y = y;
         this.z = z;
+        this.amount = amount;
     }
 
     public static void buffer(SkillTreeSPButtonMessage message, FriendlyByteBuf buffer) {
@@ -38,6 +44,7 @@ public class SkillTreeSPButtonMessage {
         buffer.writeInt(message.x);
         buffer.writeInt(message.y);
         buffer.writeInt(message.z);
+        buffer.writeInt(message.amount);
     }
 
     public static void handler(SkillTreeSPButtonMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
@@ -48,27 +55,33 @@ public class SkillTreeSPButtonMessage {
             int x = message.x;
             int y = message.y;
             int z = message.z;
-            handleButtonAction(entity, buttonID, x, y, z);
+            int amount = message.amount;
+            handleButtonAction(entity, buttonID, x, y, z, amount);
         });
         context.setPacketHandled(true);
     }
 
     public static void handleButtonAction(Player entity, int buttonID, int x, int y, int z) {
+        handleButtonAction(entity, buttonID, x, y, z, 1);
+    }
+
+    public static void handleButtonAction(Player entity, int buttonID, int x, int y, int z, int amount) {
         Level world = entity.level();
         HashMap guistate = SkillTreeSPMenu.guistate;
         // security measure to prevent arbitrary chunk generation
         if (!world.hasChunkAt(new BlockPos(x, y, z)))
             return;
         if (buttonID == 0) {
-
-            HealthProcedure.execute(world, x, y, z, entity);
+            for (int i = 0; i < amount; i++) {
+                HealthProcedure.execute(world, x, y, z, entity);
+            }
         }
         if (buttonID == 1) {
-
-            CEProcedure.execute(world, x, y, z, entity);
+            for (int i = 0; i < amount; i++) {
+                CEProcedure.execute(world, x, y, z, entity);
+            }
         }
         if (buttonID == 2) {
-
             SpeedProcedure.execute(world, x, y, z, entity);
         }
         if (buttonID == 3) {

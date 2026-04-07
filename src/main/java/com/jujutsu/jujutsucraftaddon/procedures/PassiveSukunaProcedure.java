@@ -148,6 +148,7 @@ public class PassiveSukunaProcedure {
 
     private static void spawnProjectile(LevelAccessor world, double px, double py, double pz, Entity owner, double output, BiFunction<Level, Entity, AbstractArrow> factory) {
         if (!(world instanceof ServerLevel sLevel)) return;
+        com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod.logCall("PassiveSukuna_Projectile");
         AbstractArrow arrow = factory.apply(sLevel, owner);
         arrow.setOwner(owner);
         arrow.setBaseDamage(10 * output);

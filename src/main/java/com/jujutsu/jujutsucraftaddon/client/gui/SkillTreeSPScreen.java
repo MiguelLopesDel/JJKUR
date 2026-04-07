@@ -7,6 +7,7 @@ import com.jujutsu.jujutsucraftaddon.world.inventory.SkillTreeSPMenu;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -40,6 +41,16 @@ public class SkillTreeSPScreen extends AbstractContainerScreen<SkillTreeSPMenu> 
         this.entity = container.entity;
         this.imageWidth = 500;
         this.imageHeight = 500;
+    }
+
+    private void handleButtonClick(int id) {
+        int amount = 1;
+        if (id == 0 || id == 1) {
+            if (Screen.hasShiftDown()) amount = 10;
+            else if (Screen.hasControlDown()) amount = 100;
+        }
+        JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(id, x, y, z, amount));
+        SkillTreeSPButtonMessage.handleButtonAction(entity, id, x, y, z, amount);
     }
 
     @Override
@@ -119,42 +130,21 @@ public class SkillTreeSPScreen extends AbstractContainerScreen<SkillTreeSPMenu> 
     @Override
     public void init() {
         super.init();
-        button_empty = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_empty"), e -> {
-            if (true) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(0, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 0, x, y, z);
-            }
-        }).bounds(this.leftPos + 69, this.topPos + 238, 30, 20).build();
+        button_empty = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_empty"), e -> handleButtonClick(0)).bounds(this.leftPos + 69, this.topPos + 238, 30, 20).build();
         guistate.put("button:button_empty", button_empty);
         this.addRenderableWidget(button_empty);
-        button_empty1 = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_empty1"), e -> {
-            if (true) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(1, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 1, x, y, z);
-            }
-        }).bounds(this.leftPos + 69, this.topPos + 273, 30, 20).build();
+        button_empty1 = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_empty1"), e -> handleButtonClick(1)).bounds(this.leftPos + 69, this.topPos + 273, 30, 20).build();
         guistate.put("button:button_empty1", button_empty1);
         this.addRenderableWidget(button_empty1);
-        button_empty2 = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_empty2"), e -> {
-            if (true) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(2, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 2, x, y, z);
-            }
-        }).bounds(this.leftPos + 69, this.topPos + 309, 30, 20).build();
+        button_empty2 = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_empty2"), e -> handleButtonClick(2)).bounds(this.leftPos + 69, this.topPos + 309, 30, 20).build();
         guistate.put("button:button_empty2", button_empty2);
         this.addRenderableWidget(button_empty2);
-        button_fight_your_spirit = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_fight_your_spirit"), e -> {
-            if (true) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(3, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 3, x, y, z);
-            }
-        }).bounds(this.leftPos + 322, this.topPos + 277, 113, 20).build();
+        button_fight_your_spirit = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_fight_your_spirit"), e -> handleButtonClick(3)).bounds(this.leftPos + 322, this.topPos + 277, 113, 20).build();
         guistate.put("button:button_fight_your_spirit", button_fight_your_spirit);
         this.addRenderableWidget(button_fight_your_spirit);
         button_rct_mastery_quest = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_rct_mastery_quest"), e -> {
             if (ReturnSecretProcedure.execute(entity)) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(4, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 4, x, y, z);
+                handleButtonClick(4);
             }
         }).bounds(this.leftPos + 325, this.topPos + 201, 113, 20).build(builder -> new Button(builder) {
             @Override
@@ -165,18 +155,12 @@ public class SkillTreeSPScreen extends AbstractContainerScreen<SkillTreeSPMenu> 
         });
         guistate.put("button:button_rct_mastery_quest", button_rct_mastery_quest);
         this.addRenderableWidget(button_rct_mastery_quest);
-        button_unlock_extension = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_unlock_extension"), e -> {
-            if (true) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(5, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 5, x, y, z);
-            }
-        }).bounds(this.leftPos + 323, this.topPos + 307, 108, 20).build();
+        button_unlock_extension = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_unlock_extension"), e -> handleButtonClick(5)).bounds(this.leftPos + 323, this.topPos + 307, 108, 20).build();
         guistate.put("button:button_unlock_extension", button_unlock_extension);
         this.addRenderableWidget(button_unlock_extension);
         button_rebirth = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_rebirth"), e -> {
             if (ReturnRebirthProcedure.execute(world, entity)) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(6, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 6, x, y, z);
+                handleButtonClick(6);
             }
         }).bounds(this.leftPos + 41, this.topPos + 210, 61, 20).build(builder -> new Button(builder) {
             @Override
@@ -187,20 +171,10 @@ public class SkillTreeSPScreen extends AbstractContainerScreen<SkillTreeSPMenu> 
         });
         guistate.put("button:button_rebirth", button_rebirth);
         this.addRenderableWidget(button_rebirth);
-        button_binding_vows = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_binding_vows"), e -> {
-            if (true) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(7, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 7, x, y, z);
-            }
-        }).bounds(this.leftPos + 203, this.topPos + 273, 87, 20).build();
+        button_binding_vows = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_binding_vows"), e -> handleButtonClick(7)).bounds(this.leftPos + 203, this.topPos + 273, 87, 20).build();
         guistate.put("button:button_binding_vows", button_binding_vows);
         this.addRenderableWidget(button_binding_vows);
-        button_meditation = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_meditation"), e -> {
-            if (true) {
-                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(8, x, y, z));
-                SkillTreeSPButtonMessage.handleButtonAction(entity, 8, x, y, z);
-            }
-        }).bounds(this.leftPos + 207, this.topPos + 304, 77, 20).build();
+        button_meditation = Button.builder(Component.translatable("gui.jujutsucraftaddon.skill_tree_sp.button_meditation"), e -> handleButtonClick(8)).bounds(this.leftPos + 207, this.topPos + 304, 77, 20).build();
         guistate.put("button:button_meditation", button_meditation);
         this.addRenderableWidget(button_meditation);
     }

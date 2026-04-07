@@ -26,7 +26,7 @@ minecraft {
                     "-XX:G1ReservePercent=15", "-XX:G1HeapWastePercent=5", "-XX:G1MixedGCCountTarget=4",
                     "-XX:InitiatingHeapOccupancyPercent=15", "-XX:G1MixedGCLiveThresholdPercent=90",
                     "-XX:G1RSetUpdatingPauseTimePercent=5", "-XX:SurvivorRatio=32", "-XX:+PerfDisableSharedMem",
-                    "-XX:MaxTenuringThreshold=1", "-Dusing.aikars.flags=https://mcflags.emc.gs/", "-Daikars.new.flags=true"
+                    "-XX:MaxTenuringThreshold=1", "-XX:+AllowEnhancedClassRedefinition", "-Dusing.aikars.flags=https://mcflags.emc.gs/", "-Daikars.new.flags=true"
             ]
             workingDirectory project.file('run')
 
@@ -79,6 +79,7 @@ dependencies {
     implementation fg.deobf("curse.maven:jjsk-1128285:7762065")
     implementation fg.deobf('software.bernie.geckolib:geckolib-forge-1.20.1:4.8.3')
     implementation fg.deobf('dev.kosmx.player-anim:player-animation-lib-forge:1.0.2-rc1+1.20')
+    implementation fg.deobf("curse.maven:starlight-526854:4631193")
     //opcional
     implementation fg.deobf("curse.maven:architectury_api-419699:5137938")
     implementation fg.deobf("curse.maven:aaa-particles-979809:7681701")
