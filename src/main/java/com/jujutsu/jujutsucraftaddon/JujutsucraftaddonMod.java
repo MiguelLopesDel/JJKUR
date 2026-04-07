@@ -13,7 +13,10 @@ import net.minecraftforge.fml.util.thread.SidedThreadGroups;
 import net.minecraftforge.network.NetworkEvent;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
+import com.jujutsu.jujutsucraftaddon.util.JJKUClientConfig;
 import com.jujutsu.jujutsucraftaddon.util.JJKURPerformanceMonitor;
+import net.minecraftforge.fml.ModLoadingContext;
+import net.minecraftforge.fml.config.ModConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -31,8 +34,13 @@ public class JujutsucraftaddonMod {
     public static final Logger LOGGER = LogManager.getLogger(JujutsucraftaddonMod.class);
     public static final String MODID = "jujutsucraftaddon";
 
+    // Register all mod components
     public JujutsucraftaddonMod() {
         JJKURPerformanceMonitor.start();
+
+        // Register Client Configuration
+        ModLoadingContext.get().registerConfig(ModConfig.Type.CLIENT, JJKUClientConfig.SPEC);
+
         MinecraftForge.EVENT_BUS.register(this);
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         JujutsucraftaddonModNetworkHandler.registerMessages();
