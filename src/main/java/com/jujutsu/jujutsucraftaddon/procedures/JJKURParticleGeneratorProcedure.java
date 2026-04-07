@@ -16,7 +16,6 @@ public class JJKURParticleGeneratorProcedure {
     private static final Map<String, ParticleOptions> PARTICLE_CACHE = new HashMap<>();
 
     public static void execute(LevelAccessor world, double caliber_radius, double count, double inaccuracy, double speed, double x1, double x2, double y1, double y2, double z1, double z2, String id, CallbackInfo ci) {
-        com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod.logCall("ParticleGen_execute");
         if (id == null || !(world instanceof ServerLevel _level)) return;
 
         if (ci != null) ci.cancel();
