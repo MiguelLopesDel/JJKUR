@@ -32,66 +32,11 @@ public class JujutsucraftaddonMod {
     public static final String MODID = "jujutsucraftaddon";
 
     public JujutsucraftaddonMod() {
-//        JJKURPerformanceMonitor.start();
+        JJKURPerformanceMonitor.start();
         MinecraftForge.EVENT_BUS.register(this);
         IEventBus bus = FMLJavaModLoadingContext.get().getModEventBus();
         JujutsucraftaddonModNetworkHandler.registerMessages();
         registerModComponents(bus);
-    }
-
-    private static final java.util.Map<String, java.util.concurrent.atomic.AtomicInteger> CALL_COUNTS = new java.util.concurrent.ConcurrentHashMap<>();
-//
-//    public static void logCall(String key) {
-//        CALL_COUNTS.computeIfAbsent(key, k -> new java.util.concurrent.atomic.AtomicInteger(0)).incrementAndGet();
-//    }
-
-    private void startMemoryWatchdog() {
-        Thread watchdog = new Thread(() -> {
-            Runtime runtime = Runtime.getRuntime();
-            java.io.File logFile = new java.io.File("jjkur_memory_log.txt");
-            try (java.io.PrintWriter writer = new java.io.PrintWriter(new java.io.FileWriter(logFile, true))) {
-                writer.println("--- JJKUR Watchdog Started at " + new java.util.Date() + " ---");
-                writer.flush();
-                while (true) {
-                    try {
-                        if(1==1)return;
-                        long maxMemory = runtime.maxMemory() / 1024 / 1024;
-                        long allocatedMemory = runtime.totalMemory() / 1024 / 1024;
-                        long freeMemory = runtime.freeMemory() / 1024 / 1024;
-                        long usedMemory = allocatedMemory - freeMemory;
-                        
-                        String logMsg = String.format("[%tT] [JJKUR_WATCHDOG] RAM Usage: Used: %dMB, Allocated: %dMB, Max: %dMB", 
-                            System.currentTimeMillis(), usedMemory, allocatedMemory, maxMemory);
-                        
-                        LOGGER.info(logMsg);
-                        writer.println(logMsg);
-
-                        // Log call counts
-                        if (!CALL_COUNTS.isEmpty()) {
-                            writer.println("  Calls:");
-                            for (java.util.Map.Entry<String, java.util.concurrent.atomic.AtomicInteger> entry : CALL_COUNTS.entrySet()) {
-                                int count = entry.getValue().getAndSet(0);
-                                if (count > 0) {
-                                    writer.println(String.format("    - %s: %d/s", entry.getKey(), count));
-                                }
-                            }
-                        }
-                        
-                        writer.flush();
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        break;
-                    } catch (Exception e) {
-                        LOGGER.error("[JJKUR_WATCHDOG] Error in watchdog loop", e);
-                    }
-                }
-            } catch (java.io.IOException e) {
-                LOGGER.error("[JJKUR_WATCHDOG] Could not open log file", e);
-            }
-        }, "JJKUR-Memory-Watchdog");
-        watchdog.setDaemon(true);
-        watchdog.setPriority(Thread.MIN_PRIORITY);
-        watchdog.start();
     }
 
     private void registerModComponents(IEventBus bus) {
