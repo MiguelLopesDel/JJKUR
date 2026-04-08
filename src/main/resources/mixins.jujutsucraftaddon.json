@@ -42,6 +42,7 @@
     "HairpinProcedureMixin",
     "HitenItemMixin",
     "HollowPurpleMixin",
+    "HWBProtectionMixin",
     "IdleTransfigurationProcedureMixin",
     "JackpotEffectActiveTickMixin",
     "JogoFlame1ProcedureMixin",
