@@ -4,6 +4,7 @@ import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
 import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
+import com.jujutsu.jujutsucraftaddon.util.ZenithHWBManager;
 import net.mcreator.jujutsucraft.JujutsucraftMod;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
@@ -56,7 +57,9 @@ public class PassiveKeybindOnKeyPressedProcedure {
     private static void handleGojoPassive(Entity entity) {
         if (entity instanceof LivingEntity living && living.hasEffect(JujutsucraftModMobEffects.SIX_EYES.get())) {
             playAnimation(entity, "pressure");
-            if (!living.hasEffect(JujutsucraftaddonModMobEffects.HWB.get()) && !entity.level().isClientSide()) {
+            if (entity instanceof Player player && player.hasEffect(JujutsucraftModMobEffects.SIX_EYES.get())) {
+                ZenithHWBManager.toggleHWB(player);
+            } else if (!living.hasEffect(JujutsucraftaddonModMobEffects.HWB.get()) && !entity.level().isClientSide()) {
                 living.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.HWB.get(), 40, 1, false, false));
             }
         }
