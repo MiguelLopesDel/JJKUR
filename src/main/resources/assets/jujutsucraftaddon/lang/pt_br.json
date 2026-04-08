@@ -1230,5 +1230,17 @@
   "gamerule.jjkuRegenerateShikigami.description": "Enable or Disable Shikigami Regen After 10 Minutes of Death",
   "dialoguequest": "Quest Ativa: ",
   "key.jujutsucraftaddon.change_technique": "KeybindSwap",
-  "key.z_target": "Z Target"
-}
+  "key.z_target": "Z Target",
+  "advancements.jujutsucraftaddon.domain_beginner.title": "Maestria de Domínio: Iniciante",
+  "advancements.jujutsucraftaddon.domain_beginner.descr": "Você começou a entender a geometria do seu próprio mundo. (+10% de Força em Embates)",
+  "advancements.jujutsucraftaddon.domain_intermediate.title": "Maestria de Domínio: Intermediário",
+  "advancements.jujutsucraftaddon.domain_intermediate.descr": "Suas mãos desenham o espaço com precisão. (+15% de Força em Embates)",
+  "advancements.jujutsucraftaddon.domain_advanced.title": "Maestria de Domínio: Avançado",
+  "advancements.jujutsucraftaddon.domain_advanced.descr": "O domínio não é mais um esforço, é uma extensão de sua mente. (+25% de Força em Embates)",
+  "advancements.jujutsucraftaddon.domain_world_balance.title": "Maestria de Domínio: Balanço do Mundo",
+  "advancements.jujutsucraftaddon.domain_world_balance.descr": "Seu domínio pode inclinar a balança de qualquer batalha. (+50% de Força em Embates)",
+  "advancements.jujutsucraftaddon.domain_thousand_year_king.title": "Maestria de Domínio: Rei de 1000 Anos",
+  "advancements.jujutsucraftaddon.domain_thousand_year_king.descr": "Um domínio forjado através de séculos de conflito. (+100% de Força em Embates)",
+  "advancements.jujutsucraftaddon.domain_zenith.title": "Maestria de Domínio: Zenith",
+  "advancements.jujutsucraftaddon.domain_zenith.descr": "O ápice absoluto. Sua vontade sobrepõe a própria realidade. (+300% de Força em Embates)"
+  }

@@ -1,5 +1,6 @@
 package com.jujutsu.jujutsucraftaddon.mixins;
 
+import com.jujutsu.jujutsucraftaddon.util.DomainMasterySystem;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
@@ -45,7 +46,6 @@ public abstract class DomainExpansionOnEffectActiveTickProcedureMixin {
         ci.cancel();
 
         if (entity != null) {
-            // JJKU_DOMAIN_NERF logic
             if (world.getLevelData().getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_DOMAIN_NERF)) {
                 if (entity instanceof LivingEntity _livEnt && !_livEnt.hasEffect(JujutsucraftaddonModMobEffects.DOMAIN_BREAK.get())) {
                     if (!_livEnt.level().isClientSide())
@@ -190,6 +190,8 @@ public abstract class DomainExpansionOnEffectActiveTickProcedureMixin {
                     float maxHealth = entity instanceof LivingEntity _livEnt ? _livEnt.getMaxHealth() : -1.0F;
                     double healthRatio = Math.max((double) Math.max(maxHealth, 1.0F) - Math.max(entity.getPersistentData().getDouble("totalDamage"), 0.0) * 2.0, 0.0) / (double) Math.max(maxHealth, 1.0F);
                     domainPower1 = str_lv * healthRatio * Math.min(Math.min(tick_1, 1200.0) / 2400.0 + 0.5, 1.0);
+
+                    domainPower1 = DomainMasterySystem.apply(domainPower1, entity);
                     
                     failed = false;
                     logic_a = false;
@@ -231,6 +233,8 @@ public abstract class DomainExpansionOnEffectActiveTickProcedureMixin {
                                         double tHealthRatio = Math.max((double) Math.max(tMaxHealth, 1.0F) - Math.max(entityiterator.getPersistentData().getDouble("totalDamage"), 0.0) * 2.0, 0.0) / (double) Math.max(tMaxHealth, 1.0F);
                                         domainPower2 = domainPower2 * tHealthRatio * Math.min(Math.min(tick_2, 1200.0) / 2400.0 + 0.5, 1.0);
                                     }
+
+                                    domainPower2 = DomainMasterySystem.apply(domainPower2, entityiterator);
 
                                     if ((domainPower1 - domainPower2 >= 10.0 || (logic_a && targetAmp <= 0)) && entityiterator instanceof LivingEntity _livEntIt && _livEntIt.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
                                         failed = false;

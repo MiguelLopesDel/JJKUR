@@ -1,0 +1,23 @@
+{
+  "parent": "jujutsucraftaddon:domain_thousand_year_king",
+  "display": {
+    "icon": {
+      "item": "minecraft:nether_star"
+    },
+    "title": {
+      "translate": "advancements.jujutsucraftaddon.domain_zenith.title"
+    },
+    "description": {
+      "translate": "advancements.jujutsucraftaddon.domain_zenith.descr"
+    },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "requirement": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

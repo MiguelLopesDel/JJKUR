@@ -1230,5 +1230,17 @@
   "gamerule.jjkuRegenerateShikigami.description": "Enable or Disable Shikigami Regen After 10 Minutes of Death",
   "dialoguequest": "Quest Active: ",
   "key.jujutsucraftaddon.change_technique": "KeybindSwap",
-  "key.z_target": "Z Target"
-}
+  "key.z_target": "Z Target",
+  "advancements.jujutsucraftaddon.domain_beginner.title": "Domain Mastery: Beginner",
+  "advancements.jujutsucraftaddon.domain_beginner.descr": "You've begun to understand the geometry of your own world. (+10% Clash Strength)",
+  "advancements.jujutsucraftaddon.domain_intermediate.title": "Domain Mastery: Intermediate",
+  "advancements.jujutsucraftaddon.domain_intermediate.descr": "Your hands draw space with precision. (+15% Clash Strength)",
+  "advancements.jujutsucraftaddon.domain_advanced.title": "Domain Mastery: Advanced",
+  "advancements.jujutsucraftaddon.domain_advanced.descr": "The domain is no longer an effort, but an extension of your mind. (+25% Clash Strength)",
+  "advancements.jujutsucraftaddon.domain_world_balance.title": "Domain Mastery: World Balance",
+  "advancements.jujutsucraftaddon.domain_world_balance.descr": "Your domain can tip the scales of any battle. (+50% Clash Strength)",
+  "advancements.jujutsucraftaddon.domain_thousand_year_king.title": "Domain Mastery: 1000 Year King",
+  "advancements.jujutsucraftaddon.domain_thousand_year_king.descr": "A domain forged through centuries of conflict. (+100% Clash Strength)",
+  "advancements.jujutsucraftaddon.domain_zenith.title": "Domain Mastery: Zenith",
+  "advancements.jujutsucraftaddon.domain_zenith.descr": "The absolute peak. Your will overrides reality itself. (+300% Clash Strength)"
+  }

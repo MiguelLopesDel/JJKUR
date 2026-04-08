@@ -1,0 +1,23 @@
+{
+  "parent": "jujutsucraftaddon:ultimate_power",
+  "display": {
+    "icon": {
+      "item": "minecraft:diamond"
+    },
+    "title": {
+      "translate": "advancements.jujutsucraftaddon.domain_beginner.title"
+    },
+    "description": {
+      "translate": "advancements.jujutsucraftaddon.domain_beginner.descr"
+    },
+    "frame": "task",
+    "show_toast": true,
+    "announce_to_chat": true,
+    "hidden": false
+  },
+  "criteria": {
+    "requirement": {
+      "trigger": "minecraft:impossible"
+    }
+  }
+}

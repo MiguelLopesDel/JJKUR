@@ -1,0 +1,12 @@
+{
+  "parent": "jujutsucraftaddon:domain_world_balance",
+  "display": {
+    "icon": { "item": "minecraft:netherite_sword" },
+    "title": { "translate": "advancements.jujutsucraftaddon.domain_thousand_year_king.title" },
+    "description": { "translate": "advancements.jujutsucraftaddon.domain_thousand_year_king.descr" },
+    "frame": "challenge",
+    "show_toast": true,
+    "announce_to_chat": true
+  },
+  "criteria": { "requirement": { "trigger": "minecraft:impossible" } }
+}
