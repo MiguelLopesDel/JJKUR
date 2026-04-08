@@ -67,8 +67,6 @@ public class SkillTreeSPButtonMessage {
 
     public static void handleButtonAction(Player entity, int buttonID, int x, int y, int z, int amount) {
         Level world = entity.level();
-        HashMap guistate = SkillTreeSPMenu.guistate;
-        // security measure to prevent arbitrary chunk generation
         if (!world.hasChunkAt(new BlockPos(x, y, z)))
             return;
         if (buttonID == 0) {
@@ -107,6 +105,12 @@ public class SkillTreeSPButtonMessage {
         if (buttonID == 8) {
 
             MeditationOnKeyPressedProcedure.execute(world, x, y, z, entity);
+        }
+        if (buttonID == 100) {
+            entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY).ifPresent(cap -> {
+                cap.zenith_show_arms = !cap.zenith_show_arms;
+                cap.syncPlayerVariablesToAll(entity);
+            });
         }
     }
 

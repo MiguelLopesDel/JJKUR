@@ -43,7 +43,7 @@ public class ZenithPerfectBodyManager {
 
             if (vars.zenith_perfect_body != active) {
                 vars.zenith_perfect_body = active;
-                vars.syncPlayerVariables(player);
+                vars.syncPlayerVariablesToAll(player);
             }
 
             if (active) {

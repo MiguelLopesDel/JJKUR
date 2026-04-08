@@ -1,6 +1,8 @@
 package com.jujutsu.jujutsucraftaddon.client.renderer;
 
+import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
 import com.jujutsu.jujutsucraftaddon.util.JJKUClientConfig;
+import com.jujutsu.jujutsucraftaddon.util.JJKUVariables;
 import com.jujutsu.jujutsucraftaddon.util.ZenithPerfectBodyManager;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
@@ -23,10 +25,8 @@ public class ZenithFourArmLayer extends RenderLayer<AbstractClientPlayer, Player
     @Override
     public void render(PoseStack poseStack, MultiBufferSource buffer, int packedLight, AbstractClientPlayer player, float limbSwing, float limbSwingAmount, float partialTicks, float ageInTicks, float netHeadYaw, float headPitch) {
         if (ZenithPerfectBodyManager.hasAllRequirements(player)) {
-            if (player == Minecraft.getInstance().player) {
-                if (!JJKUClientConfig.SHOW_ZENITH_ARMS.get()) return;
-            }
-            renderAbsoluteZenithArms(poseStack, buffer, packedLight, player);
+            if (JJKUVariables.getBoolean(player, cap -> cap.zenith_show_arms))
+                renderAbsoluteZenithArms(poseStack, buffer, packedLight, player);
         }
     }
 

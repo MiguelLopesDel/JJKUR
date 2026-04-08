@@ -2,7 +2,9 @@ package com.jujutsu.jujutsucraftaddon.network;
 
 import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod;
 import com.jujutsu.jujutsucraftaddon.procedures.LockOnCapability;
+import com.jujutsu.jujutsucraftaddon.util.JJKUVariables;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -227,6 +229,7 @@ public class JujutsucraftaddonModVariables {
             clone.TrueSpeed = original.TrueSpeed;
             clone.Effects = original.Effects;
             clone.zenith_perfect_body = original.zenith_perfect_body;
+            clone.zenith_show_arms = original.zenith_show_arms;
             clone.hwb_active = original.hwb_active;
             clone.hwb_timer = original.hwb_timer;
             clone.FingerReset = original.FingerReset;
@@ -648,6 +651,7 @@ public class JujutsucraftaddonModVariables {
         public double TrueSpeed = 0;
         public boolean Effects = false;
         public boolean zenith_perfect_body = false;
+        public boolean zenith_show_arms = true;
         public boolean hwb_active = false;
         public double hwb_timer = 0;
         public LockOnCapability lockOnCapability = new LockOnCapability();
@@ -656,6 +660,15 @@ public class JujutsucraftaddonModVariables {
         public void syncPlayerVariables(Entity entity) {
             if (entity instanceof ServerPlayer serverPlayer)
                 JujutsucraftaddonMod.PACKET_HANDLER.send(PacketDistributor.PLAYER.with(() -> serverPlayer), new PlayerVariablesSyncMessage(this));
+        }
+
+        public void syncPlayerVariablesToAll(Entity entity) {
+            if (!entity.level().isClientSide()) {
+                JujutsucraftaddonMod.PACKET_HANDLER.send(
+                        PacketDistributor.TRACKING_ENTITY_AND_SELF.with(() -> entity),
+                        new PlayerVariablesSyncMessage(this, entity.getId())
+                );
+            }
         }
 
         public Tag writeNBT() {
@@ -831,6 +844,7 @@ public class JujutsucraftaddonModVariables {
             nbt.putDouble("TrueSpeed", TrueSpeed);
             nbt.putBoolean("Effects", Effects);
             nbt.putBoolean("zenith_perfect_body", zenith_perfect_body);
+            nbt.putBoolean("zenith_show_arms", zenith_show_arms);
             nbt.putBoolean("hwb_active", hwb_active);
             nbt.putDouble("hwb_timer", hwb_timer);
             nbt.putBoolean("FingerReset", FingerReset);
@@ -1011,6 +1025,7 @@ public class JujutsucraftaddonModVariables {
             TrueSpeed = nbt.getDouble("TrueSpeed");
             Effects = nbt.getBoolean("Effects");
             zenith_perfect_body = nbt.getBoolean("zenith_perfect_body");
+            zenith_show_arms = nbt.getBoolean("zenith_show_arms");
             hwb_active = nbt.getBoolean("hwb_active");
             hwb_timer = nbt.getDouble("hwb_timer");
             FingerReset = nbt.getBoolean("FingerReset");
@@ -1022,202 +1037,225 @@ public class JujutsucraftaddonModVariables {
 
     public static class PlayerVariablesSyncMessage {
         private final PlayerVariables data;
+        public int targetId;
 
         public PlayerVariablesSyncMessage(FriendlyByteBuf buffer) {
             this.data = new PlayerVariables();
             this.data.readNBT(buffer.readNbt());
+            this.targetId = buffer.readInt();
         }
 
         public PlayerVariablesSyncMessage(PlayerVariables data) {
             this.data = data;
+            this.targetId = -1;
+        }
+
+        public PlayerVariablesSyncMessage(PlayerVariables data, int targetId) {
+            this.data = data;
+            this.targetId = targetId;
         }
 
         public static void buffer(PlayerVariablesSyncMessage message, FriendlyByteBuf buffer) {
             buffer.writeNbt((CompoundTag) message.data.writeNBT());
+            buffer.writeInt(message.targetId);
         }
 
         public static void handler(PlayerVariablesSyncMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
             NetworkEvent.Context context = contextSupplier.get();
             context.enqueueWork(() -> {
                 if (!context.getDirection().getReceptionSide().isServer()) {
-                    PlayerVariables variables = Minecraft.getInstance().player.getCapability(PLAYER_VARIABLES_CAPABILITY, null).orElse(new PlayerVariables());
-                    variables.Armorslot1 = message.data.Armorslot1;
-                    variables.Armorslot2 = message.data.Armorslot2;
-                    variables.Armorslot3 = message.data.Armorslot3;
-                    variables.Armorslot4 = message.data.Armorslot4;
-                    variables.Armorslot5 = message.data.Armorslot5;
-                    variables.InventoryArmorySlot0 = message.data.InventoryArmorySlot0;
-                    variables.InventoryArmorySlot1 = message.data.InventoryArmorySlot1;
-                    variables.InventoryArmorySlot2 = message.data.InventoryArmorySlot2;
-                    variables.InventoryArmorySlot3 = message.data.InventoryArmorySlot3;
-                    variables.InventoryArmorySlot4 = message.data.InventoryArmorySlot4;
-                    variables.slot0 = message.data.slot0;
-                    variables.slot1 = message.data.slot1;
-                    variables.slot10 = message.data.slot10;
-                    variables.slot11 = message.data.slot11;
-                    variables.slot12 = message.data.slot12;
-                    variables.slot13 = message.data.slot13;
-                    variables.slot14 = message.data.slot14;
-                    variables.slot15 = message.data.slot15;
-                    variables.slot16 = message.data.slot16;
-                    variables.slot17 = message.data.slot17;
-                    variables.slot18 = message.data.slot18;
-                    variables.slot19 = message.data.slot19;
-                    variables.slot2 = message.data.slot2;
-                    variables.slot3 = message.data.slot3;
-                    variables.slot4 = message.data.slot4;
-                    variables.slot5 = message.data.slot5;
-                    variables.slot6 = message.data.slot6;
-                    variables.slot7 = message.data.slot7;
-                    variables.slot8 = message.data.slot8;
-                    variables.slot9 = message.data.slot9;
-                    variables.AgitoBeast = message.data.AgitoBeast;
-                    variables.BarrierlessDomain = message.data.BarrierlessDomain;
-                    variables.BGM = message.data.BGM;
-                    variables.BurnOutRCT = message.data.BurnOutRCT;
-                    variables.Dash = message.data.Dash;
-                    variables.InfusedDomain = message.data.InfusedDomain;
-                    variables.IsCursedSpirit = message.data.IsCursedSpirit;
-                    variables.IsInumaki = message.data.IsInumaki;
-                    variables.IsJujutsuSorcerer = message.data.IsJujutsuSorcerer;
-                    variables.IsVessel = message.data.IsVessel;
-                    variables.PVP = message.data.PVP;
-                    variables.RCTMasteryOn = message.data.RCTMasteryOn;
-                    variables.RCTOutput = message.data.RCTOutput;
-                    variables.RCTOutputActive = message.data.RCTOutputActive;
-                    variables.rctspirit = message.data.rctspirit;
-                    variables.save = message.data.save;
-                    variables.save1 = message.data.save1;
-                    variables.bar = message.data.bar;
-                    variables.fog = message.data.fog;
-                    variables.SimpleDomain = message.data.SimpleDomain;
-                    variables.WorldSlash = message.data.WorldSlash;
-                    variables.Ultimate = message.data.Ultimate;
-                    variables.SecondAllowed = message.data.SecondAllowed;
-                    variables.AnimationDefense = message.data.AnimationDefense;
-                    variables.AnimationSlash = message.data.AnimationSlash;
-                    variables.AnimationYuzuki = message.data.AnimationYuzuki;
-                    variables.AttackAnimation = message.data.AttackAnimation;
-                    variables.BarrierlessCount = message.data.BarrierlessCount;
-                    variables.BarrierlessDomainNumber = message.data.BarrierlessDomainNumber;
-                    variables.BFChance = message.data.BFChance;
-                    variables.blackflashmastery = message.data.blackflashmastery;
-                    variables.TechniqueMastery = message.data.TechniqueMastery;
-                    variables.BrainDamage = message.data.BrainDamage;
-                    variables.CE = message.data.CE;
-                    variables.CECap = message.data.CECap;
-                    variables.CEFormer = message.data.CEFormer;
-                    variables.CEPlus = message.data.CEPlus;
-                    variables.CEShield = message.data.CEShield;
-                    variables.CooldownExp = message.data.CooldownExp;
-                    variables.Copy1 = message.data.Copy1;
-                    variables.Copy2 = message.data.Copy2;
-                    variables.Copy3 = message.data.Copy3;
-                    variables.Copy4 = message.data.Copy4;
-                    variables.CursedLevel = message.data.CursedLevel;
-                    variables.CursedSpiritsKilled = message.data.CursedSpiritsKilled;
-                    variables.DomainType = message.data.DomainType;
-                    variables.friend_num = message.data.friend_num;
-                    variables.FutureSightNumber = message.data.FutureSightNumber;
-                    variables.GH = message.data.GH;
-                    variables.GojoQuest = message.data.GojoQuest;
-                    variables.gojosund = message.data.gojosund;
-                    variables.Healed = message.data.Healed;
-                    variables.HealthAttribute = message.data.HealthAttribute;
-                    variables.History = message.data.History;
-                    variables.HPCap = message.data.HPCap;
-                    variables.ImpactFramesVariable = message.data.ImpactFramesVariable;
-                    variables.ItadoriAwakening = message.data.ItadoriAwakening;
-                    variables.KenjakuCT1 = message.data.KenjakuCT1;
-                    variables.KenjakuCT2 = message.data.KenjakuCT2;
-                    variables.Kokusen = message.data.Kokusen;
-                    variables.Level = message.data.Level;
-                    variables.levelrct = message.data.levelrct;
-                    variables.Limb = message.data.Limb;
-                    variables.locker = message.data.locker;
-                    variables.Mahoraga = message.data.Mahoraga;
-                    variables.MahoragaCanAdapt = message.data.MahoragaCanAdapt;
-                    variables.Mastery = message.data.Mastery;
-                    variables.MimicryKatana = message.data.MimicryKatana;
-                    variables.Murasaki = message.data.Murasaki;
-                    variables.OstVariable = message.data.OstVariable;
-                    variables.Output = message.data.Output;
-                    variables.OutputLevel = message.data.OutputLevel;
-                    variables.CustceneDone = message.data.CustceneDone;
-                    variables.Points = message.data.Points;
-                    variables.pressed = message.data.pressed;
-                    variables.ProfessionEXP = message.data.ProfessionEXP;
-                    variables.Purple = message.data.Purple;
-                    variables.QuestOutput = message.data.QuestOutput;
-                    variables.RadiusDomain = message.data.RadiusDomain;
-                    variables.random = message.data.random;
-                    variables.RCTCount = message.data.RCTCount;
-                    variables.RCTCount2 = message.data.RCTCount2;
-                    variables.RCTLimitLevel = message.data.RCTLimitLevel;
-                    variables.RCTMastery = message.data.RCTMastery;
-                    variables.RCTRegen = message.data.RCTRegen;
-                    variables.Run = message.data.Run;
-                    variables.Style = message.data.Style;
-                    variables.AttackNumber = message.data.AttackNumber;
-                    variables.SH = message.data.SH;
-                    variables.SimpleDomainLevel = message.data.SimpleDomainLevel;
-                    variables.SimpleQuest = message.data.SimpleQuest;
-                    variables.sokamona = message.data.sokamona;
-                    variables.sp = message.data.sp;
-                    variables.speedCount = message.data.speedCount;
-                    variables.SpeedValue = message.data.SpeedValue;
-                    variables.TimeLeft = message.data.TimeLeft;
-                    variables.Timer1 = message.data.Timer1;
-                    variables.Vow2 = message.data.Vow2;
-                    variables.Vow3 = message.data.Vow3;
-                    variables.Vow4 = message.data.Vow4;
-                    variables.VowPower = message.data.VowPower;
-                    variables.water = message.data.water;
-                    variables.worldslashtimer = message.data.worldslashtimer;
-                    variables.YutaCheck = message.data.YutaCheck;
-                    variables.HistorySukuna = message.data.HistorySukuna;
-                    variables.SecondTechnique = message.data.SecondTechnique;
-                    variables.soka = message.data.soka;
-                    variables.PointsSpirit = message.data.PointsSpirit;
-                    variables.Clans = message.data.Clans;
-                    variables.ClanSlot1 = message.data.ClanSlot1;
-                    variables.ClanSlot2 = message.data.ClanSlot2;
-                    variables.ClanSlot3 = message.data.ClanSlot3;
-                    variables.Damage = message.data.Damage;
-                    variables.DataSixEyesOne = message.data.DataSixEyesOne;
-                    variables.Description = message.data.Description;
-                    variables.Element = message.data.Element;
-                    variables.KenjakuName = message.data.KenjakuName;
-                    variables.MobTexture = message.data.MobTexture;
-                    variables.MobTexture2 = message.data.MobTexture2;
-                    variables.MobTexture3 = message.data.MobTexture3;
-                    variables.Mode = message.data.Mode;
-                    variables.Profession = message.data.Profession;
-                    variables.QuestActive = message.data.QuestActive;
-                    variables.Shadow = message.data.Shadow;
-                    variables.ShadowName = message.data.ShadowName;
-                    variables.SkinName1 = message.data.SkinName1;
-                    variables.SkinName2 = message.data.SkinName2;
-                    variables.SkinName3 = message.data.SkinName3;
-                    variables.Subrace = message.data.Subrace;
-                    variables.tag1 = message.data.tag1;
-                    variables.tag2 = message.data.tag2;
-                    variables.Team = message.data.Team;
-                    variables.TeamName = message.data.TeamName;
-                    variables.Technique = message.data.Technique;
-                    variables.Trait = message.data.Trait;
-                    variables.UUIDBattle = message.data.UUIDBattle;
-                    variables.PlayerTexture = message.data.PlayerTexture;
-                    variables.Moveset = message.data.Moveset;
-                    variables.TrueSpeed = message.data.TrueSpeed;
-                    variables.Effects = message.data.Effects;
-                    variables.zenith_perfect_body = message.data.zenith_perfect_body;
-                    variables.hwb_active = message.data.hwb_active;
-                    variables.hwb_timer = message.data.hwb_timer;
-                    variables.FingerReset = message.data.FingerReset;
+                    ClientLevel level = Minecraft.getInstance().level;
+                    if (level == null) return;
+                    Entity targetEntity;
+                    if (message.targetId == -1) {
+                        targetEntity = Minecraft.getInstance().player;
+                    } else {
+                        targetEntity = level.getEntity(message.targetId);
+                    }
+                    if (targetEntity != null) {
+                        JJKUVariables.get(targetEntity).ifPresent(cap -> syncData(message, cap));
+                    }
                 }
             });
             context.setPacketHandled(true);
+        }
+
+        private static void syncData(PlayerVariablesSyncMessage message, PlayerVariables variables) {
+            variables.Armorslot1 = message.data.Armorslot1;
+            variables.Armorslot2 = message.data.Armorslot2;
+            variables.Armorslot3 = message.data.Armorslot3;
+            variables.Armorslot4 = message.data.Armorslot4;
+            variables.Armorslot5 = message.data.Armorslot5;
+            variables.InventoryArmorySlot0 = message.data.InventoryArmorySlot0;
+            variables.InventoryArmorySlot1 = message.data.InventoryArmorySlot1;
+            variables.InventoryArmorySlot2 = message.data.InventoryArmorySlot2;
+            variables.InventoryArmorySlot3 = message.data.InventoryArmorySlot3;
+            variables.InventoryArmorySlot4 = message.data.InventoryArmorySlot4;
+            variables.slot0 = message.data.slot0;
+            variables.slot1 = message.data.slot1;
+            variables.slot10 = message.data.slot10;
+            variables.slot11 = message.data.slot11;
+            variables.slot12 = message.data.slot12;
+            variables.slot13 = message.data.slot13;
+            variables.slot14 = message.data.slot14;
+            variables.slot15 = message.data.slot15;
+            variables.slot16 = message.data.slot16;
+            variables.slot17 = message.data.slot17;
+            variables.slot18 = message.data.slot18;
+            variables.slot19 = message.data.slot19;
+            variables.slot2 = message.data.slot2;
+            variables.slot3 = message.data.slot3;
+            variables.slot4 = message.data.slot4;
+            variables.slot5 = message.data.slot5;
+            variables.slot6 = message.data.slot6;
+            variables.slot7 = message.data.slot7;
+            variables.slot8 = message.data.slot8;
+            variables.slot9 = message.data.slot9;
+            variables.AgitoBeast = message.data.AgitoBeast;
+            variables.BarrierlessDomain = message.data.BarrierlessDomain;
+            variables.BGM = message.data.BGM;
+            variables.BurnOutRCT = message.data.BurnOutRCT;
+            variables.Dash = message.data.Dash;
+            variables.InfusedDomain = message.data.InfusedDomain;
+            variables.IsCursedSpirit = message.data.IsCursedSpirit;
+            variables.IsInumaki = message.data.IsInumaki;
+            variables.IsJujutsuSorcerer = message.data.IsJujutsuSorcerer;
+            variables.IsVessel = message.data.IsVessel;
+            variables.PVP = message.data.PVP;
+            variables.RCTMasteryOn = message.data.RCTMasteryOn;
+            variables.RCTOutput = message.data.RCTOutput;
+            variables.RCTOutputActive = message.data.RCTOutputActive;
+            variables.rctspirit = message.data.rctspirit;
+            variables.save = message.data.save;
+            variables.save1 = message.data.save1;
+            variables.bar = message.data.bar;
+            variables.fog = message.data.fog;
+            variables.SimpleDomain = message.data.SimpleDomain;
+            variables.WorldSlash = message.data.WorldSlash;
+            variables.Ultimate = message.data.Ultimate;
+            variables.SecondAllowed = message.data.SecondAllowed;
+            variables.AnimationDefense = message.data.AnimationDefense;
+            variables.AnimationSlash = message.data.AnimationSlash;
+            variables.AnimationYuzuki = message.data.AnimationYuzuki;
+            variables.AttackAnimation = message.data.AttackAnimation;
+            variables.BarrierlessCount = message.data.BarrierlessCount;
+            variables.BarrierlessDomainNumber = message.data.BarrierlessDomainNumber;
+            variables.BFChance = message.data.BFChance;
+            variables.blackflashmastery = message.data.blackflashmastery;
+            variables.TechniqueMastery = message.data.TechniqueMastery;
+            variables.BrainDamage = message.data.BrainDamage;
+            variables.CE = message.data.CE;
+            variables.CECap = message.data.CECap;
+            variables.CEFormer = message.data.CEFormer;
+            variables.CEPlus = message.data.CEPlus;
+            variables.CEShield = message.data.CEShield;
+            variables.CooldownExp = message.data.CooldownExp;
+            variables.Copy1 = message.data.Copy1;
+            variables.Copy2 = message.data.Copy2;
+            variables.Copy3 = message.data.Copy3;
+            variables.Copy4 = message.data.Copy4;
+            variables.CursedLevel = message.data.CursedLevel;
+            variables.CursedSpiritsKilled = message.data.CursedSpiritsKilled;
+            variables.DomainType = message.data.DomainType;
+            variables.friend_num = message.data.friend_num;
+            variables.FutureSightNumber = message.data.FutureSightNumber;
+            variables.GH = message.data.GH;
+            variables.GojoQuest = message.data.GojoQuest;
+            variables.gojosund = message.data.gojosund;
+            variables.Healed = message.data.Healed;
+            variables.HealthAttribute = message.data.HealthAttribute;
+            variables.History = message.data.History;
+            variables.HPCap = message.data.HPCap;
+            variables.ImpactFramesVariable = message.data.ImpactFramesVariable;
+            variables.ItadoriAwakening = message.data.ItadoriAwakening;
+            variables.KenjakuCT1 = message.data.KenjakuCT1;
+            variables.KenjakuCT2 = message.data.KenjakuCT2;
+            variables.Kokusen = message.data.Kokusen;
+            variables.Level = message.data.Level;
+            variables.levelrct = message.data.levelrct;
+            variables.Limb = message.data.Limb;
+            variables.locker = message.data.locker;
+            variables.Mahoraga = message.data.Mahoraga;
+            variables.MahoragaCanAdapt = message.data.MahoragaCanAdapt;
+            variables.Mastery = message.data.Mastery;
+            variables.MimicryKatana = message.data.MimicryKatana;
+            variables.Murasaki = message.data.Murasaki;
+            variables.OstVariable = message.data.OstVariable;
+            variables.Output = message.data.Output;
+            variables.OutputLevel = message.data.OutputLevel;
+            variables.CustceneDone = message.data.CustceneDone;
+            variables.Points = message.data.Points;
+            variables.pressed = message.data.pressed;
+            variables.ProfessionEXP = message.data.ProfessionEXP;
+            variables.Purple = message.data.Purple;
+            variables.QuestOutput = message.data.QuestOutput;
+            variables.RadiusDomain = message.data.RadiusDomain;
+            variables.random = message.data.random;
+            variables.RCTCount = message.data.RCTCount;
+            variables.RCTCount2 = message.data.RCTCount2;
+            variables.RCTLimitLevel = message.data.RCTLimitLevel;
+            variables.RCTMastery = message.data.RCTMastery;
+            variables.RCTRegen = message.data.RCTRegen;
+            variables.Run = message.data.Run;
+            variables.Style = message.data.Style;
+            variables.AttackNumber = message.data.AttackNumber;
+            variables.SH = message.data.SH;
+            variables.SimpleDomainLevel = message.data.SimpleDomainLevel;
+            variables.SimpleQuest = message.data.SimpleQuest;
+            variables.sokamona = message.data.sokamona;
+            variables.sp = message.data.sp;
+            variables.speedCount = message.data.speedCount;
+            variables.SpeedValue = message.data.SpeedValue;
+            variables.TimeLeft = message.data.TimeLeft;
+            variables.Timer1 = message.data.Timer1;
+            variables.Vow2 = message.data.Vow2;
+            variables.Vow3 = message.data.Vow3;
+            variables.Vow4 = message.data.Vow4;
+            variables.VowPower = message.data.VowPower;
+            variables.water = message.data.water;
+            variables.worldslashtimer = message.data.worldslashtimer;
+            variables.YutaCheck = message.data.YutaCheck;
+            variables.HistorySukuna = message.data.HistorySukuna;
+            variables.SecondTechnique = message.data.SecondTechnique;
+            variables.soka = message.data.soka;
+            variables.PointsSpirit = message.data.PointsSpirit;
+            variables.Clans = message.data.Clans;
+            variables.ClanSlot1 = message.data.ClanSlot1;
+            variables.ClanSlot2 = message.data.ClanSlot2;
+            variables.ClanSlot3 = message.data.ClanSlot3;
+            variables.Damage = message.data.Damage;
+            variables.DataSixEyesOne = message.data.DataSixEyesOne;
+            variables.Description = message.data.Description;
+            variables.Element = message.data.Element;
+            variables.KenjakuName = message.data.KenjakuName;
+            variables.MobTexture = message.data.MobTexture;
+            variables.MobTexture2 = message.data.MobTexture2;
+            variables.MobTexture3 = message.data.MobTexture3;
+            variables.Mode = message.data.Mode;
+            variables.Profession = message.data.Profession;
+            variables.QuestActive = message.data.QuestActive;
+            variables.Shadow = message.data.Shadow;
+            variables.ShadowName = message.data.ShadowName;
+            variables.SkinName1 = message.data.SkinName1;
+            variables.SkinName2 = message.data.SkinName2;
+            variables.SkinName3 = message.data.SkinName3;
+            variables.Subrace = message.data.Subrace;
+            variables.tag1 = message.data.tag1;
+            variables.tag2 = message.data.tag2;
+            variables.Team = message.data.Team;
+            variables.TeamName = message.data.TeamName;
+            variables.Technique = message.data.Technique;
+            variables.Trait = message.data.Trait;
+            variables.UUIDBattle = message.data.UUIDBattle;
+            variables.PlayerTexture = message.data.PlayerTexture;
+            variables.Moveset = message.data.Moveset;
+            variables.TrueSpeed = message.data.TrueSpeed;
+            variables.Effects = message.data.Effects;
+            variables.zenith_perfect_body = message.data.zenith_perfect_body;
+            variables.zenith_show_arms = message.data.zenith_show_arms;
+            variables.hwb_active = message.data.hwb_active;
+            variables.hwb_timer = message.data.hwb_timer;
+            variables.FingerReset = message.data.FingerReset;
         }
     }
 }

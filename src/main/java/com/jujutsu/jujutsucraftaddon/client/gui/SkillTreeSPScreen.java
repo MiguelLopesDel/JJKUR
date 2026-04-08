@@ -1,17 +1,22 @@
 package com.jujutsu.jujutsucraftaddon.client.gui;
 
 import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod;
+import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
 import com.jujutsu.jujutsucraftaddon.network.SkillTreeSPButtonMessage;
 import com.jujutsu.jujutsucraftaddon.procedures.*;
 import com.jujutsu.jujutsucraftaddon.util.JJKUClientConfig;
+import com.jujutsu.jujutsucraftaddon.util.JJKUVariables;
 import com.jujutsu.jujutsucraftaddon.world.inventory.SkillTreeSPMenu;
 import com.mojang.blaze3d.systems.RenderSystem;
+import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Checkbox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Inventory;
@@ -233,13 +238,14 @@ public class SkillTreeSPScreen extends AbstractContainerScreen<SkillTreeSPMenu> 
                 JJKUClientConfig.SPEC.save();
             }
         };
-
-        checkZenithArms = new Checkbox(startX, startY + 90, 20, 20, Component.literal("Show Zenith Arms"), JJKUClientConfig.SHOW_ZENITH_ARMS.get(), true) {
+        Boolean show = JJKUVariables.get(Minecraft.getInstance().player)
+                .map(cap -> cap.zenith_show_arms)
+                .orElse(true);
+        checkZenithArms = new Checkbox(startX, startY + 90, 20, 20, Component.literal("Show Zenith Arms"), !show, true) {
             @Override
             public void onPress() {
                 super.onPress();
-                JJKUClientConfig.SHOW_ZENITH_ARMS.set(this.selected());
-                JJKUClientConfig.SPEC.save();
+                JujutsucraftaddonMod.PACKET_HANDLER.sendToServer(new SkillTreeSPButtonMessage(100, x, y, z, 0));
             }
         };
 
