@@ -19,7 +19,7 @@ public class SukunaPowersOnEffectActiveTickProcedure {
             entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(addonVars -> {
                 if (addonVars.InfusedDomain) {
                     if (entity instanceof ServerPlayer _plr1 && _plr1.level() instanceof ServerLevel) {
-                        var advancement = _plr1.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraftaddon:cleave_web_advancement"));
+                        var advancement = _plr1.server.getAdvancements().getAdvancement(ResourceLocation.fromNamespaceAndPath("jujutsucraftaddon", "cleave_web_advancement"));
                         if (advancement != null && _plr1.getAdvancements().getOrStartProgress(advancement).isDone()) {
                             if (entity.isShiftKeyDown()) {
                                 entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {

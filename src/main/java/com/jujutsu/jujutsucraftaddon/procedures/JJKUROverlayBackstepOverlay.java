@@ -73,26 +73,26 @@ public class JJKUROverlayBackstepOverlay {
             if (OverlayHaveTechniqueProcedure.execute(entity)) {
                 // v43 New Guard Logic
                 if (LogicCantJustGuardProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_guard_cooldown.png"), w / 2 - 8, h - 53, 0.0F, 0.0F, 16, 16, 16, 16);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_guard_cooldown.png"), w / 2 - 8, h - 53, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
 
                 if (LogicGuardProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/guard.png"), w / 2 - 8, h - 53, 0.0F, 0.0F, 16, 16, 16, 16);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/guard.png"), w / 2 - 8, h - 53, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
 
                 if (LogicJustGuardProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/guard_just.png"), w / 2 - 16, h - 61, 0.0F, 0.0F, 32, 32, 32, 32);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/guard_just.png"), w / 2 - 16, h - 61, 0.0F, 0.0F, 32, 32, 32, 32);
                 }
 
                 // Standard Movement Overlay
-                event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_backstep.png"), w / 2 + 6, h - 53, 0.0F, 0.0F, 16, 16, 16, 16);
+                event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_backstep.png"), w / 2 + 6, h - 53, 0.0F, 0.0F, 16, 16, 16, 16);
 
                 if (ODoubleJumpDispProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_double_jump.png"), w / 2 + 6, h - 62, 0.0F, 0.0F, 16, 16, 16, 16);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_double_jump.png"), w / 2 + 6, h - 62, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
 
                 if (OFlyDispProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_fly.png"), w / 2 + 6, h - 71, 0.0F, 0.0F, 16, 16, 16, 16);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_fly.png"), w / 2 + 6, h - 71, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
 
                 // Text Rendering

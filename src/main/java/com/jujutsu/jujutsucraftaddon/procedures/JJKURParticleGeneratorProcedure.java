@@ -22,7 +22,7 @@ public class JJKURParticleGeneratorProcedure {
 
         ParticleOptions particleOptions = PARTICLE_CACHE.get(id);
         if (particleOptions == null) {
-            ParticleType<?> type = ForgeRegistries.PARTICLE_TYPES.getValue(new ResourceLocation(id));
+            ParticleType<?> type = ForgeRegistries.PARTICLE_TYPES.getValue(ResourceLocation.parse(id));
             if (type instanceof ParticleOptions opt) {
                 particleOptions = opt;
                 PARTICLE_CACHE.put(id, particleOptions);

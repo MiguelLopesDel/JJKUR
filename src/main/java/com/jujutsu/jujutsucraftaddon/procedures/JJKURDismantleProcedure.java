@@ -77,7 +77,7 @@ public class JJKURDismantleProcedure { //checkar depois
 
     private static boolean checkWorldSlashPermission(Entity entity) {
         if (entity instanceof ServerPlayer player) {
-            ResourceLocation adv = new ResourceLocation("jujutsucraft:skill_dismantle_cut_the_world");
+            ResourceLocation adv = ResourceLocation.parse("jujutsucraft:skill_dismantle_cut_the_world");
             Advancement advancement = player.server.getAdvancements().getAdvancement(adv);
             return advancement != null && player.getAdvancements().getOrStartProgress(advancement).isDone();
         }
@@ -471,7 +471,7 @@ public class JJKURDismantleProcedure { //checkar depois
     }
 
     private static void playSound(Level level, double x, double y, double z, String soundId, float vol, float pitch) {
-        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation(soundId));
+        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse(soundId));
         if (sound == null) return;
         if (!level.isClientSide()) level.playSound(null, x, y, z, sound, SoundSource.NEUTRAL, vol, pitch);
         else level.playLocalSound(x, y, z, sound, SoundSource.NEUTRAL, vol, pitch, false);

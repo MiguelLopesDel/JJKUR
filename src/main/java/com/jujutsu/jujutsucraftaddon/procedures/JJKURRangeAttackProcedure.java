@@ -51,20 +51,20 @@ import java.util.concurrent.ThreadLocalRandom;
 public class JJKURRangeAttackProcedure {
 
     private static final TagKey<EntityType<?>> RANGED_AMMO_TAG =
-            TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:ranged_ammo"));
+            TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("forge:ranged_ammo"));
     private static final TagKey<EntityType<?>> BLACK_FLASH_ABLE_TAG =
-            TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:black_flash_able"));
+            TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("forge:black_flash_able"));
     private static final ResourceKey<DamageType> DMG_COMBAT =
-            ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("jujutsucraft:damage_combat"));
+            ResourceKey.create(Registries.DAMAGE_TYPE, ResourceLocation.parse("jujutsucraft:damage_combat"));
     private static final ResourceKey<DamageType> DMG_CURSE =
-            ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("jujutsucraft:damage_curse"));
+            ResourceKey.create(Registries.DAMAGE_TYPE, ResourceLocation.parse("jujutsucraft:damage_curse"));
 
     private static SoundEvent SOUND_CRITICAL;
     private static boolean soundCached = false;
 
     private static void ensureSoundCached() {
         if (soundCached) return;
-        SOUND_CRITICAL = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:critical"));
+        SOUND_CRITICAL = ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("jujutsucraft:critical"));
         soundCached = true;
     }
 
@@ -271,7 +271,7 @@ public class JJKURRangeAttackProcedure {
         if (entity instanceof Player) {
             if (entity instanceof ServerPlayer sp && sp.level() instanceof ServerLevel) {
                 Advancement adv = sp.server.getAdvancements()
-                        .getAdvancement(new ResourceLocation("jujutsucraft:black_flash"));
+                        .getAdvancement(ResourceLocation.parse("jujutsucraft:black_flash"));
                 if (adv != null && sp.getAdvancements().getOrStartProgress(adv).isDone()) {
                     rolls++;
                 }
@@ -435,7 +435,7 @@ public class JJKURRangeAttackProcedure {
 
         if (entity instanceof ServerPlayer sp) {
             Advancement adv = sp.server.getAdvancements()
-                    .getAdvancement(new ResourceLocation("jujutsucraft:black_flash"));
+                    .getAdvancement(ResourceLocation.parse("jujutsucraft:black_flash"));
             if (adv != null) {
                 AdvancementProgress progress = sp.getAdvancements().getOrStartProgress(adv);
                 if (!progress.isDone()) {

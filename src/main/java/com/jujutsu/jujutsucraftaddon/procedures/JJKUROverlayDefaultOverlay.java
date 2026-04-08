@@ -11,7 +11,6 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraftforge.client.event.RenderGuiEvent;
 import net.minecraftforge.fml.ModList;
-import net.slyrienmodern.com.config.ModernJujutsuConfig;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.minecraft.network.chat.ClickEvent;
@@ -72,35 +71,35 @@ public class JJKUROverlayDefaultOverlay {
         if (entity != null) {
             if (OverlayHaveTechniqueProcedure.execute(entity)) {
                 // Restore Center-Relative Positions (Baseline Style)
-                event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_magic.png"), w / 2 + -200, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
+                event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_magic.png"), w / 2 + -200, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
 
                 if (LogicCooldownProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_cooldown.png"), w / 2 + -200, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_cooldown.png"), w / 2 + -200, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
 
-                event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_punch.png"), w / 2 + -214, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
+                event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_punch.png"), w / 2 + -214, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
                 if (LogicCooldownCombatProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_cooldown.png"), w / 2 + -213, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_cooldown.png"), w / 2 + -213, h / 2 + 104, 0.0F, 0.0F, 16, 16, 16, 16);
                 }
 
                 // Skill Icons
                 if (OverlayDomainSkillProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_domain_expansion2.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_domain_expansion2.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
                 }
                 if (OverlayCursedSkillProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_magic.png"), w / 2 + -215, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_magic.png"), w / 2 + -215, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
                 }
                 if (OverlayDefaultSkillProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_default.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_default.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
                 }
                 if (OverlayPhysicalSkillProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_punch.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_punch.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
                 }
                 if (OverlayPassiveProcedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_passive.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_passive.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
                 }
                 if (OverlayCooldown2Procedure.execute(entity)) {
-                    event.getGuiGraphics().blit(new ResourceLocation("jujutsucraft:textures/screens/icon_cooldown.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
+                    event.getGuiGraphics().blit(ResourceLocation.parse("jujutsucraft:textures/screens/icon_cooldown.png"), w / 2 + -216, h / 2 + 82, 0.0F, 0.0F, 32, 32, 32, 32);
                 }
 
                 // Text Information

@@ -30,6 +30,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraftforge.fml.ModList;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
@@ -97,9 +98,11 @@ public class JJKURStartCursedTechniqueProcedure {
             t1 = Math.round(Math.floor(skillValue / 100.0));
             s1 = Math.round(Math.floor(skillValue % 100.0));
         } else if (living != null && living.hasEffect(JujutsucraftaddonModMobEffects.MURASAKI_EFFECT.get())) {
-            t1 = TechniqueIDs.GOJO; s1 = 15;
+            t1 = TechniqueIDs.GOJO;
+            s1 = 15;
         } else if (living != null && living.hasEffect(JujutsucraftaddonModMobEffects.WORLD_CUT.get())) {
-            t1 = TechniqueIDs.SUKUNA; s1 = 5;
+            t1 = TechniqueIDs.SUKUNA;
+            s1 = 5;
         } else {
             if (baseVars.PlayerSelectCurseTechnique == 21.0) {
                 t1 = baseVars.SecondTechnique ? baseVars.PlayerCurseTechnique2 : baseVars.PlayerCurseTechnique;
@@ -128,7 +131,6 @@ public class JJKURStartCursedTechniqueProcedure {
         }
 
         double tick = calculateCooldown(str1, t1, s1, isItemUse, skillCost, baseVars, addonVars, isCreative, entity);
-        
         baseVars.PlayerTechniqueUsedNumber += Math.round(tick);
         baseVars.syncPlayerVariables(entity);
 
@@ -171,59 +173,137 @@ public class JJKURStartCursedTechniqueProcedure {
         double s1 = baseVars.PlayerSelectCurseTechnique;
 
         if (baseVars.PlayerCurseTechnique2 == TechniqueIDs.GETO && addonVars.InfusedDomain) {
-            if (name.contains("Mammoth")) { t1 = 1; s1 = 50; }
-            else if (name.contains("Slug")) { t1 = 1; s1 = 59; }
-            else if (name.contains("Blindness")) {
-                if (entity.isShiftKeyDown()) { t1 = 23; s1 = 5; } else { t1 = 1; s1 = Mth.nextInt(RandomSource.create(), 51, 52); }
+            if (name.contains("Mammoth")) {
+                t1 = 1;
+                s1 = 50;
+            } else if (name.contains("Slug")) {
+                t1 = 1;
+                s1 = 59;
+            } else if (name.contains("Blindness")) {
+                if (entity.isShiftKeyDown()) {
+                    t1 = 23;
+                    s1 = 5;
+                } else {
+                    t1 = 1;
+                    s1 = Mth.nextInt(RandomSource.create(), 51, 52);
+                }
             } else if (name.contains("Samurai")) {
-                if (entity.isShiftKeyDown()) { t1 = 22; s1 = 4; } else { t1 = 15; s1 = 16; }
+                if (entity.isShiftKeyDown()) {
+                    t1 = 22;
+                    s1 = 4;
+                } else {
+                    t1 = 15;
+                    s1 = 16;
+                }
             } else if (name.contains("Tamamo-no-Mae Incarnate")) {
-                if (entity.isShiftKeyDown()) { t1 = 1; s1 = 55; } else { t1 = 1; s1 = 56; }
+                if (entity.isShiftKeyDown()) {
+                    t1 = 1;
+                    s1 = 55;
+                } else {
+                    t1 = 1;
+                    s1 = 56;
+                }
             } else if (name.contains("Ganesha")) {
-                if (!entity.isShiftKeyDown()) { t1 = 1; s1 = 60; }
+                if (!entity.isShiftKeyDown()) {
+                    t1 = 1;
+                    s1 = 60;
+                }
             } else if (name.contains("Teruteru Bozu")) {
-                if (!entity.isShiftKeyDown()) { t1 = 10; s1 = 5; }
+                if (!entity.isShiftKeyDown()) {
+                    t1 = 10;
+                    s1 = 5;
+                }
             } else if (name.contains("Kuchisake-Onna")) {
-                if (!entity.isShiftKeyDown()) { t1 = 1; s1 = 53; }
+                if (!entity.isShiftKeyDown()) {
+                    t1 = 1;
+                    s1 = 53;
+                }
             } else if (name.contains("Forest")) {
-                if (!entity.isShiftKeyDown()) { t1 = 1; s1 = 54; }
+                if (!entity.isShiftKeyDown()) {
+                    t1 = 1;
+                    s1 = 54;
+                }
             } else if (name.contains("Jogo")) {
-                t1 = TechniqueIDs.JOGO; s1 = entity.isShiftKeyDown() ? 7 : 5;
+                t1 = TechniqueIDs.JOGO;
+                s1 = entity.isShiftKeyDown() ? 7 : 5;
             } else if (name.contains("Mahito")) {
-                t1 = TechniqueIDs.MAHITO; s1 = entity.isShiftKeyDown() ? 9 : 5;
+                t1 = TechniqueIDs.MAHITO;
+                s1 = entity.isShiftKeyDown() ? 9 : 5;
             } else if (name.contains("Dagon")) {
-                t1 = TechniqueIDs.DAGON; s1 = entity.isShiftKeyDown() ? 10 : 9;
+                t1 = TechniqueIDs.DAGON;
+                s1 = entity.isShiftKeyDown() ? 10 : 9;
             } else if (name.contains("Smallpox Deity")) {
-                if (!entity.isShiftKeyDown()) { t1 = 12; s1 = 10; }
+                if (!entity.isShiftKeyDown()) {
+                    t1 = 12;
+                    s1 = 10;
+                }
             } else if (name.contains("Zenin Naoya")) {
-                t1 = TechniqueIDs.NAOYA; s1 = entity.isShiftKeyDown() ? 10 : 5;
+                t1 = TechniqueIDs.NAOYA;
+                s1 = entity.isShiftKeyDown() ? 10 : 5;
             } else if (name.equals(Component.translatable("jujutsu.technique.attack1").getString())) {
                 baseVars.PlayerSelectCurseTechniqueName = Component.translatable("jujutsu.technique.kaori1").getString();
                 baseVars.syncPlayerVariables(entity);
-                t1 = 41; s1 = 10;
+                t1 = 41;
+                s1 = 10;
             } else if (name.equals(Component.translatable("jujutsu.technique.attack2").getString())) {
                 baseVars.PlayerSelectCurseTechniqueName = "Anti-Gravity Push";
                 baseVars.syncPlayerVariables(entity);
-                t1 = 1; s1 = 60;
+                t1 = 1;
+                s1 = 60;
             }
         } else {
-            if (name.contains(Component.translatable("jujutsu.technique.kashimo_domain").getString())) { t1 = TechniqueIDs.KASHIMO; s1 = 20; }
-            else if (name.contains(Component.translatable("jujutsu.technique.attack5").getString())) { t1 = -1; s1 = 7; }
-            else if (name.contains(Component.translatable("jujutsu.technique.attack4").getString())) { t1 = -1; s1 = 6; }
-            else if (name.contains(Component.translatable("jujutsu.technique.flying_kick").getString())) { t1 = 29; s1 = 4; }
-            else if (name.contains("Benevolent Shrine")) { t1 = 1; s1 = 20; }
-            else if (name.contains("Soul Dismantle")) { t1 = 1; s1 = 5; }
-            else if (name.contains("Soul Cleave")) { t1 = 1; s1 = 6; }
-            else if (name.contains("Rika Summon")) { t1 = 5; s1 = 10; }
-            else if (name.contains(Component.translatable("jujutsu.technique.attack7").getString())) { t1 = 15; s1 = 4; }
-            else if (name.contains(Component.translatable("jujutsu.technique.attack3").getString())) { t1 = baseVars.PlayerCurseTechnique; s1 = 2; }
-            else if (name.contains(Component.translatable("jujutsu.technique.mahito7").getString())) { t1 = 15; s1 = 7; }
-            else if (name.contains(Component.translatable("jujutsu.technique.attack8").getString())) { t1 = 15; s1 = 16; }
-            else if (name.contains(Component.translatable("jujutsu.technique.mahito_body_repel2").getString())) { t1 = 15; s1 = 9; }
-            else if (addonVars.InfusedDomain && (name.contains("divine_dog_white") || name.contains("divine_dog_black"))) { AttackBeastProcedure.execute(world, x, y, z, entity); return null; }
-            else if (addonVars.InfusedDomain && name.contains("nue")) { t1 = TechniqueIDs.KASHIMO; s1 = 5; }
-            else if (addonVars.InfusedDomain && name.contains("piercing_ox")) { AttackPiecingOxProcedure.execute(world, x, y, z, entity); return null; }
-            else if (addonVars.InfusedDomain && name.contains("max_elephant")) { t1 = TechniqueIDs.DAGON; s1 = 5; }
+            if (name.contains(Component.translatable("jujutsu.technique.kashimo_domain").getString())) {
+                t1 = TechniqueIDs.KASHIMO;
+                s1 = 20;
+            } else if (name.contains(Component.translatable("jujutsu.technique.attack5").getString())) {
+                t1 = -1;
+                s1 = 7;
+            } else if (name.contains(Component.translatable("jujutsu.technique.attack4").getString())) {
+                t1 = -1;
+                s1 = 6;
+            } else if (name.contains(Component.translatable("jujutsu.technique.flying_kick").getString())) {
+                t1 = 29;
+                s1 = 4;
+            } else if (name.contains("Benevolent Shrine")) {
+                t1 = 1;
+                s1 = 20;
+            } else if (name.contains("Soul Dismantle")) {
+                t1 = 1;
+                s1 = 5;
+            } else if (name.contains("Soul Cleave")) {
+                t1 = 1;
+                s1 = 6;
+            } else if (name.contains("Rika Summon")) {
+                t1 = 5;
+                s1 = 10;
+            } else if (name.contains(Component.translatable("jujutsu.technique.attack7").getString())) {
+                t1 = 15;
+                s1 = 4;
+            } else if (name.contains(Component.translatable("jujutsu.technique.attack3").getString())) {
+                t1 = baseVars.PlayerCurseTechnique;
+                s1 = 2;
+            } else if (name.contains(Component.translatable("jujutsu.technique.mahito7").getString())) {
+                t1 = 15;
+                s1 = 7;
+            } else if (name.contains(Component.translatable("jujutsu.technique.attack8").getString())) {
+                t1 = 15;
+                s1 = 16;
+            } else if (name.contains(Component.translatable("jujutsu.technique.mahito_body_repel2").getString())) {
+                t1 = 15;
+                s1 = 9;
+            } else if (addonVars.InfusedDomain && (name.contains("divine_dog_white") || name.contains("divine_dog_black"))) {
+                AttackBeastProcedure.execute(world, x, y, z, entity);
+                return null;
+            } else if (addonVars.InfusedDomain && name.contains("nue")) {
+                t1 = TechniqueIDs.KASHIMO;
+                s1 = 5;
+            } else if (addonVars.InfusedDomain && name.contains("piercing_ox")) {
+                AttackPiecingOxProcedure.execute(world, x, y, z, entity);
+                return null;
+            } else if (addonVars.InfusedDomain && name.contains("max_elephant")) {
+                t1 = TechniqueIDs.DAGON;
+                s1 = 5;
+            }
         }
         return new double[]{t1, s1};
     }
@@ -232,21 +312,24 @@ public class JJKURStartCursedTechniqueProcedure {
                                             JujutsucraftModVariables.PlayerVariables baseVars,
                                             JujutsucraftaddonModVariables.PlayerVariables addonVars,
                                             boolean isCreative, Entity entity) {
-        if (isCreative || (t1 == 2.0 && s1 == 5.0) || (t1 == 9.0 && s1 == 10.0) || (t1 == 18.0 && s1 >= 10.0 && s1 < 15.0)) return 1.0;
+        if (isCreative || (t1 == 2.0 && s1 == 5.0) || (t1 == 9.0 && s1 == 10.0) || (t1 == 18.0 && s1 >= 10.0 && s1 < 15.0))
+            return 1.0;
         if (s1 == 20.0) return 20.0;
 
         double tick = Math.max((itemUse ? itemCost : baseVars.PlayerSelectCurseTechniqueCostOrgin) / 2.0, 20.0);
-        
+
         if (name.equals(Component.translatable("jujutsu.technique.attack1").getString())) tick = 5.0;
         else if (name.equals(Component.translatable("jujutsu.technique.attack2").getString())) tick = 15.0;
         else if (name.equals(Component.translatable("jujutsu.technique.attack3").getString())) tick = 20.0;
         else if (name.equals(Component.translatable("jujutsu.technique.attack4").getString())) tick = 100.0;
         else if (name.equals(Component.translatable("jujutsu.technique.attack5").getString())) tick = 200.0;
-        else if (name.equals(Component.translatable("jujutsu.technique.attack6").getString()) || name.equals(Component.translatable("jujutsu.technique.flying_kick").getString())) tick = 100.0;
+        else if (name.equals(Component.translatable("jujutsu.technique.attack6").getString()) || name.equals(Component.translatable("jujutsu.technique.flying_kick").getString()))
+            tick = 100.0;
         else if (name.equals(Component.translatable("jujutsu.technique.attack7").getString())) tick = 100.0;
 
         if (t1 == 5.0 && s1 == 5.0) tick = 20.0;
-        if (t1 == 6.0 && s1 >= 5.0 && s1 < 20.0 && !name.equals(Component.translatable("jujutsu.technique.choso3").getString())) tick = 5.0;
+        if (t1 == 6.0 && s1 >= 5.0 && s1 < 20.0 && !name.equals(Component.translatable("jujutsu.technique.choso3").getString()))
+            tick = 5.0;
         if (t1 == 7.0 && (s1 == 5.0 || s1 == 10.0)) tick = 20.0;
         if (t1 == 19.0 && s1 < 5.0 && LogicStartPassiveProcedure.execute(entity)) tick = 5.0;
         if (t1 == 39.0 && s1 >= 8.0) tick = 20.0;
@@ -273,7 +356,8 @@ public class JJKURStartCursedTechniqueProcedure {
                 if (s1 >= 0.0 && s1 <= 2.0) {
                     double duration = tick;
                     Item chest = living.getItemBySlot(EquipmentSlot.CHEST).getItem();
-                    if (chest == JujutsucraftModItems.SUKUNA_BODY_CHESTPLATE.get() || chest == JujutsucraftaddonModItems.SUKUNA_ARMOR_THREE_CHESTPLATE.get()) duration *= 0.5;
+                    if (chest == JujutsucraftModItems.SUKUNA_BODY_CHESTPLATE.get() || chest == JujutsucraftaddonModItems.SUKUNA_ARMOR_THREE_CHESTPLATE.get())
+                        duration *= 0.5;
                     if (living.getAttributes().hasAttribute(Attributes.ATTACK_SPEED)) {
                         duration += 20.0 * Math.max(1.7 - living.getAttribute(Attributes.ATTACK_SPEED).getValue(), 0.0);
                     }
@@ -304,8 +388,10 @@ public class JJKURStartCursedTechniqueProcedure {
     private static void checkMastery(Entity entity, LevelAccessor world, double usedNumber, double t1, double t2) {
         if (entity instanceof ServerPlayer player) {
             double difficulty = 1 + world.getLevelData().getGameRules().getInt(JujutsucraftModGameRules.JUJUTSUUPGRADEDIFFICULTY) / 10.0;
-            if (usedNumber > (t1 != 27.0 && t2 != 27.0 ? 4000 : 2000) * difficulty) awardAdvancement(player, "jujutsucraft:mastery_simple_domain");
-            if (usedNumber > (t1 != 27.0 && t2 != 27.0 ? 12000 : 100) * difficulty) awardAdvancement(player, "jujutsucraft:mastery_domain_expansion");
+            if (usedNumber > (t1 != 27.0 && t2 != 27.0 ? 4000 : 2000) * difficulty)
+                awardAdvancement(player, "jujutsucraft:mastery_simple_domain");
+            if (usedNumber > (t1 != 27.0 && t2 != 27.0 ? 12000 : 100) * difficulty)
+                awardAdvancement(player, "jujutsucraft:mastery_domain_expansion");
         }
     }
 
