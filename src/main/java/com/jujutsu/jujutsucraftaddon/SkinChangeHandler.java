@@ -36,7 +36,7 @@ public class SkinChangeHandler {
     }
 
     private static ResourceLocation safeTexture(String tex) {
-        return tex != null && !tex.isEmpty() ? new ResourceLocation(tex) : null;
+        return tex != null && !tex.isEmpty() ? ResourceLocation.parse(tex) : null;
     }
 
     @SubscribeEvent

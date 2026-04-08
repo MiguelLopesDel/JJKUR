@@ -226,6 +226,9 @@ public class JujutsucraftaddonModVariables {
             clone.Moveset = original.Moveset;
             clone.TrueSpeed = original.TrueSpeed;
             clone.Effects = original.Effects;
+            clone.zenith_perfect_body = original.zenith_perfect_body;
+            clone.hwb_active = original.hwb_active;
+            clone.hwb_timer = original.hwb_timer;
             clone.FingerReset = original.FingerReset;
             if (!event.isWasDeath()) {
                 clone.InventoryArmorySlot0 = original.InventoryArmorySlot0;
@@ -450,7 +453,7 @@ public class JujutsucraftaddonModVariables {
         @SubscribeEvent
         public static void onAttachCapabilities(AttachCapabilitiesEvent<Entity> event) {
             if (event.getObject() instanceof Player && !(event.getObject() instanceof FakePlayer))
-                event.addCapability(new ResourceLocation("jujutsucraftaddon", "player_variables"), new PlayerVariablesProvider());
+                event.addCapability(ResourceLocation.fromNamespaceAndPath("jujutsucraftaddon", "player_variables"), new PlayerVariablesProvider());
         }
 
         private final PlayerVariables playerVariables = new PlayerVariables();
@@ -644,6 +647,9 @@ public class JujutsucraftaddonModVariables {
         public double Moveset = 0;
         public double TrueSpeed = 0;
         public boolean Effects = false;
+        public boolean zenith_perfect_body = false;
+        public boolean hwb_active = false;
+        public double hwb_timer = 0;
         public LockOnCapability lockOnCapability = new LockOnCapability();
 
 
@@ -824,6 +830,9 @@ public class JujutsucraftaddonModVariables {
             nbt.putDouble("Moveset", Moveset);
             nbt.putDouble("TrueSpeed", TrueSpeed);
             nbt.putBoolean("Effects", Effects);
+            nbt.putBoolean("zenith_perfect_body", zenith_perfect_body);
+            nbt.putBoolean("hwb_active", hwb_active);
+            nbt.putDouble("hwb_timer", hwb_timer);
             nbt.putBoolean("FingerReset", FingerReset);
             nbt.putInt("targetEntityId", lockOnCapability.getTargetEntityId());
             return nbt;
@@ -1001,6 +1010,9 @@ public class JujutsucraftaddonModVariables {
             Moveset = nbt.getDouble("Moveset");
             TrueSpeed = nbt.getDouble("TrueSpeed");
             Effects = nbt.getBoolean("Effects");
+            zenith_perfect_body = nbt.getBoolean("zenith_perfect_body");
+            hwb_active = nbt.getBoolean("hwb_active");
+            hwb_timer = nbt.getDouble("hwb_timer");
             FingerReset = nbt.getBoolean("FingerReset");
             if (nbt.contains("targetEntityId")) {
                 lockOnCapability.setTargetEntityId(nbt.getInt("targetEntityId"));
@@ -1199,6 +1211,9 @@ public class JujutsucraftaddonModVariables {
                     variables.Moveset = message.data.Moveset;
                     variables.TrueSpeed = message.data.TrueSpeed;
                     variables.Effects = message.data.Effects;
+                    variables.zenith_perfect_body = message.data.zenith_perfect_body;
+                    variables.hwb_active = message.data.hwb_active;
+                    variables.hwb_timer = message.data.hwb_timer;
                     variables.FingerReset = message.data.FingerReset;
                 }
             });

@@ -1,16 +1,27 @@
 package com.jujutsu.jujutsucraftaddon.mixins;
 
-import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod;
+import com.jujutsu.jujutsucraftaddon.client.renderer.SukunaMarksLayer;
+import com.jujutsu.jujutsucraftaddon.client.renderer.ZenithFourArmLayer;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(value = PlayerRenderer.class, priority = -10000)
 public abstract class PlayerRendererMixin {
+
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void addSukunaLayers(EntityRendererProvider.Context context, boolean slim, CallbackInfo ci) {
+        PlayerRenderer self = (PlayerRenderer) (Object) this;
+        self.addLayer(new SukunaMarksLayer(self));
+        self.addLayer(new ZenithFourArmLayer(self));
+    }
 
     /**
      * @author Satushi
@@ -25,7 +36,6 @@ public abstract class PlayerRendererMixin {
     private Component modifyNameTag(Component component, AbstractClientPlayer abstractClientPlayer) {
         if (!abstractClientPlayer.isAlive()) return component;
 
-        // Use a wrapper to allow modification inside lambda
         final Component[] result = {component};
 
         abstractClientPlayer.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(capability -> {
@@ -44,10 +54,6 @@ public abstract class PlayerRendererMixin {
 
                 if (skinName != null && !skinName.isEmpty()) {
                     result[0] = Component.literal(skinName);
-                    // DEBUG LOG: Only log once or under specific conditions to avoid spam
-                    if (abstractClientPlayer.tickCount % 100 == 0) {
-                        JujutsucraftaddonMod.LOGGER.info("Renderer Sync: Displaying identity [" + skinName + "] for Kenjaku player [" + abstractClientPlayer.getName().getString() + "]");
-                    }
                 }
             }
         });

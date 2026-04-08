@@ -11,8 +11,9 @@ public class JJKUClientConfig {
     public static final ForgeConfigSpec SPEC;
 
     public static final ForgeConfigSpec.BooleanValue SHOW_HUD;
-    public static final ForgeConfigSpec.BooleanValue SHOW_Dismantle_HUD;
+    public static final ForgeConfigSpec.BooleanValue SHOW_SUKUNA_MARKS;
     public static final ForgeConfigSpec.BooleanValue SHOW_BACKSTEP_HUD;
+    public static final ForgeConfigSpec.BooleanValue SHOW_ZENITH_ARMS;
 
     static {
         BUILDER.push("Visual Settings");
@@ -21,13 +22,17 @@ public class JJKUClientConfig {
                 .comment("Ativar ou desativar o HUD customizado principal do JJKU: Resonance")
                 .define("show_custom_hud", true);
 
-        SHOW_Dismantle_HUD = BUILDER
-                .comment("Ativar ou desativar o HUD específico de técnicas de corte (Sukuna)")
-                .define("show_dismantle_hud", true);
-
         SHOW_BACKSTEP_HUD = BUILDER
                 .comment("Ativar ou desativar o HUD de movimentação e defesa (Backstep/Guard)")
                 .define("show_backstep_hud", true);
+
+        SHOW_SUKUNA_MARKS = BUILDER
+                .comment("Ativar ou desativar a visualização das suas próprias marcas de Sukuna")
+                .define("show_sukuna_marks", true);
+
+        SHOW_ZENITH_ARMS = BUILDER
+                .comment("Ativar ou desativar a visualização dos 4 braços na forma Zenith")
+                .define("show_zenith_arms", true);
 
         BUILDER.pop();
 
