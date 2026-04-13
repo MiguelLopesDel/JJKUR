@@ -72,7 +72,7 @@ minecraft {
 }
 
 dependencies {
-    minecraft 'net.minecraftforge:forge:1.20.1-47.3.0'
+    minecraft 'net.minecraftforge:forge:1.20.1-47.4.10'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
     implementation fg.deobf("curse.maven:sorceryfight-471288:7766099")
@@ -83,7 +83,8 @@ dependencies {
     //opcional
     implementation fg.deobf("curse.maven:architectury_api-419699:5137938")
     implementation fg.deobf("curse.maven:aaa-particles-979809:7681701")
-    implementation fg.deobf("curse.maven:jujutsucraft-ve-visual-effects-1177064:6335231")
+//    implementation fg.deobf("curse.maven:jujutsucraft-ve-visual-effects-1177064:6335231")
+    implementation fg.deobf("curse.maven:modern-jujutsu-1331913:7883228")
 }
 
 mixin {

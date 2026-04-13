@@ -3,6 +3,7 @@ package com.jujutsu.jujutsucraftaddon.mixins;
 import com.jujutsu.jujutsucraftaddon.entity.PartialRikaEntity;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
+import com.jujutsu.jujutsucraftaddon.util.ZenithCooldownSystem;
 import net.mcreator.jujutsucraft.init.JujutsucraftModAttributes;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
@@ -40,8 +41,6 @@ public abstract class PlayerTickEventMixin {
     @Inject(at = @At("HEAD"), method = "execute(Lnet/minecraftforge/eventbus/api/Event;Lnet/minecraft/world/level/LevelAccessor;DDDLnet/minecraft/world/entity/Entity;)V", remap = false, cancellable = true)
     private static void execute(@Nullable Event event, LevelAccessor world, double x, double y, double z, Entity entity, CallbackInfo ci) {
         if (entity == null) return;
-
-        // Skip start phase to avoid duplicate execution
         if (event instanceof PlayerTickEvent _playerTickEvent && _playerTickEvent.phase != Phase.END) {
             return;
         }
@@ -54,7 +53,6 @@ public abstract class PlayerTickEventMixin {
         }
 
         if (entity.isAlive()) {
-            // 1. Animation Damage Logic (JJKUR Balance)
             if (entity instanceof LivingEntity _liv) {
                 double animationValue = 0.0;
                 if (_liv.getAttributes().hasAttribute((Attribute) JujutsucraftModAttributes.ANIMATION_1.get())) {
@@ -62,19 +60,18 @@ public abstract class PlayerTickEventMixin {
                 }
 
                 if (animationValue != 0.0) {
-                    boolean protect = _liv.hasEffect(JujutsucraftaddonModMobEffects.MURASAKI_EFFECT.get()) || 
-                                     _liv.hasEffect(JujutsucraftaddonModMobEffects.WORLD_CUT.get());
-                    
+                    boolean protect = _liv.hasEffect(JujutsucraftaddonModMobEffects.MURASAKI_EFFECT.get()) ||
+                            _liv.hasEffect(JujutsucraftaddonModMobEffects.WORLD_CUT.get());
+
                     if (!protect) {
                         entity.hurt(new DamageSource(world.registryAccess().registryOrThrow(Registries.DAMAGE_TYPE).getHolderOrThrow(ResourceKey.create(Registries.DAMAGE_TYPE, new ResourceLocation("jujutsucraft:start_animation")))), 1.0F);
                     }
                 }
             }
 
-            // 2. Energy Processing (v43 10-tick Optimization)
             if (entity instanceof ServerPlayer _serverPlayer && _serverPlayer.tickCount % 10 == 0) {
                 JujutsucraftModVariables.PlayerVariables playerVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(new JujutsucraftModVariables.PlayerVariables());
-                
+
                 if (playerVars.PlayerCurseTechnique != 0.0) {
                     if (_serverPlayer.isCreative()) {
                         if (playerVars.PlayerCursePower < playerVars.PlayerCursePowerMAX || playerVars.PlayerCursePowerChange != 0.0) {
@@ -85,14 +82,11 @@ public abstract class PlayerTickEventMixin {
                     } else {
                         double currentChange = playerVars.PlayerCursePowerChange;
 
-                        // Cursed Technique Cost Reductions
                         if (currentChange < 0.0) {
-                            // Sukuna Passive
                             if (entity instanceof LivingEntity _liv && _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.SUKUNA_EFFECT.get())) {
                                 currentChange *= 0.5;
                             }
 
-                            // Six Eyes Passive (JJKUR Gamerule Logic)
                             if (entity instanceof LivingEntity _liv && _liv.hasEffect((MobEffect) JujutsucraftModMobEffects.SIX_EYES.get())) {
                                 int amp = _liv.getEffect((MobEffect) JujutsucraftModMobEffects.SIX_EYES.get()).getAmplifier();
                                 double reductionFactor = (double) world.getLevelData().getGameRules().getInt(JujutsucraftaddonModGameRules.JJKU_SIX_EYES_LEVEL) / 10.0;
@@ -100,7 +94,6 @@ public abstract class PlayerTickEventMixin {
                             }
                         }
 
-                        // Natural Regeneration
                         double regen = 1.0 + (2.0 + playerVars.PlayerLevel) / 1.1 * 0.2;
                         if (entity instanceof LivingEntity _liv && _liv.getHealth() >= _liv.getMaxHealth()) {
                             regen *= 2.0;
@@ -111,13 +104,11 @@ public abstract class PlayerTickEventMixin {
 
                         currentChange += Math.round(regen);
 
-                        // Apply Final Changes
                         if (currentChange != 0.0) {
                             playerVars.PlayerCursePower = Math.round(Math.max(Math.min(playerVars.PlayerCursePower + currentChange, playerVars.PlayerCursePowerMAX), 0.0));
                             playerVars.PlayerCursePowerChange = 0.0;
                             playerVars.syncPlayerVariables(entity);
 
-                            // Cursed Spirit Death by CE depletion
                             if (playerVars.PlayerCursePower <= 0.0 && entity.getPersistentData().getBoolean("CursedSpirit")) {
                                 if (entity instanceof LivingEntity _liv) {
                                     _liv.removeEffect((MobEffect) JujutsucraftModMobEffects.ZONE.get());
@@ -128,7 +119,6 @@ public abstract class PlayerTickEventMixin {
                         }
                     }
 
-                    // Insect Advancement Support
                     if (_serverPlayer.getAdvancements().getOrStartProgress(_serverPlayer.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraft:advancement_insect"))).isDone()) {
                         if (_serverPlayer.getFoodData().getFoodLevel() < 20) {
                             _serverPlayer.getFoodData().setFoodLevel(20);
@@ -137,11 +127,9 @@ public abstract class PlayerTickEventMixin {
                 }
             }
 
-            // 3. Continuous Tick Procs (Every Tick)
             WhenPlayerActiveTickInfinityProcedure.execute(entity);
+            ZenithCooldownSystem.tickCooldowns((LivingEntity) entity);
         }
-
-        // 4. Secondary Technique Processing
         PlayerTickSecondTechniqueProcedure.execute(world, x, y, z, entity);
     }
 }
