@@ -1242,5 +1242,7 @@
   "advancements.jujutsucraftaddon.domain_thousand_year_king.title": "Maestria de Domínio: Rei de 1000 Anos",
   "advancements.jujutsucraftaddon.domain_thousand_year_king.descr": "Um domínio forjado através de séculos de conflito. (+100% de Força em Embates)",
   "advancements.jujutsucraftaddon.domain_zenith.title": "Maestria de Domínio: Zenith",
-  "advancements.jujutsucraftaddon.domain_zenith.descr": "O ápice absoluto. Sua vontade sobrepõe a própria realidade. (+300% de Força em Embates)"
+  "advancements.jujutsucraftaddon.domain_zenith.descr": "O ápice absoluto. Sua vontade sobrepõe a própria realidade. (+300% de Força em Embates)",
+  "advancements.jujutsucraftaddon.perfect_zenith_body.title": "Corpo Perfeito Zenith",
+  "advancements.jujutsucraftaddon.perfect_zenith_body.descr": "Você atingiu o ápice do corpo humano. (Req: Domínio Zenith, 20 Dedos, 100k Fama)"
   }

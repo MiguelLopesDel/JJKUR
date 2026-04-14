@@ -1242,5 +1242,7 @@
   "advancements.jujutsucraftaddon.domain_thousand_year_king.title": "Domain Mastery: 1000 Year King",
   "advancements.jujutsucraftaddon.domain_thousand_year_king.descr": "A domain forged through centuries of conflict. (+100% Clash Strength)",
   "advancements.jujutsucraftaddon.domain_zenith.title": "Domain Mastery: Zenith",
-  "advancements.jujutsucraftaddon.domain_zenith.descr": "The absolute peak. Your will overrides reality itself. (+300% Clash Strength)"
+  "advancements.jujutsucraftaddon.domain_zenith.descr": "The absolute peak. Your will overrides reality itself. (+300% Clash Strength)",
+  "advancements.jujutsucraftaddon.perfect_zenith_body.title": "Zenith Perfect Body",
+  "advancements.jujutsucraftaddon.perfect_zenith_body.descr": "You reached the peak of the human body. (Req: Zenith Domain, 20 Fingers, 100k Fame)"
   }
