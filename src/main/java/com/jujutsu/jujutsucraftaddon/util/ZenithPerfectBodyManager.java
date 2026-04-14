@@ -1,9 +1,7 @@
 package com.jujutsu.jujutsucraftaddon.util;
 
-import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonModNetworkHandler;
 import com.jujutsu.jujutsucraftaddon.network.JujutsucraftaddonModVariables;
 import com.jujutsu.jujutsucraftaddon.procedures.CheckPerfectZenithConditionProcedure;
-import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
 import net.minecraft.advancements.Advancement;
 import net.minecraft.advancements.AdvancementProgress;
 import net.minecraft.resources.ResourceLocation;
@@ -16,15 +14,13 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.network.PacketDistributor;
 
 import java.util.UUID;
 
-
 @Mod.EventBusSubscriber
 public class ZenithPerfectBodyManager {
-    
-    private static final ResourceLocation ADV_PERFECT_BODY = ResourceLocation.tryBuild("jujutsucraftaddon", "perfect_zenith_body");
+
+    private static final ResourceLocation ADV_PERFECT_BODY = new ResourceLocation("jujutsucraftaddon", "perfect_zenith_body");
 
     private static final UUID HP_MODIFIER_ID = UUID.fromString("f4e5d6c7-b8a9-0123-4567-89abcdef0123");
     private static final UUID DEF_MODIFIER_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
@@ -32,12 +28,18 @@ public class ZenithPerfectBodyManager {
     @SubscribeEvent
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase == TickEvent.Phase.END && !event.player.level().isClientSide()) {
-            CheckPerfectZenithConditionProcedure.execute(event.player);
-            processPerfectBody((ServerPlayer) event.player);
+            ServerPlayer player = (ServerPlayer) event.player;
+
+            if (player.tickCount % 20 == 0) {
+                CheckPerfectZenithConditionProcedure.execute(player);
+                updatePerfectBodyState(player);
+            }
+
+            applyConstantEffects(player);
         }
     }
 
-    public static void processPerfectBody(ServerPlayer player) {
+    private static void updatePerfectBodyState(ServerPlayer player) {
         player.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(vars -> {
             boolean active = isAdvDone(player, ADV_PERFECT_BODY);
 
@@ -48,9 +50,16 @@ public class ZenithPerfectBodyManager {
 
             if (active) {
                 applyStats(player);
-                boostChants(player);
             } else {
                 removeStats(player);
+            }
+        });
+    }
+
+    private static void applyConstantEffects(ServerPlayer player) {
+        player.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(vars -> {
+            if (vars.zenith_perfect_body) {
+                boostChants(player);
             }
         });
     }
@@ -90,7 +99,7 @@ public class ZenithPerfectBodyManager {
     private static void removeStats(LivingEntity entity) {
         AttributeInstance hp = entity.getAttribute(Attributes.MAX_HEALTH);
         if (hp != null) hp.removeModifier(HP_MODIFIER_ID);
-        
+
         AttributeInstance def = entity.getAttribute(Attributes.ARMOR);
         if (def != null) def.removeModifier(DEF_MODIFIER_ID);
     }
