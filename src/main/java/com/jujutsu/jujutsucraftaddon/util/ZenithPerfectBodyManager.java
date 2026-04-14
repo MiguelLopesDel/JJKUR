@@ -20,7 +20,7 @@ import java.util.UUID;
 @Mod.EventBusSubscriber
 public class ZenithPerfectBodyManager {
 
-    private static final ResourceLocation ADV_PERFECT_BODY = new ResourceLocation("jujutsucraftaddon", "perfect_zenith_body");
+    private static final ResourceLocation ADV_PERFECT_BODY = ResourceLocation.tryBuild("jujutsucraftaddon", "perfect_zenith_body");
 
     private static final UUID HP_MODIFIER_ID = UUID.fromString("f4e5d6c7-b8a9-0123-4567-89abcdef0123");
     private static final UUID DEF_MODIFIER_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
