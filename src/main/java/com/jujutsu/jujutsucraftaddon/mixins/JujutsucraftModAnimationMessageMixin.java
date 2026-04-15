@@ -27,7 +27,7 @@ public abstract class JujutsucraftModAnimationMessageMixin {
     private static void onSetAnimationClientside(Player player, String anim, boolean override, CallbackInfo ci) {
         if (player instanceof AbstractClientPlayer player_) {
             ModifierLayer<IAnimation> animation = (ModifierLayer<IAnimation>) PlayerAnimationAccess.getPlayerAssociatedData(player_)
-                    .get(new ResourceLocation("jujutsucraft", "player_animation"));
+                    .get(ResourceLocation.fromNamespaceAndPath("jujutsucraft", "player_animation"));
             
             if (animation == null) {
                 JujutsucraftaddonMod.LOGGER.error("Animation Layer not found for player: " + player.getName().getString());
@@ -36,13 +36,13 @@ public abstract class JujutsucraftModAnimationMessageMixin {
 
             if (override || !animation.isActive()) {
                 // 1. Try Base Namespace (jujutsucraft)
-                ResourceLocation animBase = new ResourceLocation("jujutsucraft", anim);
+                ResourceLocation animBase = ResourceLocation.fromNamespaceAndPath("jujutsucraft", anim);
                 KeyframeAnimation retrieved = PlayerAnimationRegistry.getAnimation(animBase);
                 String usedNamespace = "jujutsucraft";
 
                 // 2. If not found, try Addon Namespace (jujutsucraftaddon)
                 if (retrieved == null) {
-                    ResourceLocation animAddon = new ResourceLocation("jujutsucraftaddon", anim);
+                    ResourceLocation animAddon = ResourceLocation.fromNamespaceAndPath("jujutsucraftaddon", anim);
                     retrieved = PlayerAnimationRegistry.getAnimation(animAddon);
                     usedNamespace = "jujutsucraftaddon";
                 }

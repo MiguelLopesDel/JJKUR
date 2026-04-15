@@ -2,9 +2,6 @@ package com.jujutsu.jujutsucraftaddon.network;
 
 import com.jujutsu.jujutsucraftaddon.JujutsucraftaddonMod;
 import com.jujutsu.jujutsucraftaddon.procedures.LockOnCapability;
-import com.jujutsu.jujutsucraftaddon.util.JJKUVariables;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
@@ -1063,24 +1060,14 @@ public class JujutsucraftaddonModVariables {
         public static void handler(PlayerVariablesSyncMessage message, Supplier<NetworkEvent.Context> contextSupplier) {
             NetworkEvent.Context context = contextSupplier.get();
             context.enqueueWork(() -> {
-                if (!context.getDirection().getReceptionSide().isServer()) {
-                    ClientLevel level = Minecraft.getInstance().level;
-                    if (level == null) return;
-                    Entity targetEntity;
-                    if (message.targetId == -1) {
-                        targetEntity = Minecraft.getInstance().player;
-                    } else {
-                        targetEntity = level.getEntity(message.targetId);
-                    }
-                    if (targetEntity != null) {
-                        JJKUVariables.get(targetEntity).ifPresent(cap -> syncData(message, cap));
-                    }
+                if (context.getDirection().getReceptionSide().isClient()) {
+                    PlayerVariablesSyncHandler.handleMessage(message);
                 }
             });
             context.setPacketHandled(true);
         }
 
-        private static void syncData(PlayerVariablesSyncMessage message, PlayerVariables variables) {
+        public static void syncData(PlayerVariablesSyncMessage message, PlayerVariables variables) {
             variables.Armorslot1 = message.data.Armorslot1;
             variables.Armorslot2 = message.data.Armorslot2;
             variables.Armorslot3 = message.data.Armorslot3;

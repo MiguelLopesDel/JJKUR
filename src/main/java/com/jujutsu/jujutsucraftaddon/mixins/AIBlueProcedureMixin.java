@@ -10,7 +10,6 @@ import net.mcreator.jujutsucraft.init.JujutsucraftModItems;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
 import net.mcreator.jujutsucraft.procedures.*;
-import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -299,7 +298,7 @@ public abstract class AIBlueProcedureMixin {
                     if (!(target instanceof LivingEntity)) {
                         runEntityCommand(target, "kill @s");
                     }
-                    if (!target.isAlive() && !target.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("forge:not_living")))) {
+                    if (!target.isAlive() && !target.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("forge:not_living")))) {
                         if (target.getBbHeight() > 0.25) {
                             runEntityCommand(target, "scale add pehkui:height -0.025 @s");
                             logicB = true;
@@ -357,7 +356,7 @@ public abstract class AIBlueProcedureMixin {
             if (target != owner && !world.getLevelData().getGameRules().getBoolean(JujutsucraftModGameRules.JUJUTSUPVP)) {
                 return false;
             }
-            if (player.getAbilities().instabuild || isSpectator(target)) {
+            if (player.getAbilities().instabuild || target.isSpectator()) {
                 return false;
             }
             return true;
@@ -444,7 +443,7 @@ public abstract class AIBlueProcedureMixin {
             return;
         }
 
-        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("block.end_gateway.spawn"));
+        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("block.end_gateway.spawn"));
         if (sound == null) {
             return;
         }
@@ -462,7 +461,7 @@ public abstract class AIBlueProcedureMixin {
             return;
         }
 
-        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:crush"));
+        SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("jujutsucraft:crush"));
         if (sound == null) {
             return;
         }
@@ -494,18 +493,6 @@ public abstract class AIBlueProcedureMixin {
                 ),
                 command
         );
-    }
-
-    @Unique
-    private static boolean isSpectator(Entity entity) {
-        if (entity instanceof ServerPlayer serverPlayer) {
-            return serverPlayer.gameMode.getGameModeForPlayer() == GameType.SPECTATOR;
-        }
-        if (entity.level().isClientSide() && entity instanceof Player player && Minecraft.getInstance().getConnection() != null) {
-            var info = Minecraft.getInstance().getConnection().getPlayerInfo(player.getGameProfile().getId());
-            return info != null && info.getGameMode() == GameType.SPECTATOR;
-        }
-        return false;
     }
 
     @Unique

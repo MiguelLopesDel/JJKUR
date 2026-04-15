@@ -5,15 +5,12 @@ import net.mcreator.jujutsucraft.init.JujutsucraftModAttributes;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.procedures.PlayAnimationProcedure;
 import net.mcreator.jujutsucraft.procedures.StartGuardProcedure;
-import net.minecraft.client.Minecraft;
-import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelAccessor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -31,7 +28,7 @@ public abstract class GuardEffectStartedappliedProcedureMixin {
 
         if (entity instanceof LivingEntity _liv && !_liv.hasEffect(JujutsucraftaddonModMobEffects.SOKA_MONA.get())) {
             if (entity instanceof Player _player) {
-                if (isCreativeOrSpectator(_player)) return;
+                if (_player.isCreative() || _player.isSpectator()) return;
             }
 
             if (_liv.hasEffect((MobEffect) JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())) {
@@ -80,15 +77,5 @@ public abstract class GuardEffectStartedappliedProcedureMixin {
                 }
             }
         }
-    }
-
-    private static boolean isCreativeOrSpectator(Player player) {
-        if (player instanceof ServerPlayer _serverPlayer) {
-            return _serverPlayer.gameMode.getGameModeForPlayer() == GameType.CREATIVE || _serverPlayer.gameMode.getGameModeForPlayer() == GameType.SPECTATOR;
-        } else if (player.level().isClientSide()) {
-            GameType gameType = Minecraft.getInstance().getConnection().getPlayerInfo(player.getGameProfile().getId()).getGameMode();
-            return gameType == GameType.CREATIVE || gameType == GameType.SPECTATOR;
-        }
-        return false;
     }
 }

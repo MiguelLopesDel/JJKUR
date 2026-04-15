@@ -9,7 +9,6 @@ import net.mcreator.jujutsucraft.procedures.KeySimpleDomainOnKeyPressedProcedure
 import net.mcreator.jujutsucraft.procedures.KeySimpleDomainOnKeyReleasedProcedure;
 import net.mcreator.jujutsucraft.procedures.LogicSimpleDomainProcedure;
 import net.mcreator.jujutsucraft.procedures.PlayAnimationProcedure;
-import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSource;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.core.BlockPos;
@@ -55,7 +54,7 @@ public abstract class SimpleDomainKeyMixin {
                 ? _liv.getEffect(MobEffects.DAMAGE_BOOST).getAmplifier() + 2.0 : 1.0;
 
         double initialCost = 50.0;
-        boolean isCreative = isCreativeMode(entity);
+        boolean isCreative = entity instanceof Player _player && _player.isCreative();
 
         if (entity instanceof LivingEntity living && living.hasEffect(JujutsucraftModMobEffects.SIX_EYES.get())) {
             int amp = living.getEffect(JujutsucraftModMobEffects.SIX_EYES.get()).getAmplifier();
@@ -64,8 +63,8 @@ public abstract class SimpleDomainKeyMixin {
 
         final double finalCost = initialCost;
         entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(baseVars -> {
-            boolean fallingCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("jujutsucraft:can_use_falling_blossom_emotion")));
-            boolean simpleCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("jujutsucraft:can_use_simple_domain")));
+            boolean fallingCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_falling_blossom_emotion")));
+            boolean simpleCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_simple_domain")));
 
             boolean canUseFalling = false;
             if (fallingCapable) {
@@ -87,7 +86,7 @@ public abstract class SimpleDomainKeyMixin {
             boolean wantsFalling = false;
             if (entity instanceof ServerPlayer sp) {
                 if (sp.isShiftKeyDown()) {
-                    var adv = sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraft:mastery_falling_blossom_emotion"));
+                    var adv = sp.server.getAdvancements().getAdvancement(ResourceLocation.parse("jujutsucraft:mastery_falling_blossom_emotion"));
                     if (adv != null && sp.getAdvancements().getOrStartProgress(adv).isDone() && baseVars.PlayerCursePowerFormer > 50.0) {
                         wantsFalling = true;
                     }
@@ -121,9 +120,9 @@ public abstract class SimpleDomainKeyMixin {
         if (LogicSimpleDomainProcedure.execute()) {
             boolean on = false;
             if (!(entity instanceof Player)) {
-                on = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("jujutsucraft:can_use_simple_domain")));
+                on = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_simple_domain")));
             } else if (entity instanceof ServerPlayer sp) {
-                var adv = sp.server.getAdvancements().getAdvancement(new ResourceLocation("jujutsucraft:mastery_simple_domain"));
+                var adv = sp.server.getAdvancements().getAdvancement(ResourceLocation.parse("jujutsucraft:mastery_simple_domain"));
                 boolean mastery = adv != null && sp.getAdvancements().getOrStartProgress(adv).isDone();
 
                 if (mastery && baseVars.PlayerCursePowerFormer > 50.0) {
@@ -160,7 +159,7 @@ public abstract class SimpleDomainKeyMixin {
 
                 double num1 = baseVars.PlayerCurseTechnique;
                 double num2 = baseVars.PlayerCurseTechnique2;
-                boolean hwb = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, new ResourceLocation("jujutsucraft:can_use_hollow_wicker_basket"))) ||
+                boolean hwb = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_hollow_wicker_basket"))) ||
                         _liv.hasEffect(JujutsucraftModMobEffects.SUKUNA_EFFECT.get()) ||
                         (entity instanceof Player && (num1 == TechniqueIDs.SUKUNA || num2 == TechniqueIDs.SUKUNA ||
                                 num1 == TechniqueIDs.KASHIMO || num2 == TechniqueIDs.KASHIMO ||
@@ -192,7 +191,7 @@ public abstract class SimpleDomainKeyMixin {
             }
 
             if (world instanceof Level _level) {
-                SoundEvent frameSound = ForgeRegistries.SOUND_EVENTS.getValue(new ResourceLocation("jujutsucraft:frame_set"));
+                SoundEvent frameSound = ForgeRegistries.SOUND_EVENTS.getValue(ResourceLocation.parse("jujutsucraft:frame_set"));
                 if (frameSound != null) {
                     if (!_level.isClientSide()) {
                         _level.playSound(null, BlockPos.containing(x, y, z), frameSound, SoundSource.NEUTRAL, 1.0F, 1.0F);
@@ -202,16 +201,6 @@ public abstract class SimpleDomainKeyMixin {
                 }
             }
         }
-    }
-
-    private static boolean isCreativeMode(Entity entity) {
-        if (entity instanceof ServerPlayer _sp) {
-            return _sp.gameMode.getGameModeForPlayer() == GameType.CREATIVE;
-        } else if (entity.level().isClientSide() && entity instanceof Player _p) {
-            var info = Minecraft.getInstance().getConnection().getPlayerInfo(_p.getGameProfile().getId());
-            return info != null && info.getGameMode() == GameType.CREATIVE;
-        }
-        return false;
     }
 
     private static void playClickSound(Entity entity) {

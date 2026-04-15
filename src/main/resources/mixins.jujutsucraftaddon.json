@@ -46,7 +46,6 @@
     "IdleTransfigurationProcedureMixin",
     "JackpotEffectActiveTickMixin",
     "JogoFlame1ProcedureMixin",
-    "JujutsucraftModAnimationMessageMixin",
     "KeyChangeTechnique4Mixin",
     "KeyChangeTechniqueOnKeyPressedProcedureMixin",
     "KeyForwardOnKeyPressedProcedureMixin",
@@ -63,13 +62,10 @@
     "MobSpawning3Mixin",
     "MobSpawning4Mixin",
     "MobSpawning5Mixin",
-    "ModernJujutsuDustFixMixin",
     "ModernJujutsuIdentityFixMixin",
     "MythicalBeastAmberExpiresProcedureMixin",
     "MythicalBeastAmberStartMixin",
     "OpenProcedureMixin",
-    "OverlayBackstepOverlayMixin",
-    "OverlayDefaultOverlayMixin",
     "PacketAccessorMixin",
     "ParticleGeneratorProcedureMixin",
     "PerfectSukunaModelMixin",
@@ -77,7 +73,6 @@
     "PlayAnimationEntity",
     "PlayAnimationEntityGuardMixin",
     "PlayAnimationMixin",
-    "PlayerRendererMixin",
     "PlayerSecondTechniqueMixin",
     "PlayerTickEvent2ProcedureMixin",
     "PlayerTickEventMixin",
@@ -90,10 +85,8 @@
     "ReverseKeyMixin",
     "Rika2ModelMixin",
     "RoundDeerAIMixin",
-    "RunningAnimationMixin",
     "SatoruGojoSchoolModelMixin",
     "SelectTechniqueButtonMessageMixin",
-    "SelectTechniqueScreenMixin",
     "SetTagCursedSpiritProcedureMixin",
     "SetTagSocererMixin",
     "SimpleDomainKeyMixin",
@@ -125,7 +118,14 @@
     "WhenRightClickToEntityMixin"
   ],
   "client": [
-    "PlayerAttackMixin"
+    "PlayerAttackMixin",
+    "ModernJujutsuDustFixMixin",
+    "OverlayBackstepOverlayMixin",
+    "OverlayDefaultOverlayMixin",
+    "JujutsucraftModAnimationMessageMixin",
+    "SelectTechniqueScreenMixin",
+    "PlayerRendererMixin",
+    "RunningAnimationMixin"
   ],
   "minVersion": "0.8"
 }
