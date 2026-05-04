@@ -197,15 +197,18 @@ public abstract class AISatoruGojoProcedureMixin {
                         distance = GetDistanceProcedure.execute(_livEntity);
                         health = _livEntity.getHealth() / _livEntity.getMaxHealth();
 
+                        boolean canConsiderPurple = true;
                         if (_livEntity instanceof GojoSatoruSchoolDaysEntity _gojoDays) {
-                            if ((Boolean) _gojoDays.getEntityData().get(GojoSatoruSchoolDaysEntity.DATA_awaking)) {
-                                purple = _livEntity.getPersistentData().getBoolean("GojoNoUseInfinity") && distance > 32.0;
-                                if (!_livEntity.getPersistentData().getBoolean("flag1") && health < 0.3 && (!adult || distance < 32.0)) {
-                                    if (!_livEntity.level().isClientSide()) {
-                                        _livEntity.addEffect(new MobEffectInstance(MobEffects.HUNGER, 20, 0, false, false));
-                                    }
-                                    purple = true;
+                            canConsiderPurple = (Boolean) _gojoDays.getEntityData().get(GojoSatoruSchoolDaysEntity.DATA_awaking);
+                        }
+
+                        if (canConsiderPurple) {
+                            purple = _livEntity.getPersistentData().getBoolean("GojoNoUseInfinity") && distance > 32.0;
+                            if (!_livEntity.getPersistentData().getBoolean("flag1") && health < 0.3 && (!adult || distance < 32.0)) {
+                                if (!_livEntity.level().isClientSide()) {
+                                    _livEntity.addEffect(new MobEffectInstance(MobEffects.HUNGER, 20, 0, false, false));
                                 }
+                                purple = true;
                             }
                         }
 
@@ -281,13 +284,15 @@ public abstract class AISatoruGojoProcedureMixin {
                                         }
                                     }
 
-                                    if (red && (_livEntity instanceof GojoSatoruSchoolDaysEntity _gojoDays && !(Boolean) _gojoDays.getEntityData().get(GojoSatoruSchoolDaysEntity.DATA_awaking))) {
-                                        // Skip to rnd loop
-                                    } else if (purple && (_livEntity instanceof GojoSatoruSchoolDaysEntity _gojoDays && !(Boolean) _gojoDays.getEntityData().get(GojoSatoruSchoolDaysEntity.DATA_awaking))) {
-                                        _livEntity.getPersistentData().putBoolean("GojoNoUseInfinity", false);
-                                        rnd = 15.0;
-                                        tick = 500.0;
-                                        break label_skill_selection;
+                                    if (purple) {
+                                        boolean schoolDaysBeforeAwakening = _livEntity instanceof GojoSatoruSchoolDaysEntity _gojoDays
+                                                && !(Boolean) _gojoDays.getEntityData().get(GojoSatoruSchoolDaysEntity.DATA_awaking);
+                                        if (!schoolDaysBeforeAwakening) {
+                                            _livEntity.getPersistentData().putBoolean("GojoNoUseInfinity", false);
+                                            rnd = 15.0;
+                                            tick = 500.0;
+                                            break label_skill_selection;
+                                        }
                                     }
 
                                     num1 = 0.0;

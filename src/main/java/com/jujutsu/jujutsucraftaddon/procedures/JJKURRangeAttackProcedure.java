@@ -144,7 +144,7 @@ public class JJKURRangeAttackProcedure {
             for (Entity target : world.getEntitiesOfClass(Entity.class,
                     new AABB(center, center).inflate(range / 2.0), e -> true)) {
 
-                boolean betrayal = LogicBetrayalProcedure.execute(entity, target);
+                boolean betrayal = LogicBetrayalProcedure.execute(world, entity, target);
                 double knockback = nbt.getDouble("knockback");
 
                 if (entity != target || betrayal) {
@@ -189,6 +189,10 @@ public class JJKURRangeAttackProcedure {
 
                             if (damageSrc > 0.0) {
                                 double oldHp = target instanceof LivingEntity le ? le.getHealth() : -1.0;
+                                if (shouldSukunaSurviveFatalPurple(world, entity, target, damageSrc, oldHp, rng)) {
+                                    logicKnockback = true;
+                                    continue;
+                                }
                                 target.hurt(new DamageSource(curseHolder, entity), (float) damageSrc);
                                 double newHp = target instanceof LivingEntity le ? le.getHealth() : -1.0F;
 
@@ -250,6 +254,20 @@ public class JJKURRangeAttackProcedure {
         nbt.putBoolean("attack", false);
         nbt.putBoolean("ignore", false);
         nbt.putBoolean("DomainAttack", false);
+    }
+
+    private static boolean shouldSukunaSurviveFatalPurple(LevelAccessor world, Entity source, Entity target, double damage, double oldHp, ThreadLocalRandom rng) {
+        if (!(world instanceof ServerLevel level)
+                || !level.getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_OP_SUKUNA)
+                || !(source instanceof PurpleEntity)
+                || !(target instanceof SukunaFushiguroEntity sukuna)
+                || sukuna.getEntityData().get(SukunaFushiguroEntity.DATA_perfect_mode)
+                || oldHp <= 0.0
+                || damage < oldHp
+                || rng.nextDouble() >= 0.8) {
+            return false;
+        }
+        return JJKURSukunaAIBuff.forceHeianTransformation(world, sukuna, true);
     }
 
     private static double computeBlackFlashRolls(Entity entity,
