@@ -34,3 +34,6 @@ out/
 package-lock.json
 .devcontainer/
 jjkur-zenith-engineering.skill
+.env
+AGENTS.md
+check_mixins.py

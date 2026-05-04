@@ -5,7 +5,7 @@ plugins {
     id 'org.parchmentmc.librarian.forgegradle' version '1.+'
 }
 
-version = '10.1.1'
+version = '10.2.0'
 group = 'com.jujutsu.jujutsucraftaddon'
 archivesBaseName = 'jujutsucraftaddon'
 
@@ -76,7 +76,7 @@ dependencies {
     minecraft 'net.minecraftforge:forge:1.20.1-47.4.10'
     annotationProcessor 'org.spongepowered:mixin:0.8.5:processor'
 
-    implementation fg.deobf("curse.maven:sorceryfight-471288:7766099")
+    implementation fg.deobf("curse.maven:sorceryfight-471288:7985964")
     implementation fg.deobf("curse.maven:jjsk-1128285:7762065")
     implementation fg.deobf('software.bernie.geckolib:geckolib-forge-1.20.1:4.8.3')
     implementation fg.deobf('dev.kosmx.player-anim:player-animation-lib-forge:1.0.2-rc1+1.20')

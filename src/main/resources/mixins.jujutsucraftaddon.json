@@ -66,6 +66,7 @@
     "MythicalBeastAmberExpiresProcedureMixin",
     "MythicalBeastAmberStartMixin",
     "OpenProcedureMixin",
+    "OpSukunaBrainMemoryMixin",
     "PacketAccessorMixin",
     "ParticleGeneratorProcedureMixin",
     "PerfectSukunaModelMixin",

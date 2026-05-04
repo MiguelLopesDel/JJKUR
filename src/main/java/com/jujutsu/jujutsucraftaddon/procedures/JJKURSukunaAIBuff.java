@@ -3,6 +3,7 @@ package com.jujutsu.jujutsucraftaddon.procedures;
 import com.jujutsu.jujutsucraftaddon.entity.ErrorEntity;
 import com.jujutsu.jujutsucraftaddon.entity.ItadoriShinjukuEntity;
 import com.jujutsu.jujutsucraftaddon.entity.SukunaMangaEntity;
+import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import net.mcreator.jujutsucraft.entity.*;
@@ -54,10 +55,14 @@ public class JJKURSukunaAIBuff {
 
         LivingEntity target = (livingEntity instanceof Mob _mob) ? _mob.getTarget() : null;
         boolean isGojoTarget = checkGojoTarget(target);
+        boolean opSukuna = world instanceof ServerLevel level && level.getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_OP_SUKUNA);
 
-        handleBindingVow(livingEntity, isFushiguroBody, isGojoTarget);
+        handleBindingVow(livingEntity, isFushiguroBody, isGojoTarget, opSukuna);
         handleMeteorLogic(world, livingEntity, target, persistentData);
-        handleHeianTransformation(world, x, y, z, livingEntity, target, isFushiguroBody, persistentData, headItem);
+        handleHeianTransformation(world, x, y, z, livingEntity, target, isFushiguroBody, persistentData, headItem, opSukuna);
+        if (opSukuna && OpSukunaBrain.tryExecute(world, x, y, z, livingEntity, target, persistentData)) {
+            return;
+        }
         handleAILogic(world, x, y, z, livingEntity, target, isFushiguroBody, persistentData, headItem, isGojoTarget);
     }
 
@@ -125,7 +130,8 @@ public class JJKURSukunaAIBuff {
         }).orElse(false);
     }
 
-    private static void handleBindingVow(LivingEntity living, boolean isFushiguroBody, boolean isGojoTarget) {
+    private static void handleBindingVow(LivingEntity living, boolean isFushiguroBody, boolean isGojoTarget, boolean opSukuna) {
+        if (opSukuna) return;
         if (isFushiguroBody && isGojoTarget && !living.hasEffect(JujutsucraftaddonModMobEffects.BINDING_VOW_COOLDOWN.get())) {
             if (!living.level().isClientSide()) {
                 living.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.BINDING_VOW_COOLDOWN.get(), 3000, 0, false, false));
@@ -180,46 +186,65 @@ public class JJKURSukunaAIBuff {
         }
     }
 
-    private static void handleHeianTransformation(LevelAccessor world, double x, double y, double z, LivingEntity living, LivingEntity target, boolean isFushiguroBody, CompoundTag nbt, ItemStack head) {
+    private static void handleHeianTransformation(LevelAccessor world, double x, double y, double z, LivingEntity living, LivingEntity target, boolean isFushiguroBody, CompoundTag nbt, ItemStack head, boolean opSukuna) {
         if (target == null || nbt.getDouble("cnt_target") <= 6.0) return;
         if (!isFushiguroBody || (living instanceof SukunaFushiguroEntity sf && sf.getEntityData().get(SukunaFushiguroEntity.DATA_perfect_mode)))
             return;
-        if (target instanceof GojoSatoruEntity || target instanceof PurpleEntity) return;
+        if (!opSukuna && (target instanceof GojoSatoruEntity || target instanceof PurpleEntity)) return;
 
-        if (living.getHealth() <= living.getMaxHealth() * 0.3 && !living.hasEffect(JujutsucraftaddonModMobEffects.BINDING_VOW_COOLDOWN.get())) {
-            if (living instanceof SukunaFushiguroEntity animatable) {
-                animatable.getEntityData().set(SukunaFushiguroEntity.DATA_perfect_mode, true);
-                animatable.setTexture("sukuna_perfect");
-                syncRotation(animatable);
+        boolean blockedByBindingVow = living.hasEffect(JujutsucraftaddonModMobEffects.BINDING_VOW_COOLDOWN.get())
+                || target.hasEffect(JujutsucraftaddonModMobEffects.BINDING_VOW_COOLDOWN.get());
+        if (living.getHealth() <= living.getMaxHealth() * 0.3 && (opSukuna || !blockedByBindingVow)) {
+            transformToHeian(world, x, y, z, living, false);
+        }
+    }
 
-                PlayAnimationEntity2Procedure.execute(animatable, "heianform");
-                if (!animatable.level().isClientSide()) {
-                    animatable.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION_HEIAN.get(), 40, 1, false, false));
-                    animatable.addEffect(new MobEffectInstance(MobEffects.HEAL, 10, 10, false, false));
+    public static boolean forceHeianTransformation(LevelAccessor world, LivingEntity living, boolean healToFull) {
+        return transformToHeian(world, living.getX(), living.getY(), living.getZ(), living, healToFull);
+    }
 
-                    CommandSourceStack stack = new CommandSourceStack(CommandSource.NULL, animatable.position(), animatable.getRotationVector(), (ServerLevel) world, 4, animatable.getName().getString(), animatable.getDisplayName(), animatable.level().getServer(), animatable);
-                    animatable.getServer().getCommands().performPrefixedCommand(stack, "particle jjkueffects:red_awakening_2 ~ ~-1 ~ 0 0 0 1 1 force");
-                    animatable.getServer().getCommands().performPrefixedCommand(stack, "item replace entity @s weapon.offhand with jujutsucraft:supreme_martial_solution");
-                    animatable.getServer().getCommands().performPrefixedCommand(stack, "item replace entity @s armor.chest with jujutsucraft:sukuna_body_chestplate");
-                }
+    private static boolean transformToHeian(LevelAccessor world, double x, double y, double z, LivingEntity living, boolean healToFull) {
+        if (!(living instanceof SukunaFushiguroEntity animatable)
+                || animatable.getEntityData().get(SukunaFushiguroEntity.DATA_perfect_mode)) {
+            return false;
+        }
 
-                Vec3 center = living.position();
-                for (Player p : world.getEntitiesOfClass(Player.class, new AABB(center, center).inflate(15.0))) {
-                    if (!p.level().isClientSide()) {
-                        p.displayClientMessage(Component.literal("§lLike a Calamity, The Strongest Sorcerer from History, Awakens"), false);
-                    }
-                }
+        animatable.getEntityData().set(SukunaFushiguroEntity.DATA_perfect_mode, true);
+        animatable.setTexture("sukuna_perfect");
+        syncRotation(animatable);
 
-                living.removeEffect(MobEffects.DAMAGE_BOOST);
-                nbt.putDouble("cnt_reverse_lim", 0.0);
-                nbt.putDouble("skill", 1.0);
-                ReturnShadowProcedure.execute(world, x, y, z, living);
-                nbt.putDouble("skill", 0.0);
-                if (head.getItem() == JujutsucraftModItems.MAHORAGA_WHEEL_HELMET.get()) {
-                    living.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
-                }
+        PlayAnimationEntity2Procedure.execute(animatable, "heianform");
+        if (!animatable.level().isClientSide()) {
+            animatable.addEffect(new MobEffectInstance(JujutsucraftaddonModMobEffects.ANIMATION_HEIAN.get(), 40, 1, false, false));
+            animatable.addEffect(new MobEffectInstance(MobEffects.HEAL, 10, 10, false, false));
+
+            CommandSourceStack stack = new CommandSourceStack(CommandSource.NULL, animatable.position(), animatable.getRotationVector(), (ServerLevel) world, 4, animatable.getName().getString(), animatable.getDisplayName(), animatable.level().getServer(), animatable);
+            animatable.getServer().getCommands().performPrefixedCommand(stack, "particle jjkueffects:red_awakening_2 ~ ~-1 ~ 0 0 0 1 1 force");
+            animatable.getServer().getCommands().performPrefixedCommand(stack, "item replace entity @s weapon.offhand with jujutsucraft:supreme_martial_solution");
+            animatable.getServer().getCommands().performPrefixedCommand(stack, "item replace entity @s armor.chest with jujutsucraft:sukuna_body_chestplate");
+        }
+
+        if (healToFull) {
+            animatable.setHealth(animatable.getMaxHealth());
+        }
+
+        Vec3 center = living.position();
+        for (Player p : world.getEntitiesOfClass(Player.class, new AABB(center, center).inflate(15.0))) {
+            if (!p.level().isClientSide()) {
+                p.displayClientMessage(Component.literal("§lLike a Calamity, The Strongest Sorcerer from History, Awakens"), false);
             }
         }
+
+        living.removeEffect(MobEffects.DAMAGE_BOOST);
+        CompoundTag nbt = living.getPersistentData();
+        nbt.putDouble("cnt_reverse_lim", 0.0);
+        nbt.putDouble("skill", 1.0);
+        ReturnShadowProcedure.execute(world, x, y, z, living);
+        nbt.putDouble("skill", 0.0);
+        if (living.getItemBySlot(EquipmentSlot.HEAD).getItem() == JujutsucraftModItems.MAHORAGA_WHEEL_HELMET.get()) {
+            living.setItemSlot(EquipmentSlot.HEAD, ItemStack.EMPTY);
+        }
+        return true;
     }
 
     private static void handleAILogic(LevelAccessor world, double x, double y, double z, LivingEntity living, LivingEntity target, boolean isFushiguroBody, CompoundTag nbt, ItemStack head, boolean isGojoTarget) {

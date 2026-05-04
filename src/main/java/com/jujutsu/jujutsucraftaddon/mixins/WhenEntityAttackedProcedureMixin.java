@@ -14,7 +14,7 @@ import net.mcreator.jujutsucraft.entity.TodoAoiEntity;
 import net.mcreator.jujutsucraft.init.JujutsucraftModItems;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
-import net.mcreator.jujutsucraft.procedures.WhenEntityTakesDamageProcedure;
+import net.mcreator.jujutsucraft.procedures.WhenEntityAttacked2Procedure;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
@@ -37,7 +37,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import software.bernie.geckolib.animatable.GeoEntity;
 
-@Mixin(value = WhenEntityTakesDamageProcedure.class, priority = -10000)
+@Mixin(value = WhenEntityAttacked2Procedure.class, priority = -10000)
 public abstract class WhenEntityAttackedProcedureMixin {
 
     /**
