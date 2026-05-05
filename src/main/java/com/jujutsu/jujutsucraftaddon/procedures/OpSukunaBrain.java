@@ -5,6 +5,7 @@ import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModEntities;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
 import com.jujutsu.jujutsucraftaddon.util.DomainMasterySystem;
 import com.jujutsu.jujutsucraftaddon.util.OpSukunaBrainMemoryHolder;
+import com.jujutsu.jujutsucraftaddon.util.OpSukunaBrainTelemetry;
 import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import net.mcreator.jujutsucraft.entity.SukunaFushiguroEntity;
 import net.mcreator.jujutsucraft.entity.SukunaPerfectEntity;
@@ -102,7 +103,10 @@ public final class OpSukunaBrain {
         }
 
         Action best = chooseBestAction(s);
+        String topScores = OpSukunaBrainTelemetry.enabled(world) ? describeTopActions(s, best) : "";
         best.execute(world, x, y, z, sukuna, nbt, s);
+        recordDecision(world, sukuna, target, s, best, topScores);
+        memory.rememberAction(best.name);
         memory.lastAction = best.name;
         memory.lastActionTarget = targetKey(target);
         return true;
@@ -123,6 +127,97 @@ public final class OpSukunaBrain {
 
     public static String saveKey() {
         return SAVE_KEY;
+    }
+
+    private static void recordDecision(LevelAccessor world, LivingEntity sukuna, LivingEntity target, Snapshot s, Action best, String topScores) {
+        if (!OpSukunaBrainTelemetry.enabled(world)) {
+            return;
+        }
+        OpSukunaBrainTelemetry.Decision decision = new OpSukunaBrainTelemetry.Decision();
+        decision.action = best.name;
+        decision.kind = best.kind.name();
+        decision.topScores = topScores;
+        decision.score = best.score;
+        decision.adjustedScore = adjustedScore(s, best);
+        decision.skill = best.skill;
+        decision.selfHealth = s.selfHealth;
+        decision.targetHealth = s.targetHealth;
+        decision.selfHealthRatio = s.selfHealthRatio;
+        decision.targetHealthRatio = s.targetHealthRatio;
+        decision.distance = s.distance;
+        decision.predictedDistance = s.predictedDistance;
+        decision.damageDealt = s.damageDealt;
+        decision.damageTaken = s.damageTaken;
+        decision.targetSkill = s.targetSkill;
+        decision.archetype = s.archetype;
+        decision.techniqueKey = s.read.techniqueKey();
+        decision.primaryTechnique = s.read.primaryTechnique;
+        decision.secondaryTechnique = s.read.secondaryTechnique;
+        decision.targetThreat = s.targetThreat;
+        decision.targetPower = s.targetPowerProfile.score;
+        decision.meleeThreat = s.meleeThreat;
+        decision.rangeThreat = s.rangeThreat;
+        decision.pressure = s.pressure;
+        decision.opportunity = s.opportunity;
+        decision.immediateThreat = s.immediateThreat;
+        decision.survivalUrgency = s.survivalUrgency;
+        decision.incomingKillRisk = s.incomingKillRisk;
+        decision.hitConfidence = s.hitConfidence;
+        decision.whiffOpportunity = s.whiffOpportunity;
+        decision.stuckLevel = s.stuckLevel;
+        decision.groupPressure = s.groupPressure;
+        decision.groupActivePressure = s.groupActivePressure;
+        decision.groupApexPressure = s.groupApexPressure;
+        decision.rctStrain = s.rctStrain;
+        decision.brainDamage = s.brainDamageLevel;
+        decision.idealDistance = s.idealDistance;
+        decision.gojo = s.read.primaryTechnique == TechniqueIDs.GOJO || s.read.secondaryTechnique == TechniqueIDs.GOJO || isSatushi(target);
+        decision.targetDomain = s.targetDomain;
+        decision.targetCastingDomain = s.targetCastingDomain;
+        decision.targetCooldown = s.targetCooldown;
+        decision.targetUnstable = s.targetUnstable;
+        decision.targetDodge = s.targetDodge;
+        decision.targetCounter = s.targetCounter;
+        decision.targetGuard = s.targetGuard;
+        decision.targetEscaping = s.targetEscaping;
+        decision.targetWhiffed = s.targetWhiffed;
+        decision.targetOverextended = s.targetOverextended;
+        decision.clearShot = s.clearShot;
+        decision.pathBlocked = s.pathBlocked;
+        decision.normalReady = s.normalReady;
+        decision.passiveReady = s.passiveReady;
+        decision.domainReady = s.domainReady;
+        decision.worldCutCapable = s.worldCutCapable;
+        decision.trivialTarget = s.trivialTarget;
+        decision.mahoragaAvailable = s.canUseMahoraga || s.mahoragaExist;
+        decision.enemyDomainTrap = s.enemyDomainTrap;
+        decision.domainEscapeWindow = s.domainEscapeWindow;
+        decision.domainResponseTicks = s.memory.firstDomainThreatTick < 0.0 ? -1.0 : s.tick - s.memory.firstDomainThreatTick;
+        decision.purpleThreat = s.purpleThreat;
+        decision.purpleRisk = s.purpleRisk;
+        decision.purpleEvade = "PURPLE_EVADE".equals(best.name) || "PURPLE_BACKSTEP".equals(best.name);
+        decision.purpleHit = s.purpleThreat && s.damageTaken > sukuna.getMaxHealth() * 0.08;
+        decision.purpleAvoided = s.memory.pendingPurpleResponseTick >= 0.0 && s.tick - s.memory.pendingPurpleResponseTick <= 45.0 && s.damageTaken <= sukuna.getMaxHealth() * 0.02;
+        decision.stuck = s.stuckLevel > 0.62;
+        decision.infinityWaste = s.infinitySignal > 0.0 && !s.selfDomain && !best.worldCut && best.skill != 0.0
+                && best.kind != ActionKind.DOMAIN_AMPLIFICATION && best.kind != ActionKind.TEN_SHADOWS && best.kind != ActionKind.DOMAIN;
+        decision.adaptationConfidence = s.adaptation.confidence;
+        decision.trapPressure = s.adaptation.trapMastery;
+        decision.evasionPressure = s.adaptation.antiEvasionNeed;
+        decision.rangePressure = s.adaptation.rangeKiteNeed;
+        decision.domainPlan = s.domainAssessment.plan;
+        decision.domainClearValue = s.domainAssessment.clearValue;
+        decision.domainSustainCost = s.domainAssessment.sustainCost;
+        decision.domainRecoveryRisk = s.domainAssessment.recoveryRisk;
+        decision.domainCounterRisk = s.domainAssessment.counterRisk;
+        decision.domainCastScore = s.domainAssessment.castScore;
+        decision.domainHwbScore = s.domainAssessment.hwbScore;
+        decision.domainPunishScore = s.domainAssessment.punishScore;
+        decision.domainScore = s.domainAssessment.domainScore;
+        decision.preferredRange = s.adaptation.preferredRange;
+        decision.safePunishWindow = s.adaptation.safePunishWindow;
+        decision.learnedBurstRisk = s.adaptation.learnedBurstRisk;
+        OpSukunaBrainTelemetry.recordDecision(world, sukuna, target, decision);
     }
 
     private static BrainMemory memory(LivingEntity sukuna) {
@@ -372,6 +467,37 @@ public final class OpSukunaBrain {
         return selected > 0.0 ? selected : 0.0;
     }
 
+    private static boolean isDomainCastSignal(LivingEntity target, double targetSkill, double targetDomainNumber, PlayerRead read) {
+        int roundedSkill = (int) Math.round(Math.abs(targetSkill));
+        boolean domainSkill = targetSkill == 20.0 || targetSkill == 220.0 || roundedSkill % 100 == 20;
+        boolean gojoStartup = (read.primaryTechnique == TechniqueIDs.GOJO || read.secondaryTechnique == TechniqueIDs.GOJO || isSatushi(target))
+                && target.getPersistentData().getDouble("cnt1") > 0.0
+                && target.getPersistentData().getDouble("cnt1") < 55.0;
+        return domainSkill || targetDomainNumber == 2.0 || gojoStartup
+                || target.hasEffect(JujutsucraftModMobEffects.NEUTRALIZATION.get())
+                || target.hasEffect(JujutsucraftModMobEffects.BRAIN_DAMAGE.get());
+    }
+
+    private static boolean hasDomainEscapeCandidate(Snapshot s) {
+        Vec3 self = s.sukuna.position();
+        Vec3 away = s.domainEscapeVector.lengthSqr() > 1.0E-4 ? s.domainEscapeVector : horizontal(self.subtract(s.target.position()));
+        if (away.lengthSqr() < 1.0E-4) {
+            away = new Vec3(1.0, 0.0, 0.0);
+        }
+        Vec3 lateral = new Vec3(-away.z, 0.0, away.x).normalize();
+        return canUseEscapeCandidate(s, self.add(away.scale(9.0)))
+                || canUseEscapeCandidate(s, self.add(away.scale(7.0)).add(lateral.scale(4.0)))
+                || canUseEscapeCandidate(s, self.add(away.scale(7.0)).add(lateral.scale(-4.0)))
+                || canUseEscapeCandidate(s, self.add(away.scale(5.0)).add(0.0, 1.0, 0.0));
+    }
+
+    private static boolean canUseEscapeCandidate(Snapshot s, Vec3 candidate) {
+        if (!isWalkableDestination(s.world, s.sukuna, candidate) || !hasClearMovementSegment(s.world, s.sukuna, candidate, 1.2)) {
+            return false;
+        }
+        return candidate.distanceToSqr(s.target.position()) > s.sukuna.position().distanceToSqr(s.target.position()) + 18.0;
+    }
+
     private static boolean hasExtremeVoidDebuff(LivingEntity entity) {
         return effectAmplifier(entity, MobEffects.MOVEMENT_SLOWDOWN) >= 4
                 || effectAmplifier(entity, MobEffects.BLINDNESS) >= 0
@@ -379,6 +505,15 @@ public final class OpSukunaBrain {
     }
 
     private static Action chooseBestAction(Snapshot s) {
+        if (s.purpleThreat) {
+            Action purple = bestOf(s, List.of(
+                    Action.move("PURPLE_EVADE", Movement.PURPLE_EVADE, scorePurpleEvade(s)),
+                    Action.worldCut("PURPLE_INTERRUPT", scoreWorldCut(s) + (s.purpleWindup ? 0.8 : 0.15)),
+                    Action.domainAmplification(scoreDomainAmplification(s) + 0.35),
+                    Action.backstep("PURPLE_BACKSTEP", scoreEvasiveBackstep(s) + s.purpleRisk * 1.2)));
+            if (purple.score > 0.55) return purple;
+        }
+
         if (s.lethalForecast || s.survivalMode) {
             Action survival = bestOf(s, List.of(
                     Action.backstep("SURVIVAL_RESET", scoreBackstep(s) + 1.1),
@@ -436,10 +571,13 @@ public final class OpSukunaBrain {
 
         List<Action> actions = baselineActions(s);
         Action best = actions.get(0);
-        double bestScore = best.score + s.memory.actionBias(best.name);
+        double bestScore = adjustedScore(s, best);
         for (Action action : actions) {
-            double adjusted = action.score + s.memory.actionBias(action.name);
+            double adjusted = adjustedScore(s, action);
             if (adjusted > bestScore) {
+                best = action;
+                bestScore = adjusted;
+            } else if (s.isMeguna && adjusted >= bestScore - 0.16 && shouldPreferDiverseTie(s, best, action)) {
                 best = action;
                 bestScore = adjusted;
             }
@@ -461,6 +599,7 @@ public final class OpSukunaBrain {
         actions.add(Action.calculate("CalculateAttack", scoreBasic(s)));
         actions.add(Action.calculate("BLACK_FLASH_RECOVERY", scoreBlackFlashRecovery(s)));
         actions.add(Action.move("ProjectileDodge", Movement.PROJECTILE_DODGE, scoreProjectileDodge(s)));
+        actions.add(Action.move("PURPLE_EVADE", Movement.PURPLE_EVADE, scorePurpleEvade(s)));
         actions.add(Action.move("DomainEscape", Movement.DOMAIN_ESCAPE, scoreDomainEscape(s)));
         actions.add(Action.move("MaintainRange", Movement.MAINTAIN_RANGE, scoreMaintainRange(s)));
         actions.add(Action.move("CutOffEscape", Movement.CUT_OFF_ESCAPE, scoreCutOffEscape(s)));
@@ -502,15 +641,58 @@ public final class OpSukunaBrain {
 
     private static Action bestOf(Snapshot s, List<Action> actions) {
         Action best = actions.get(0);
-        double bestScore = best.score + s.memory.actionBias(best.name);
+        double bestScore = adjustedScore(s, best);
         for (Action action : actions) {
-            double adjusted = action.score + s.memory.actionBias(action.name);
+            double adjusted = adjustedScore(s, action);
             if (adjusted > bestScore) {
+                best = action;
+                bestScore = adjusted;
+            } else if (s.isMeguna && adjusted >= bestScore - 0.16 && shouldPreferDiverseTie(s, best, action)) {
                 best = action;
                 bestScore = adjusted;
             }
         }
         return best;
+    }
+
+    private static double adjustedScore(Snapshot s, Action action) {
+        return action.score + s.memory.actionBias(action.name) + s.adaptation.actionBias(action.name);
+    }
+
+    private static boolean shouldPreferDiverseTie(Snapshot s, Action best, Action candidate) {
+        if (candidate.name.equals(s.memory.lastAction) || candidate.score < 0.35) {
+            return false;
+        }
+        if (best.name.equals(s.memory.lastAction) && s.memory.lastActionStreak >= 2) {
+            return true;
+        }
+        int bucket = Math.floorMod(candidate.name.hashCode() ^ targetKey(s.target).hashCode() ^ ((int) s.tick / 20), 5);
+        return bucket == 0 && candidate.kind != ActionKind.DOMAIN && !candidate.name.equals(best.name);
+    }
+
+    private static String describeTopActions(Snapshot s, Action selected) {
+        List<Action> actions = baselineActions(s);
+        if (s.purpleThreat) {
+            actions.add(Action.move("PURPLE_EVADE", Movement.PURPLE_EVADE, scorePurpleEvade(s)));
+            actions.add(Action.worldCut("PURPLE_INTERRUPT", scoreWorldCut(s) + (s.purpleWindup ? 0.8 : 0.15)));
+        }
+        if (s.targetDomain || s.targetCastingDomain || s.domainAssessment.targetDomainThreat > 0.55) {
+            actions.add(Action.move("DomainEscape", Movement.DOMAIN_ESCAPE, scoreDomainEscape(s)));
+            actions.add(Action.domain(scoreDomain(s)));
+            actions.add(Action.tenShadowsDomain(scoreTenShadowsDomain(s)));
+        }
+        actions.sort(Comparator.comparingDouble((Action action) -> adjustedScore(s, action)).reversed());
+        StringBuilder builder = new StringBuilder(selected.name).append('=').append(round(selected.score));
+        int limit = Math.min(5, actions.size());
+        for (int i = 0; i < limit; i++) {
+            Action action = actions.get(i);
+            builder.append(';').append(action.name).append('=').append(round(adjustedScore(s, action)));
+        }
+        return builder.toString();
+    }
+
+    private static double round(double value) {
+        return Math.round(value * 1000.0) / 1000.0;
     }
 
     private static double scoreSimpleDomain(Snapshot s) {
@@ -531,7 +713,7 @@ public final class OpSukunaBrain {
         double comboRisk = s.meleeThreat * close(s.distance, s.itadoriModulo ? 10.0 : 7.0) + s.targetSkillDanger * 0.65 + s.damageTakenBurst * 1.8 + s.immediateThreat * 0.9;
         double domainPenalty = s.targetDomain || s.targetCastingDomain ? -0.35 : 0.0;
         double chainPenalty = s.blackFlashChain && s.healthLosingRace ? -0.5 : 0.0;
-        return recency - 0.05 + comboRisk + domainPenalty + chainPenalty + s.survivalUrgency * 0.35;
+        return recency - 0.05 + comboRisk + domainPenalty + chainPenalty + s.survivalUrgency * 0.35 + s.adaptation.learnedBurstRisk * 0.22;
     }
 
     private static double scoreGuardTiming(Snapshot s) {
@@ -573,10 +755,10 @@ public final class OpSukunaBrain {
     private static double scoreDomainAmplification(Snapshot s) {
         if (s.sukuna.hasEffect(JujutsucraftModMobEffects.DOMAIN_AMPLIFICATION.get()) || s.selfDomain) return -1.0;
         double recency = s.tick - s.memory.lastDomainAmplificationTick < 45.0 ? -0.6 : 0.0;
-        double infinityValue = s.infinitySignal * (s.distance < 12.0 ? 1.7 : 1.1);
+        double infinityValue = s.infinitySignal * (s.distance < 12.0 ? 1.9 : 1.35);
         double domainValue = (s.targetNeutralization || s.targetDomainAmplification ? 0.35 : 0.0);
         double burstValue = s.itadoriModulo && s.distance < 10.0 ? 0.75 : 0.0;
-        return recency - 0.05 + infinityValue + domainValue + burstValue + s.targetSkillDanger * 0.2;
+        return recency - 0.05 + infinityValue + domainValue + burstValue + s.targetSkillDanger * 0.2 + (s.purpleWindup ? 0.25 : 0.0);
     }
 
     private static double scoreBackstep(Snapshot s) {
@@ -603,23 +785,34 @@ public final class OpSukunaBrain {
         return recency + s.incomingProjectileRisk * 3.6 + s.targetSkillDanger * 0.35 + s.immediateThreat * 0.35;
     }
 
+    private static double scorePurpleEvade(Snapshot s) {
+        if (!s.purpleThreat) return -1.0;
+        double recency = s.tick - s.memory.lastPurpleEvadeTick < 8.0 ? -0.55 : 0.0;
+        double windupInterruptWindow = s.purpleWindup && s.clearShot && s.worldCutCapable ? -0.15 : 0.0;
+        return recency + s.purpleRisk * 3.0 + (s.purpleProjectile ? 0.65 : 0.0) + (s.purpleLineOfFire ? 0.55 : 0.0)
+                + (s.distance < 22.0 ? 0.25 : 0.0) + windupInterruptWindow;
+    }
+
     private static double scoreMaintainRange(Snapshot s) {
         if (s.pathBlocked || s.stuckLevel > 0.55) return -0.35 + s.groupActivePressure * 0.2;
         double error = Math.abs(s.predictedDistance - s.idealDistance) / Math.max(8.0, s.idealDistance);
         double unsafeClose = s.meleeThreat * close(s.distance, s.itadoriModulo ? 8.0 : 6.0) * (s.itadoriModulo ? 0.55 : 0.7);
         return 0.16 + Mth.clamp(error, 0.0, 0.9) + unsafeClose + s.dangerArea * 0.15
                 + s.groupPressure * 0.35 + s.groupActivePressure * 0.25 + s.groupApexPressure * 0.2
+                + s.adaptation.rangeKiteNeed * 0.38 + s.adaptation.trapMastery * 0.18
                 + (s.itadoriModulo && s.distance > 16.0 ? -0.45 : 0.0);
     }
 
     private static double scoreCutOffEscape(Snapshot s) {
-        return 0.12 + (s.targetEscaping ? 0.75 : 0.0) + s.targetFleeBias * 0.55 + (s.targetHealthRatio < 0.35 ? 0.25 : 0.0);
+        return 0.12 + (s.targetEscaping ? 0.75 : 0.0) + s.targetFleeBias * 0.55 + s.adaptation.rangeKiteNeed * 0.35
+                + (s.targetHealthRatio < 0.35 ? 0.25 : 0.0);
     }
 
     private static double scoreStrafePressure(Snapshot s) {
         double range = band(s.distance, s.itadoriModulo ? 6.0 : 5.0, s.itadoriModulo ? 16.0 : 24.0);
         double cooldown = s.normalReady ? -0.18 : 0.18;
         return 0.18 + range * 0.42 + s.rangeThreat * 0.25 + s.meleeThreat * 0.22 + s.whiffOpportunity * 0.5 + cooldown
+                + s.adaptation.trapMastery * 0.32 + s.adaptation.rangeKiteNeed * 0.2
                 + (s.itadoriModulo && !s.pathBlocked ? 0.2 : 0.0) + s.stuckLevel * 0.25;
     }
 
@@ -627,12 +820,14 @@ public final class OpSukunaBrain {
         if (s.selfDomain || s.targetDomain || s.targetCastingDomain) return -0.4;
         double band = band(s.distance, s.itadoriModulo ? 8.0 : 5.0, s.itadoriModulo ? 14.0 : 13.0);
         double bait = s.meleeThreat * 0.55 + s.read.aggression * 0.45 + s.targetSkillDanger * 0.25;
-        return 0.1 + band * 0.45 + bait + (s.normalReady ? -0.18 : 0.12) + s.whiffOpportunity * 0.35;
+        return 0.1 + band * 0.45 + bait + (s.normalReady ? -0.18 : 0.12) + s.whiffOpportunity * 0.35
+                + s.adaptation.antiEvasionNeed * 0.45 + s.adaptation.safePunishWindow * 0.25;
     }
 
     private static double scoreChase(Snapshot s) {
         double ideal = Math.abs(s.distance - s.idealDistance) / 32.0;
-        return 0.22 + Mth.clamp(ideal, 0.0, 0.8) + s.targetFleeBias * 0.35 - s.dangerArea * 0.35;
+        return 0.22 + Mth.clamp(ideal, 0.0, 0.8) + s.targetFleeBias * 0.35 - s.dangerArea * 0.35
+                - s.adaptation.trapMastery * 0.45 - s.adaptation.antiEvasionNeed * 0.25;
     }
 
     private static double scoreBasic(Snapshot s) {
@@ -649,7 +844,8 @@ public final class OpSukunaBrain {
         double yujiPunish = s.yujiBurstDuel && (s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended || s.targetSkillStartup && !s.lethalForecast)
                 ? 0.55 : 0.0;
         return 0.42 + range * 0.75 + s.opportunity * 0.42 + s.whiffOpportunity * 0.65 + s.hitConfidence * 0.35
-                + s.domainAssessment.punishScore * 0.15 + s.killPressure(0.20) + killValue + domainBonus + yujiPunish - s.expensiveWastePenalty(0.20);
+                + s.domainAssessment.punishScore * 0.15 + s.killPressure(0.20) + killValue + domainBonus + yujiPunish
+                - s.adaptation.antiEvasionNeed * 0.35 - s.expensiveWastePenalty(0.20);
     }
 
     private static double scoreCleave(Snapshot s) {
@@ -659,7 +855,7 @@ public final class OpSukunaBrain {
         double yujiWindow = s.yujiBurstDuel && s.distance <= 10.5 && (s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended || !s.lethalForecast)
                 ? 0.65 : 0.0;
         return 0.36 + close(s.distance, s.itadoriModulo ? 9.5 : 7.0) * 1.0 + s.meleeThreat * 0.35 + s.opportunity * 0.62 + s.whiffOpportunity * 0.95
-                + s.hitConfidence * 0.45 + s.killPressure(0.28) + domainBonus - s.dodgeCounterRisk * 0.35
+                + s.hitConfidence * 0.45 + s.killPressure(0.28) + domainBonus - s.dodgeCounterRisk * 0.35 - s.adaptation.antiEvasionNeed * 0.5
                 + killValue + yujiWindow + (s.trivialTarget ? 0.45 : 0.0);
     }
 
@@ -674,6 +870,7 @@ public final class OpSukunaBrain {
         double hardTargetValue = s.targetKillEstimate.resourceValue * 0.55 + s.targetPowerProfile.score * 0.25;
         return 0.34 + range * 0.8 + s.healScore * 0.45 + s.tankScore * 0.35 + s.postHealWindow * 0.4
                 + s.domainAssessment.punishScore * 0.2 + s.whiffOpportunity * 0.7 + s.hitConfidence * 0.35 + s.killPressure(0.35) + domainBonus - s.dangerArea * 0.25
+                + s.adaptation.rangeKiteNeed * 0.24 + s.adaptation.safePunishWindow * 0.18
                 + (s.itadoriModulo && s.clearShot && s.distance >= 12.0 && s.distance <= 28.0 && (s.targetCooldown || s.targetUnstable || s.targetWhiffed) && s.immediateThreat < 0.65 ? 0.35 : -0.55)
                 + s.openShotQuality * 0.65
                 + hardTargetValue
@@ -692,7 +889,7 @@ public final class OpSukunaBrain {
         double killEstimate = s.targetKillEstimate.resourceValue * 0.7 + (s.targetKillEstimate.difficult ? 0.25 : 0.0);
         return 0.30 + range * 0.65 + s.infinitySignal * 1.9 + gojoBonus + antiDomainSpecial + castBonus + s.tankScore * 0.45 + s.targetDomainCounterBias * 0.25
                 + s.domainAssessment.punishScore * 0.35 + s.killPressure(0.55) + s.opportunity * 0.65 + s.whiffOpportunity * 0.8
-                + s.hitConfidence * 0.25 + burstPunish + crisis - close(s.distance, 3.5) * 0.4
+                + s.hitConfidence * 0.25 + burstPunish + crisis + s.adaptation.antiEvasionNeed * 0.38 + s.adaptation.rangeKiteNeed * 0.16 - close(s.distance, 3.5) * 0.4
                 + killEstimate
                 - s.expensiveWastePenalty(0.65);
     }
@@ -709,6 +906,7 @@ public final class OpSukunaBrain {
         if (!s.canUseTenShadows || s.trivialTarget || !s.normalReady || s.selfDomain) return -2.0;
         return -0.05 + s.rangeThreat * 0.45 + s.healScore * 0.35 + s.pressure * 0.35
                 + (s.targetEscaping ? 0.25 : 0.0) + (s.targetThreat > 0.55 ? 0.25 : 0.0)
+                + (s.infinitySignal > 0.0 ? 0.35 : 0.0) + (s.purpleThreat ? 0.15 : 0.0)
                 - s.expensiveWastePenalty(0.42);
     }
 
@@ -716,14 +914,16 @@ public final class OpSukunaBrain {
         if (!s.canUseAgito || !s.normalReady || s.trivialTarget || s.selfDomain) return -2.0;
         return 0.05 + s.healScore * 0.75 + s.rangeThreat * 0.45 + s.pressure * 0.45 + s.postHealWindow * 0.35
                 + (s.targetThreat > 0.65 ? 0.35 : 0.0) + s.killPressure(0.25) * 0.25
+                + (s.infinitySignal > 0.0 ? 0.45 : 0.0) + (s.purpleThreat ? 0.18 : 0.0)
                 - s.expensiveWastePenalty(0.58);
     }
 
     private static double scoreMahoraga(Snapshot s) {
         if (!s.canUseMahoraga || !s.normalReady || s.trivialTarget || s.mahoragaExist) return -2.0;
-        double adaptation = (s.infinitySignal > 0.0 ? 0.9 : 0.0) + (s.mahoragaWheel ? 0.25 : 0.0);
+        double adaptation = (s.infinitySignal > 0.0 ? 1.05 : 0.0) + (s.mahoragaWheel ? 0.35 : 0.0);
         return -0.15 + adaptation + s.domainAssessment.targetDomainThreat * 0.8 + s.damageTakenBurst * 0.85
                 + (s.catastrophicDomain ? 0.45 : 0.0)
+                + (s.purpleThreat ? 0.22 : 0.0)
                 + (s.lethalForecast ? 0.95 : 0.0) + (s.targetThreat > 0.9 ? 0.55 : 0.0)
                 + (s.selfHealthRatio < 0.38 ? 0.45 : 0.0) - s.expensiveWastePenalty(0.82);
     }
@@ -821,6 +1021,7 @@ public final class OpSukunaBrain {
 
     private static void tryEmergencyReaction(Snapshot s) {
         Action reaction = bestOf(s, List.of(
+                Action.move("PURPLE_EVADE", Movement.PURPLE_EVADE, scorePurpleEvade(s) + 0.35),
                 Action.guardTiming(scoreGuardTiming(s) + 0.55),
                 Action.backstep("EmergencyBackstep", scoreEvasiveBackstep(s) + 0.45),
                 Action.rct("EmergencyRCT", scoreRct(s) + 0.25)));
@@ -872,6 +1073,17 @@ public final class OpSukunaBrain {
             speed = 1.45;
             impulse = 0.46;
             s.memory.lastProjectileDodgeTick = s.tick;
+        } else if (movement == Movement.PURPLE_EVADE) {
+            Vec3 purple = s.purpleDodgeVector.lengthSqr() > 1.0E-4 ? s.purpleDodgeVector : lateral;
+            Vec3 cover = s.clearShot ? away.scale(2.5) : Vec3.ZERO;
+            destination = self.add(purple.scale(10.0 + s.purpleRisk * 5.0)).add(cover);
+            if (s.sukuna.onGround() && s.purpleRisk > 0.72 && isWalkableDestination(s.world, s.sukuna, self.add(0.0, 1.15, 0.0))) {
+                destination = destination.add(0.0, 1.15, 0.0);
+                s.sukuna.setDeltaMovement(s.sukuna.getDeltaMovement().add(0.0, 0.28, 0.0));
+            }
+            speed = 1.75;
+            impulse = 0.52;
+            s.memory.lastPurpleEvadeTick = s.tick;
         } else if (movement == Movement.DOMAIN_ESCAPE) {
             Vec3 exit = s.domainEscapeVector.lengthSqr() > 1.0E-4 ? s.domainEscapeVector : away;
             destination = self.add(exit.scale(s.catastrophicDomain ? 12.0 : 8.0)).add(lateral.scale(2.5));
@@ -1030,6 +1242,7 @@ public final class OpSukunaBrain {
     private enum Movement {
         NONE,
         PROJECTILE_DODGE,
+        PURPLE_EVADE,
         DOMAIN_ESCAPE,
         MAINTAIN_RANGE,
         CUT_OFF_ESCAPE,
@@ -1272,6 +1485,7 @@ public final class OpSukunaBrain {
         final double targetFleeBias;
         final double dangerArea;
         final double incomingProjectileRisk;
+        final double purpleRisk;
         final double postHealWindow;
         final double idealDistance;
         final double infinitySignal;
@@ -1282,9 +1496,11 @@ public final class OpSukunaBrain {
         final double groupActivePressure;
         final double groupApexPressure;
         final Vec3 projectileDodgeVector;
+        final Vec3 purpleDodgeVector;
         final Vec3 groupEscapeVector;
         final Vec3 domainEscapeVector;
         final DomainAssessment domainAssessment;
+        final AdaptationView adaptation;
         final CombatRelation targetCombatRelation;
         final PowerProfile targetPowerProfile;
         final KillEstimate targetKillEstimate;
@@ -1308,6 +1524,10 @@ public final class OpSukunaBrain {
         final boolean domainReady;
         final boolean infinity;
         final boolean targetCastingDomain;
+        final boolean purpleThreat;
+        final boolean purpleWindup;
+        final boolean purpleProjectile;
+        final boolean purpleLineOfFire;
         final boolean worldCutCapable;
         final boolean brainDamaged;
         final boolean targetHwb;
@@ -1416,7 +1636,8 @@ public final class OpSukunaBrain {
             this.domainReady = LogicConfilmDomainProcedure.execute(world, x, y, z, sukuna);
             this.infinity = target.hasEffect(JujutsucraftModMobEffects.INFINITY_EFFECT.get()) || target.hasEffect(JujutsucraftaddonModMobEffects.INFINITY.get());
             this.infinitySignal = (infinity ? 1.0 : 0.0) + (read.primaryTechnique == TechniqueIDs.GOJO || read.secondaryTechnique == TechniqueIDs.GOJO ? 0.35 : 0.0);
-            this.targetCastingDomain = targetSkill == 20.0 || (read.primaryTechnique == TechniqueIDs.GOJO && target.getPersistentData().getDouble("cnt1") > 0.0 && target.getPersistentData().getDouble("cnt1") < 40.0);
+            double targetDomainNumber = domainNumber(target);
+            this.targetCastingDomain = isDomainCastSignal(target, targetSkill, targetDomainNumber, read);
             this.worldCutCapable = hasWorldCut(sukuna);
             this.brainDamaged = sukuna.hasEffect(JujutsucraftModMobEffects.BRAIN_DAMAGE.get());
             this.isFushiguro = isFushiguroBody(sukuna);
@@ -1452,9 +1673,10 @@ public final class OpSukunaBrain {
             this.targetPerfectAntiDomain = isSatushi(target) || hasEntityTypeTag(target, "jujutsucraft:can_use_simple_domain")
                     && hasEntityTypeTag(target, "jujutsucraft:can_use_hollow_wicker_basket")
                     && hasEntityTypeTag(target, "jujutsucraft:can_use_falling_blossom_emotion");
-            double targetDomainNumber = domainNumber(target);
             int selfNeutralizationAmp = effectAmplifier(sukuna, JujutsucraftModMobEffects.NEUTRALIZATION.get());
             boolean gojoDomainSignal = targetDomainNumber == 2.0
+                    || targetSkill == 220.0
+                    || ((int) Math.round(Math.abs(targetSkill))) % 100 == 20
                     || read.primaryTechnique == TechniqueIDs.GOJO
                     || read.secondaryTechnique == TechniqueIDs.GOJO
                     || isSatushi(target);
@@ -1469,6 +1691,7 @@ public final class OpSukunaBrain {
             Vec3 awayFromDomain = horizontal(sukuna.position().subtract(target.position()));
             this.domainEscapeVector = awayFromDomain.lengthSqr() < 1.0E-4 ? new Vec3(1.0, 0.0, 0.0) : awayFromDomain;
             DangerScan danger = scanDanger(world, sukuna);
+            PurpleThreat purple = scanPurpleThreat(world, sukuna, target, targetSkill, read);
             ThreatScan threatScan = ThreatScan.scan(world, sukuna, target, memory);
             ThreatCandidate targetCandidate = threatScan.candidateOf(target);
             this.targetCombatRelation = targetCandidate == null ? readCombatRelation(world, sukuna, target, read, memory) : targetCandidate.relation;
@@ -1478,6 +1701,12 @@ public final class OpSukunaBrain {
             this.dangerArea = danger.areaRisk;
             this.incomingProjectileRisk = danger.incomingProjectileRisk;
             this.projectileDodgeVector = danger.dodgeVector;
+            this.purpleRisk = purple.risk;
+            this.purpleThreat = purple.threat;
+            this.purpleWindup = purple.windup;
+            this.purpleProjectile = purple.projectile;
+            this.purpleLineOfFire = purple.lineOfFire;
+            this.purpleDodgeVector = purple.dodgeVector;
             this.groupPressure = threatScan.groupPressure;
             this.groupActivePressure = threatScan.groupActivePressure;
             this.groupApexPressure = threatScan.groupApexPressure;
@@ -1498,6 +1727,7 @@ public final class OpSukunaBrain {
             this.targetDomainCounterBias = Mth.clamp(targetStats.domainTicks / Math.max(1.0, targetStats.seenTicks) + read.domainBias, 0.0, 1.0);
             this.dodgeCounterRisk = Mth.clamp((targetDodge ? 0.55 : 0.0) + (targetCounter ? 0.55 : 0.0), 0.0, 1.0);
             this.targetFleeBias = Mth.clamp(targetStats.fleeTicks / Math.max(1.0, targetStats.seenTicks) + read.fleeBias * 0.45, 0.0, 1.0);
+            this.adaptation = AdaptationView.create(this);
             this.powerScore = estimatePower(this);
             this.targetThreat = estimateThreat(this);
             this.trivialTarget = isTrivialTarget(this);
@@ -1506,7 +1736,9 @@ public final class OpSukunaBrain {
                     + (targetCooldown ? 0.35 : 0.0) + (targetUnstable ? 0.35 : 0.0), 0.0, 1.0);
             this.opportunity = Mth.clamp((targetCooldown ? 0.35 : 0.0) + (targetUnstable ? 0.35 : 0.0) + (1.0 - targetHealthRatio) * 0.3
                     + postHealWindow * 0.25 + whiffOpportunity * 0.45 + (target.hasEffect(JujutsucraftaddonModMobEffects.FATIGUE.get()) ? 0.2 : 0.0), 0.0, 1.0);
-            this.idealDistance = idealDistance(archetype, infinitySignal, tankScore, healScore);
+            this.idealDistance = adaptation.preferredRange > 1.0
+                    ? Mth.clamp(adaptation.preferredRange, 8.0, 30.0)
+                    : idealDistance(archetype, infinitySignal, tankScore, healScore);
             this.targetDomainBreak = target.hasEffect(JujutsucraftaddonModMobEffects.DOMAIN_BREAK.get());
             this.targetEscaping = target.getDeltaMovement().dot(sukuna.position().subtract(target.position())) < -0.03 || predictedDistance > distance + 1.5;
             this.immediateThreat = Mth.clamp(incomingProjectileRisk * 0.9 + dangerArea * 0.45 + targetSkillDanger * (targetSkillStartup ? 1.15 : 0.55)
@@ -1536,7 +1768,7 @@ public final class OpSukunaBrain {
                     + close(predictedDistance, 6.5) * 0.35 + whiffOpportunity * 0.35 + (targetCooldown || targetUnstable ? 0.25 : 0.0), 0.0, 1.35);
             this.clearShot = hasClearShot(world, sukuna, target, Math.max(1.5, target.getBbWidth() * 0.85));
             this.pathBlocked = pathBlocked(world, sukuna, target.position());
-            this.domainEscapeWindow = targetCastingDomain && !targetDomain && !read.barrierlessDomain && !selfDomain && !pathBlocked
+            this.domainEscapeWindow = targetCastingDomain && !targetDomain && !read.barrierlessDomain && !selfDomain && hasDomainEscapeCandidate(this)
                     && distance < (catastrophicDomain ? 38.0 : 30.0);
             this.openShotQuality = clearShot
                     ? Mth.clamp(1.0 - close(distance, 5.0) * 0.25 + (targetOverextended ? 0.12 : 0.0), 0.0, 1.0)
@@ -1647,6 +1879,73 @@ public final class OpSukunaBrain {
         return new DangerScan(Mth.clamp(areaRisk, 0.0, 1.0), Mth.clamp(incomingRisk, 0.0, 1.0), dodgeVector);
     }
 
+    private static PurpleThreat scanPurpleThreat(LevelAccessor world, LivingEntity sukuna, LivingEntity target, double targetSkill, PlayerRead read) {
+        if (!(world instanceof Level level)) {
+            return PurpleThreat.NONE;
+        }
+        Vec3 sukunaCenter = sukuna.position().add(0.0, sukuna.getBbHeight() * 0.5, 0.0);
+        boolean gojo = read.primaryTechnique == TechniqueIDs.GOJO || read.secondaryTechnique == TechniqueIDs.GOJO || isSatushi(target);
+        boolean windup = targetSkill == 215.0
+                || target.hasEffect(JujutsucraftaddonModMobEffects.MURASAKI_EFFECT.get())
+                || target.hasEffect(JujutsucraftaddonModMobEffects.WORLD_GOJO.get())
+                || (gojo && target.getPersistentData().getDouble("cnt1") > 0.0 && target.getPersistentData().getDouble("cnt1") < 85.0);
+        double risk = windup ? Mth.clamp(1.0 - target.distanceTo(sukuna) / 48.0, 0.25, 0.85) : 0.0;
+        boolean projectile = false;
+        boolean lineOfFire = false;
+        Vec3 dodge = Vec3.ZERO;
+        AABB box = sukuna.getBoundingBox().inflate(42.0);
+        for (Entity entity : level.getEntities(sukuna, box, OpSukunaBrain::isPurpleEntity)) {
+            if (entity instanceof Projectile projectileEntity && projectileEntity.getOwner() == sukuna) {
+                continue;
+            }
+            projectile = true;
+            Vec3 velocity = purpleVelocity(entity);
+            Vec3 fromPurple = sukunaCenter.subtract(entity.position());
+            double dist = Math.max(1.0, fromPurple.length());
+            double size = Math.max(2.5, entity.getBbWidth() + entity.getPersistentData().getDouble("Range") * 0.18
+                    + entity.getPersistentData().getDouble("BlockRange") * 0.08);
+            double localRisk = Mth.clamp(size / dist, 0.0, 0.75);
+            if (velocity.lengthSqr() > 1.0E-4) {
+                Vec3 travel = velocity.normalize();
+                double approach = travel.dot(fromPurple.normalize());
+                double miss = fromPurple.subtract(travel.scale(fromPurple.dot(travel))).length();
+                if (approach > 0.35 && miss < size + 2.75) {
+                    lineOfFire = true;
+                    localRisk += approach * Mth.clamp((size + 2.75 - miss) / Math.max(1.0, size + 2.75), 0.0, 1.0);
+                    Vec3 lateral = new Vec3(-travel.z, 0.0, travel.x);
+                    if (lateral.lengthSqr() > 1.0E-4) {
+                        dodge = dodge.add(lateral.normalize().scale(localRisk));
+                    }
+                }
+            } else {
+                dodge = dodge.add(horizontal(sukuna.position().subtract(entity.position())).scale(localRisk));
+            }
+            risk = Math.max(risk, localRisk);
+        }
+        if (dodge.lengthSqr() < 1.0E-4) {
+            Vec3 targetLine = horizontal(sukuna.position().subtract(target.position()));
+            dodge = targetLine.lengthSqr() < 1.0E-4 ? new Vec3(1.0, 0.0, 0.0) : new Vec3(-targetLine.z, 0.0, targetLine.x);
+        }
+        risk = Mth.clamp(risk, 0.0, 1.0);
+        return new PurpleThreat(risk > 0.22 || windup, risk, windup, projectile, lineOfFire, dodge.normalize());
+    }
+
+    private static boolean isPurpleEntity(Entity entity) {
+        ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
+        String name = id == null ? entity.getType().toString().toLowerCase() : id.toString().toLowerCase();
+        CompoundTag data = entity.getPersistentData();
+        return name.equals("jujutsucraft:purple")
+                || name.contains("purple")
+                || data.getDouble("purple") == 2.0
+                || data.getBoolean("flag_purple");
+    }
+
+    private static Vec3 purpleVelocity(Entity entity) {
+        CompoundTag data = entity.getPersistentData();
+        Vec3 persistent = new Vec3(data.getDouble("x_power"), data.getDouble("y_power"), data.getDouble("z_power"));
+        return persistent.lengthSqr() > 1.0E-4 ? persistent : entity.getDeltaMovement();
+    }
+
     private static class DangerScan {
         static final DangerScan NONE = new DangerScan(0.0, 0.0, new Vec3(1.0, 0.0, 0.0));
         final double areaRisk;
@@ -1656,6 +1955,25 @@ public final class OpSukunaBrain {
         DangerScan(double areaRisk, double incomingProjectileRisk, Vec3 dodgeVector) {
             this.areaRisk = areaRisk;
             this.incomingProjectileRisk = incomingProjectileRisk;
+            this.dodgeVector = dodgeVector;
+        }
+    }
+
+    private static class PurpleThreat {
+        static final PurpleThreat NONE = new PurpleThreat(false, 0.0, false, false, false, new Vec3(1.0, 0.0, 0.0));
+        final boolean threat;
+        final double risk;
+        final boolean windup;
+        final boolean projectile;
+        final boolean lineOfFire;
+        final Vec3 dodgeVector;
+
+        PurpleThreat(boolean threat, double risk, boolean windup, boolean projectile, boolean lineOfFire, Vec3 dodgeVector) {
+            this.threat = threat;
+            this.risk = risk;
+            this.windup = windup;
+            this.projectile = projectile;
+            this.lineOfFire = lineOfFire;
             this.dodgeVector = dodgeVector;
         }
     }
@@ -2136,6 +2454,126 @@ public final class OpSukunaBrain {
         return s.damageTakenBurst < 0.12 && s.targetSkillDanger < 0.25;
     }
 
+    private static class AdaptationView {
+        static final double TARGET_WEIGHT = 1.0;
+        static final double TECHNIQUE_WEIGHT = 0.55;
+        static final double TYPE_WEIGHT = 0.35;
+        static final double ARCHETYPE_WEIGHT = 0.25;
+
+        final double confidence;
+        final double trapMastery;
+        final double antiEvasionNeed;
+        final double rangeKiteNeed;
+        final double learnedBurstRisk;
+        final double preferredRange;
+        final double safePunishWindow;
+        final Map<String, Double> learnedActionBias;
+
+        private AdaptationView(double confidence, double trapMastery, double antiEvasionNeed, double rangeKiteNeed, double learnedBurstRisk,
+                               double preferredRange, double safePunishWindow, Map<String, Double> learnedActionBias) {
+            this.confidence = confidence;
+            this.trapMastery = trapMastery;
+            this.antiEvasionNeed = antiEvasionNeed;
+            this.rangeKiteNeed = rangeKiteNeed;
+            this.learnedBurstRisk = learnedBurstRisk;
+            this.preferredRange = preferredRange;
+            this.safePunishWindow = safePunishWindow;
+            this.learnedActionBias = learnedActionBias;
+        }
+
+        static AdaptationView create(Snapshot s) {
+            double seen = weighted(s, stats -> stats.seenTicks);
+            double confidence = Mth.clamp((seen - 40.0) / 760.0, 0.0, 1.0);
+            double trap = confidence * weightedRatio(s, stats -> stats.trapTicks);
+            double evasion = confidence * weightedRatio(s, stats -> stats.evasionTicks);
+            double range = confidence * weightedRatio(s, stats -> stats.rangePressureTicks);
+            double burst = confidence * Mth.clamp(weighted(s, stats -> stats.damageTakenAvg) / Math.max(1.0, s.sukuna.getMaxHealth() * 0.08), 0.0, 1.0);
+            double preferred = weightedDistance(s);
+            double success = weighted(s, stats -> stats.actionSuccessTicks);
+            double failure = weighted(s, stats -> stats.actionFailureTicks);
+            double safePunish = confidence * Mth.clamp(success / Math.max(1.0, success + failure), 0.0, 1.0);
+            Map<String, Double> actionBias = new HashMap<>();
+            addActionBias(actionBias, s.targetStats, TARGET_WEIGHT);
+            addActionBias(actionBias, s.techniqueStats, TECHNIQUE_WEIGHT);
+            addActionBias(actionBias, s.typeStats, TYPE_WEIGHT);
+            addActionBias(actionBias, s.archetypeStats, ARCHETYPE_WEIGHT);
+            double totalWeight = TARGET_WEIGHT + TECHNIQUE_WEIGHT + TYPE_WEIGHT + ARCHETYPE_WEIGHT;
+            actionBias.replaceAll((key, value) -> Mth.clamp(value / totalWeight * confidence, -0.45, 0.42));
+            return new AdaptationView(confidence, Mth.clamp(trap, 0.0, 1.0), Mth.clamp(evasion, 0.0, 1.0),
+                    Mth.clamp(range, 0.0, 1.0), Mth.clamp(burst, 0.0, 1.0), preferred, Mth.clamp(safePunish, 0.0, 1.0), actionBias);
+        }
+
+        double actionBias(String action) {
+            return learnedActionBias.getOrDefault(action, 0.0);
+        }
+
+        private interface StatReader {
+            double read(CombatStats stats);
+        }
+
+        private static double weighted(Snapshot s, StatReader reader) {
+            double total = TARGET_WEIGHT + TECHNIQUE_WEIGHT + TYPE_WEIGHT + ARCHETYPE_WEIGHT;
+            return (reader.read(s.targetStats) * TARGET_WEIGHT
+                    + reader.read(s.techniqueStats) * TECHNIQUE_WEIGHT
+                    + reader.read(s.typeStats) * TYPE_WEIGHT
+                    + reader.read(s.archetypeStats) * ARCHETYPE_WEIGHT) / total;
+        }
+
+        private static double weightedRatio(Snapshot s, StatReader reader) {
+            double numerator = reader.read(s.targetStats) * TARGET_WEIGHT
+                    + reader.read(s.techniqueStats) * TECHNIQUE_WEIGHT
+                    + reader.read(s.typeStats) * TYPE_WEIGHT
+                    + reader.read(s.archetypeStats) * ARCHETYPE_WEIGHT;
+            double denominator = s.targetStats.seenTicks * TARGET_WEIGHT
+                    + s.techniqueStats.seenTicks * TECHNIQUE_WEIGHT
+                    + s.typeStats.seenTicks * TYPE_WEIGHT
+                    + s.archetypeStats.seenTicks * ARCHETYPE_WEIGHT;
+            return Mth.clamp(numerator / Math.max(1.0, denominator), 0.0, 1.0);
+        }
+
+        private static double weightedDistance(Snapshot s) {
+            double numerator = distanceContribution(s.targetStats, TARGET_WEIGHT)
+                    + distanceContribution(s.techniqueStats, TECHNIQUE_WEIGHT)
+                    + distanceContribution(s.typeStats, TYPE_WEIGHT)
+                    + distanceContribution(s.archetypeStats, ARCHETYPE_WEIGHT);
+            double denominator = distanceWeight(s.targetStats, TARGET_WEIGHT)
+                    + distanceWeight(s.techniqueStats, TECHNIQUE_WEIGHT)
+                    + distanceWeight(s.typeStats, TYPE_WEIGHT)
+                    + distanceWeight(s.archetypeStats, ARCHETYPE_WEIGHT);
+            return denominator <= 0.0 ? 0.0 : numerator / denominator;
+        }
+
+        private static double distanceContribution(CombatStats stats, double weight) {
+            return stats.distanceAvg > 0.0 ? stats.distanceAvg * stats.seenTicks * weight : 0.0;
+        }
+
+        private static double distanceWeight(CombatStats stats, double weight) {
+            return stats.distanceAvg > 0.0 ? stats.seenTicks * weight : 0.0;
+        }
+
+        private static void addActionBias(Map<String, Double> out, CombatStats stats, double weight) {
+            for (String action : stats.actionSuccess.keySet()) {
+                double success = stats.actionSuccess.getOrDefault(action, 0.0);
+                double failure = stats.actionFailure.getOrDefault(action, 0.0);
+                double total = success + failure;
+                if (total < 0.35) {
+                    continue;
+                }
+                double value = Mth.clamp((success - failure) / Math.max(1.0, total), -1.0, 1.0) * weight;
+                out.put(action, out.getOrDefault(action, 0.0) + value);
+            }
+            for (String action : stats.actionFailure.keySet()) {
+                if (stats.actionSuccess.containsKey(action)) {
+                    continue;
+                }
+                double failure = stats.actionFailure.getOrDefault(action, 0.0);
+                if (failure >= 0.35) {
+                    out.put(action, out.getOrDefault(action, 0.0) - Mth.clamp(failure / 4.0, 0.0, 1.0) * weight);
+                }
+            }
+        }
+    }
+
     private static class DomainTactics {
         static DomainAssessment assess(Snapshot s) {
             double simpleRisk = (s.targetSimpleDomain ? 0.42 : 0.0) + Mth.clamp(s.read.simpleDomainLevel / 8.0, 0.0, 0.35);
@@ -2199,11 +2637,23 @@ public final class OpSukunaBrain {
                 intent = DomainIntent.NONE;
             }
 
+            double clearValue = Mth.clamp(killValue * 0.45 + checkmate * 0.38 + crowdReset * 0.5
+                    + s.groupApexPressure * 0.35 + (s.targetPowerProfile.apex ? 0.25 : 0.0), 0.0, 1.35);
+            double sustainCost = Mth.clamp((1.0 - s.selfHealthRatio) * 0.55 + s.rctStrain * 0.45 + s.brainDamageLevel / 8.0
+                    + s.damageTakenBurst * 0.45 + (s.rctFatigued ? 0.3 : 0.0), 0.0, 1.35);
+            double breakRecovery = Mth.clamp((s.canUseBurnoutRct ? 0.36 : 0.0) + (s.canUseRct && !s.selfAntiHeal ? 0.24 : 0.0)
+                    + (s.canUseSimpleDomain ? 0.16 : 0.0) + (s.canUseMahoraga || s.mahoragaExist ? 0.22 : 0.0)
+                    + (s.selfHealthRatio > 0.55 ? 0.18 : 0.0), 0.0, 1.0);
+            double recoveryRisk = Mth.clamp((1.0 - breakRecovery) * 0.75 + s.incomingKillRisk * 0.35
+                    + (s.selfAntiHeal ? 0.2 : 0.0) + (s.lethalForecast ? 0.18 : 0.0), 0.0, 1.35);
+            double domainScore = Mth.clamp(clearValue + counterDomain * 0.65 + checkmate * 0.55 + antiInfinity * 0.35
+                    - sustainCost - counterRisk * 0.72 - recoveryRisk * 0.62, -1.5, 1.5);
+
             double wasteRisk = s.expensiveWastePenalty(0.55) + (s.tick - s.memory.lastSukunaDomainTick < 420.0 ? 0.35 : 0.0)
                     + (s.brainDamaged ? 0.55 : 0.0) + (s.targetDomainBreak ? 0.55 : 0.0);
             double emergency = intent == DomainIntent.COUNTER_DOMAIN ? (s.targetCastingDomain ? 1.55 : 0.75) : 0.0;
             if (s.domainDeathSpiral) emergency += 1.05;
-            double castScore = -0.35 + confidence * 2.15 + emergency + (1.0 - counterRisk) * 0.35 - counterRisk * 1.35 - wasteRisk;
+            double castScore = -0.35 + confidence * 1.45 + domainScore * 1.15 + emergency + (1.0 - counterRisk) * 0.25 - counterRisk * 0.95 - wasteRisk;
             if (intent == DomainIntent.CHECKMATE && counterRisk < 0.35) castScore += 0.35;
             if (intent == DomainIntent.CROWD_RESET && (s.groupActivePressure > 0.65 || s.groupApexPressure > 0.45)) castScore += 0.3;
             if (intent == DomainIntent.SURVIVAL_STALL && s.lethalForecast) castScore += 0.25;
@@ -2211,7 +2661,9 @@ public final class OpSukunaBrain {
             double hwbScore = -0.2 + targetDomainThreat * 2.4 + (s.targetCastingDomain ? 1.4 : 0.0) - (s.selfHealthRatio > 0.75 && !s.targetDomain ? 0.35 : 0.0)
                     - (s.catastrophicDomain && (s.simpleDomainExpiresSoon || s.healthLosingRace) ? 0.75 : 0.0);
             double punishScore = Mth.clamp(counterRisk * 0.45 + targetDomainThreat * 0.35 + (s.targetCooldown ? 0.25 : 0.0), 0.0, 1.0);
-            return new DomainAssessment(counterRisk, targetDomainThreat, castScore, hwbScore, punishScore, intent, confidence);
+            String plan = intent.name() + ":clear=" + round(clearValue) + ",cost=" + round(sustainCost) + ",recovery=" + round(recoveryRisk);
+            return new DomainAssessment(counterRisk, targetDomainThreat, castScore, hwbScore, punishScore, intent, confidence,
+                    plan, clearValue, sustainCost, recoveryRisk, domainScore);
         }
     }
 
@@ -2223,8 +2675,14 @@ public final class OpSukunaBrain {
         final double punishScore;
         final DomainIntent intent;
         final double confidence;
+        final String plan;
+        final double clearValue;
+        final double sustainCost;
+        final double recoveryRisk;
+        final double domainScore;
 
-        DomainAssessment(double counterRisk, double targetDomainThreat, double castScore, double hwbScore, double punishScore, DomainIntent intent, double confidence) {
+        DomainAssessment(double counterRisk, double targetDomainThreat, double castScore, double hwbScore, double punishScore, DomainIntent intent, double confidence,
+                         String plan, double clearValue, double sustainCost, double recoveryRisk, double domainScore) {
             this.counterRisk = counterRisk;
             this.targetDomainThreat = targetDomainThreat;
             this.castScore = castScore;
@@ -2232,6 +2690,11 @@ public final class OpSukunaBrain {
             this.punishScore = punishScore;
             this.intent = intent;
             this.confidence = confidence;
+            this.plan = plan;
+            this.clearValue = clearValue;
+            this.sustainCost = sustainCost;
+            this.recoveryRisk = recoveryRisk;
+            this.domainScore = domainScore;
         }
     }
 
@@ -2404,6 +2867,9 @@ public final class OpSukunaBrain {
         double lastBurnoutRctTick = -1000.0;
         double lastDomainAmplificationTick = -1000.0;
         double lastSukunaDomainTick = -1000.0;
+        double lastPurpleEvadeTick = -1000.0;
+        double pendingPurpleResponseTick = -1000.0;
+        double firstDomainThreatTick = -1.0;
         double lastTargetSwitchTick = -1000.0;
         double lastTargetSkill;
         double lastTargetSkillTick = -1000.0;
@@ -2427,6 +2893,7 @@ public final class OpSukunaBrain {
         String lastAction = "None";
         String lastActionTarget = "";
         String lastPrimaryTarget = "";
+        int lastActionStreak;
 
         CombatStats target(String key) {
             return targets.computeIfAbsent(key, unused -> new CombatStats());
@@ -2459,6 +2926,18 @@ public final class OpSukunaBrain {
                     || s.target.hasEffect(JujutsucraftaddonModMobEffects.KOKUSEN_EFFECT.get()));
             blackFlashChainTicks = blackFlashSignal ? Math.min(30.0, blackFlashChainTicks + 1.0) : Math.max(0.0, blackFlashChainTicks - 1.0);
             domainTrapTicks = s.enemyDomainTrap ? Math.min(120.0, domainTrapTicks + 1.0) : Math.max(0.0, domainTrapTicks - 2.0);
+            if (s.targetDomain || s.targetCastingDomain || s.domainAssessment.targetDomainThreat > 0.55) {
+                if (firstDomainThreatTick < 0.0) {
+                    firstDomainThreatTick = s.tick;
+                }
+            } else {
+                firstDomainThreatTick = -1.0;
+            }
+            if (s.purpleThreat && pendingPurpleResponseTick < 0.0) {
+                pendingPurpleResponseTick = s.tick;
+            } else if (!s.purpleThreat && pendingPurpleResponseTick >= 0.0 && s.tick - pendingPurpleResponseTick > 45.0) {
+                pendingPurpleResponseTick = -1000.0;
+            }
             lastHealth = s.selfHealth;
             groupPressure = s.groupPressure;
             megunaHighThreatTicks = s.isMeguna && s.targetThreat > 0.62 && !s.trivialTarget ? megunaHighThreatTicks + 1.0 : Math.max(0.0, megunaHighThreatTicks - 2.0);
@@ -2511,7 +2990,12 @@ public final class OpSukunaBrain {
         }
 
         double actionBias(String action) {
-            return Mth.clamp(actionValues.getOrDefault(action, 0.0), -0.35, 0.35);
+            double repeatPenalty = action.equals(lastAction) ? Math.min(0.55, lastActionStreak * 0.09) : 0.0;
+            return Mth.clamp(actionValues.getOrDefault(action, 0.0) - repeatPenalty, -0.55, 0.35);
+        }
+
+        void rememberAction(String action) {
+            lastActionStreak = action.equals(lastAction) ? Math.min(20, lastActionStreak + 1) : 1;
         }
 
         private void observeActionValue(Snapshot s) {
@@ -2532,6 +3016,10 @@ public final class OpSukunaBrain {
             reward = Mth.clamp(reward, -0.5, 0.5);
             double old = actionValues.getOrDefault(lastAction, 0.0);
             actionValues.put(lastAction, old + (reward - old) * 0.08);
+            observeActionOutcome(s.targetStats, lastAction, reward, 1.0);
+            observeActionOutcome(s.typeStats, lastAction, reward, 0.35);
+            observeActionOutcome(s.techniqueStats, lastAction, reward, 0.55);
+            observeActionOutcome(s.archetypeStats, lastAction, reward, 0.25);
         }
 
         private static boolean isExpensiveAction(String action) {
@@ -2552,7 +3040,20 @@ public final class OpSukunaBrain {
             if (s.distance > 24.0 || s.predictedDistance > 24.0) stats.rangedTicks += weight;
             if (s.target.position().distanceTo(s.sukuna.position()) > s.distance + 0.4) stats.fleeTicks += weight;
             if (s.targetDomain) stats.domainTicks += weight;
+            if ((s.targetDodge || s.targetCounter || s.targetGuard) && s.damageDealt <= s.target.getMaxHealth() * 0.012) stats.evasionTicks += weight;
+            if ((s.rangeThreat > 0.45 || s.targetEscaping || s.distance > 22.0) && s.damageTaken > 0.0) stats.rangePressureTicks += weight;
+            if (s.stuckLevel > 0.55 || s.pathBlocked || s.enemyDomainTrap) stats.trapTicks += weight;
             if (s.targetSkill > 0.0) stats.addSkillUse(s.targetSkill, weight);
+        }
+
+        private void observeActionOutcome(CombatStats stats, String action, double reward, double weight) {
+            if (reward > 0.04) {
+                stats.actionSuccessTicks += weight;
+                stats.actionSuccess.put(action, stats.actionSuccess.getOrDefault(action, 0.0) + weight * Mth.clamp(reward * 2.0, 0.1, 1.0));
+            } else if (reward < -0.04) {
+                stats.actionFailureTicks += weight;
+                stats.actionFailure.put(action, stats.actionFailure.getOrDefault(action, 0.0) + weight * Mth.clamp(-reward * 2.0, 0.1, 1.0));
+            }
         }
 
         public CompoundTag save() {
@@ -2569,6 +3070,9 @@ public final class OpSukunaBrain {
             tag.putDouble("lastBurnoutRctTick", lastBurnoutRctTick);
             tag.putDouble("lastDomainAmplificationTick", lastDomainAmplificationTick);
             tag.putDouble("lastSukunaDomainTick", lastSukunaDomainTick);
+            tag.putDouble("lastPurpleEvadeTick", lastPurpleEvadeTick);
+            tag.putDouble("pendingPurpleResponseTick", pendingPurpleResponseTick);
+            tag.putDouble("firstDomainThreatTick", firstDomainThreatTick);
             tag.putDouble("lastTargetSwitchTick", lastTargetSwitchTick);
             tag.putDouble("lastTargetSkill", lastTargetSkill);
             tag.putDouble("lastTargetSkillTick", lastTargetSkillTick);
@@ -2596,6 +3100,7 @@ public final class OpSukunaBrain {
             tag.putString("lastAction", lastAction);
             tag.putString("lastActionTarget", lastActionTarget);
             tag.putString("lastPrimaryTarget", lastPrimaryTarget);
+            tag.putInt("lastActionStreak", lastActionStreak);
             tag.put("targets", saveMap(targets));
             tag.put("types", saveMap(types));
             tag.put("techniques", saveMap(techniques));
@@ -2618,6 +3123,9 @@ public final class OpSukunaBrain {
             memory.lastBurnoutRctTick = tag.contains("lastBurnoutRctTick") ? tag.getDouble("lastBurnoutRctTick") : -1000.0;
             memory.lastDomainAmplificationTick = tag.getDouble("lastDomainAmplificationTick");
             memory.lastSukunaDomainTick = tag.getDouble("lastSukunaDomainTick");
+            memory.lastPurpleEvadeTick = tag.contains("lastPurpleEvadeTick") ? tag.getDouble("lastPurpleEvadeTick") : -1000.0;
+            memory.pendingPurpleResponseTick = tag.contains("pendingPurpleResponseTick") ? tag.getDouble("pendingPurpleResponseTick") : -1000.0;
+            memory.firstDomainThreatTick = tag.contains("firstDomainThreatTick") ? tag.getDouble("firstDomainThreatTick") : -1.0;
             memory.lastTargetSwitchTick = tag.contains("lastTargetSwitchTick") ? tag.getDouble("lastTargetSwitchTick") : -1000.0;
             memory.lastTargetSkill = tag.getDouble("lastTargetSkill");
             memory.lastTargetSkillTick = tag.getDouble("lastTargetSkillTick");
@@ -2641,6 +3149,7 @@ public final class OpSukunaBrain {
             memory.lastAction = tag.getString("lastAction");
             memory.lastActionTarget = tag.getString("lastActionTarget");
             memory.lastPrimaryTarget = tag.getString("lastPrimaryTarget");
+            memory.lastActionStreak = tag.getInt("lastActionStreak");
             loadMap(tag.getCompound("targets"), memory.targets);
             loadMap(tag.getCompound("types"), memory.types);
             loadMap(tag.getCompound("techniques"), memory.techniques);
@@ -2693,7 +3202,14 @@ public final class OpSukunaBrain {
         double domainTicks;
         double skillUses;
         double counterDomainAfterSukuna;
+        double evasionTicks;
+        double rangePressureTicks;
+        double trapTicks;
+        double actionSuccessTicks;
+        double actionFailureTicks;
         final Map<Long, Double> skills = new HashMap<>();
+        final Map<String, Double> actionSuccess = new HashMap<>();
+        final Map<String, Double> actionFailure = new HashMap<>();
 
         void sample(String key, double value, double alpha) {
             if (!Double.isFinite(value)) return;
@@ -2737,11 +3253,18 @@ public final class OpSukunaBrain {
             tag.putDouble("domainTicks", domainTicks);
             tag.putDouble("skillUses", skillUses);
             tag.putDouble("counterDomainAfterSukuna", counterDomainAfterSukuna);
+            tag.putDouble("evasionTicks", evasionTicks);
+            tag.putDouble("rangePressureTicks", rangePressureTicks);
+            tag.putDouble("trapTicks", trapTicks);
+            tag.putDouble("actionSuccessTicks", actionSuccessTicks);
+            tag.putDouble("actionFailureTicks", actionFailureTicks);
             CompoundTag skillTag = new CompoundTag();
             for (Map.Entry<Long, Double> entry : skills.entrySet()) {
                 skillTag.putDouble(Long.toString(entry.getKey()), entry.getValue());
             }
             tag.put("skills", skillTag);
+            tag.put("actionSuccess", BrainMemory.saveDoubleMap(actionSuccess));
+            tag.put("actionFailure", BrainMemory.saveDoubleMap(actionFailure));
             return tag;
         }
 
@@ -2761,6 +3284,11 @@ public final class OpSukunaBrain {
             stats.domainTicks = tag.getDouble("domainTicks");
             stats.skillUses = tag.getDouble("skillUses");
             stats.counterDomainAfterSukuna = tag.getDouble("counterDomainAfterSukuna");
+            stats.evasionTicks = tag.getDouble("evasionTicks");
+            stats.rangePressureTicks = tag.getDouble("rangePressureTicks");
+            stats.trapTicks = tag.getDouble("trapTicks");
+            stats.actionSuccessTicks = tag.getDouble("actionSuccessTicks");
+            stats.actionFailureTicks = tag.getDouble("actionFailureTicks");
             CompoundTag skillTag = tag.getCompound("skills");
             for (String key : skillTag.getAllKeys()) {
                 try {
@@ -2768,6 +3296,8 @@ public final class OpSukunaBrain {
                 } catch (NumberFormatException ignored) {
                 }
             }
+            BrainMemory.loadDoubleMap(tag.getCompound("actionSuccess"), stats.actionSuccess);
+            BrainMemory.loadDoubleMap(tag.getCompound("actionFailure"), stats.actionFailure);
             return stats;
         }
 
