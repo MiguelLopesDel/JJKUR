@@ -1,9 +1,9 @@
 package com.jujutsu.jujutsucraftaddon.util;
 
-import com.jujutsu.jujutsucraftaddon.procedures.OpSukunaBrain;
+import com.jujutsu.jujutsucraftaddon.procedures.opsukuna.OpSukunaBrainMemory;
 
 public interface OpSukunaBrainMemoryHolder {
-    OpSukunaBrain.BrainMemory jjkur$getOpSukunaBrainMemory();
+    OpSukunaBrainMemory jjkur$getOpSukunaBrainMemory();
 
-    void jjkur$setOpSukunaBrainMemory(OpSukunaBrain.BrainMemory memory);
+    void jjkur$setOpSukunaBrainMemory(OpSukunaBrainMemory memory);
 }

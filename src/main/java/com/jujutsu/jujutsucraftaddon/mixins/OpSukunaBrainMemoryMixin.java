@@ -1,6 +1,7 @@
 package com.jujutsu.jujutsucraftaddon.mixins;
 
 import com.jujutsu.jujutsucraftaddon.procedures.OpSukunaBrain;
+import com.jujutsu.jujutsucraftaddon.procedures.opsukuna.OpSukunaBrainMemory;
 import com.jujutsu.jujutsucraftaddon.util.OpSukunaBrainMemoryHolder;
 import net.mcreator.jujutsucraft.entity.SukunaFushiguroEntity;
 import net.mcreator.jujutsucraft.entity.SukunaPerfectEntity;
@@ -16,19 +17,19 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(value = LivingEntity.class, priority = -10000)
 public abstract class OpSukunaBrainMemoryMixin implements OpSukunaBrainMemoryHolder {
     @Unique
-    private OpSukunaBrain.BrainMemory jjkur$opSukunaBrainMemory;
+    private OpSukunaBrainMemory jjkur$opSukunaBrainMemory;
 
     @Override
-    public OpSukunaBrain.BrainMemory jjkur$getOpSukunaBrainMemory() {
+    public OpSukunaBrainMemory jjkur$getOpSukunaBrainMemory() {
         if (jjkur$opSukunaBrainMemory == null) {
-            jjkur$opSukunaBrainMemory = new OpSukunaBrain.BrainMemory();
+            jjkur$opSukunaBrainMemory = new OpSukunaBrainMemory();
         }
         return jjkur$opSukunaBrainMemory;
     }
 
     @Override
-    public void jjkur$setOpSukunaBrainMemory(OpSukunaBrain.BrainMemory memory) {
-        jjkur$opSukunaBrainMemory = memory == null ? new OpSukunaBrain.BrainMemory() : memory;
+    public void jjkur$setOpSukunaBrainMemory(OpSukunaBrainMemory memory) {
+        jjkur$opSukunaBrainMemory = memory == null ? new OpSukunaBrainMemory() : memory;
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("TAIL"))

@@ -119,14 +119,14 @@
     "WhenRightClickToEntityMixin"
   ],
   "client": [
-    "PlayerAttackMixin",
+    "JujutsucraftModAnimationMessageMixin",
     "ModernJujutsuDustFixMixin",
     "OverlayBackstepOverlayMixin",
     "OverlayDefaultOverlayMixin",
-    "JujutsucraftModAnimationMessageMixin",
-    "SelectTechniqueScreenMixin",
+    "PlayerAttackMixin",
     "PlayerRendererMixin",
-    "RunningAnimationMixin"
+    "RunningAnimationMixin",
+    "SelectTechniqueScreenMixin"
   ],
   "minVersion": "0.8"
 }

@@ -42,6 +42,9 @@ public class JJKURSukunaAIBuff {
         CompoundTag persistentData = livingEntity.getPersistentData();
         ItemStack headItem = livingEntity.getItemBySlot(EquipmentSlot.HEAD);
 
+        boolean opSukuna = world instanceof ServerLevel level && level.getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_OP_SUKUNA);
+        persistentData.putBoolean("JJKUR_OP_AI_CONTROLLED", opSukuna);
+
         handleWaterWalking(world, livingEntity);
         AIActiveProcedure.execute(world, x, y, z, livingEntity);
 
@@ -55,8 +58,6 @@ public class JJKURSukunaAIBuff {
 
         LivingEntity target = (livingEntity instanceof Mob _mob) ? _mob.getTarget() : null;
         boolean isGojoTarget = checkGojoTarget(target);
-        boolean opSukuna = world instanceof ServerLevel level && level.getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_OP_SUKUNA);
-
         handleBindingVow(livingEntity, isFushiguroBody, isGojoTarget, opSukuna);
         handleMeteorLogic(world, livingEntity, target, persistentData);
         handleHeianTransformation(world, x, y, z, livingEntity, target, isFushiguroBody, persistentData, headItem, opSukuna);
