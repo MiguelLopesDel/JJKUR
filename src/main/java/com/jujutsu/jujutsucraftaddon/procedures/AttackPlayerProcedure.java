@@ -134,6 +134,41 @@ public class AttackPlayerProcedure {
                 entityNBT.putDouble("DamageFinal", entityNBT.getDouble("DamageFinal") + amount);
             }
 
+            JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(null);
+            JujutsucraftaddonModVariables.PlayerVariables addonVarsSnapshot = entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(null);
+
+            if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.COUNTER.get())) {
+                CounterProcedureProcedure.execute(world, damagesource, entity, sourceentity);
+                cancelEvent(event);
+            }
+
+            if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.TRAINING.get()) && amount > 150) {
+                TrainingFailedProcedure.execute(world, x, y, z, entity);
+            }
+
+            if (sourceentity instanceof LivingEntity livingSource && livingSource.hasEffect(JujutsucraftModMobEffects.SUKUNA_EFFECT.get()) && !livingSource.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
+                LineSukunaProcedure.execute(world, x, y, z, sourceentity);
+            }
+
+            ResourceLocation sourceEntityType = ForgeRegistries.ENTITY_TYPES.getKey(sourceentity.getType());
+            if (sourceEntityType != null && sourceEntityType.toString().equals("jujutsucraft:gojo_satoru") && sourceentity instanceof LivingEntity livingSource && !livingSource.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
+                LineGojoProcedure.execute(world, x, y, z, sourceentity);
+            }
+
+            boolean mahoragaByBaseVars = baseVars != null && (baseVars.PlayerCurseTechnique == TechniqueIDs.MAHORAGA || baseVars.PlayerCurseTechnique2 == TechniqueIDs.MAHORAGA);
+            boolean mahoragaByAddonVars = addonVarsSnapshot != null && addonVarsSnapshot.Mahoraga == 1.0;
+            boolean mahoragaByEntity = entity instanceof EightHandledSwordDivergentSilaDivineGeneralMahoragaEntity || entity instanceof IgrisEntity || entity instanceof Shadow1Entity;
+            if (mahoragaByBaseVars || mahoragaByAddonVars || mahoragaByEntity) {
+                handleMahoragaLogic(event, world, entity, damagesource, amount);
+            }
+
+            if (baseVars != null && baseVars.PlayerCurseTechnique == TechniqueIDs.MAHORAGA) {
+                MahoragaAdaptedProcedure.execute(world, damagesource, entity);
+                if (livingEntity.getItemBySlot(EquipmentSlot.HEAD).getOrCreateTag().getDouble("" + damagesource) > 50) {
+                    cancelEvent(event);
+                }
+            }
+
             entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(vars -> {
                 entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(addonVars -> {
                     if (vars.PlayerCurseTechnique2 == TechniqueIDs.KASHIMO && addonVars.InfusedDomain) {
@@ -143,11 +178,6 @@ public class AttackPlayerProcedure {
                         MiguelAttackedProcedure.execute(world, entity, sourceentity);
                     }
                 });
-
-                if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.COUNTER.get())) {
-                    CounterProcedureProcedure.execute(world, damagesource, entity, sourceentity);
-                    cancelEvent(event);
-                }
 
                 if (!livingEntity.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
                     entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(addonVars -> {
@@ -220,10 +250,6 @@ public class AttackPlayerProcedure {
                     }
                 });
 
-                if (livingEntity.hasEffect(JujutsucraftaddonModMobEffects.TRAINING.get()) && amount > 150) {
-                    TrainingFailedProcedure.execute(world, x, y, z, entity);
-                }
-
                 entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(addonVars -> {
                     if (addonVars.InfusedDomain && vars.PlayerCurseTechnique2 == TechniqueIDs.TODO) {
                         if (!livingEntity.hasEffect(JujutsucraftModMobEffects.NEUTRALIZATION.get()) && !livingEntity.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get()) && !livingEntity.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get())) {
@@ -231,15 +257,6 @@ public class AttackPlayerProcedure {
                         }
                     }
                 });
-
-                if (sourceentity instanceof LivingEntity livingSource && livingSource.hasEffect(JujutsucraftModMobEffects.SUKUNA_EFFECT.get()) && !livingSource.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-                    LineSukunaProcedure.execute(world, x, y, z, sourceentity);
-                }
-
-                ResourceLocation sourceEntityType = ForgeRegistries.ENTITY_TYPES.getKey(sourceentity.getType());
-                if (sourceEntityType != null && sourceEntityType.toString().equals("jujutsucraft:gojo_satoru") && sourceentity instanceof LivingEntity livingSource && !livingSource.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
-                    LineGojoProcedure.execute(world, x, y, z, sourceentity);
-                }
 
                 if (vars.PlayerCurseTechnique2 == TechniqueIDs.YUTA && entity instanceof ServerPlayer serverPlayer && hasAdvancement(serverPlayer, "jujutsucraftaddon:sorcerer_strongest_of_modern")) {
                     if (!livingEntity.hasEffect(JujutsucraftModMobEffects.NEUTRALIZATION.get()) && sourceentity instanceof LivingEntity livingSource && !livingSource.hasEffect(JujutsucraftModMobEffects.DOMAIN_EXPANSION.get())) {
@@ -262,19 +279,6 @@ public class AttackPlayerProcedure {
                     });
                 }
 
-                boolean isMahoraga = vars.PlayerCurseTechnique == TechniqueIDs.MAHORAGA || vars.PlayerCurseTechnique2 == TechniqueIDs.MAHORAGA;
-                entity.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(addonVars -> {
-                    if (addonVars.Mahoraga == 1.0) handleMahoragaLogic(event, world, entity, damagesource, amount);
-                    else if (isMahoraga || entity instanceof EightHandledSwordDivergentSilaDivineGeneralMahoragaEntity || entity instanceof IgrisEntity || entity instanceof Shadow1Entity) {
-                        handleMahoragaLogic(event, world, entity, damagesource, amount);
-                    }
-                });
-
-                if (vars.PlayerCurseTechnique == TechniqueIDs.MAHORAGA) {
-                    MahoragaAdaptedProcedure.execute(world, damagesource, entity);
-                    if (livingEntity.getItemBySlot(EquipmentSlot.HEAD).getOrCreateTag().getDouble("" + damagesource) > 50)
-                        cancelEvent(event);
-                }
             });
 
             if (sourceentity instanceof CloneEntity || sourceentity instanceof FakeClonesEntity || sourceentity instanceof FakePurpleClonesEntity) {

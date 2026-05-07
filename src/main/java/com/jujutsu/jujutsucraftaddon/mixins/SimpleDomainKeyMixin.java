@@ -1,6 +1,7 @@
 package com.jujutsu.jujutsucraftaddon.mixins;
 
 import com.jujutsu.jujutsucraftaddon.procedures.SimpleAnimProcedure;
+import com.jujutsu.jujutsucraftaddon.util.OpSukunaBrainTelemetry;
 import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import net.mcreator.jujutsucraft.init.JujutsucraftModAttributes;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
@@ -48,6 +49,12 @@ public abstract class SimpleDomainKeyMixin {
         ci.cancel();
         if (entity == null) return;
 
+        if (isOpSukunaAiControlled(entity) && !entity.getPersistentData().getBoolean("JJKUR_OP_AI_ALLOW_SIMPLE_DOMAIN_KEY")) {
+            entity.getPersistentData().putBoolean("JJKUR_OP_AI_SIMPLE_DOMAIN_KEY_BLOCKED", true);
+            entity.getPersistentData().putString("JJKUR_OP_AI_SIMPLE_DOMAIN_KEY_SOURCE", "base_ai_blocked");
+            return;
+        }
+
         SimpleAnimProcedure.execute(world, entity);
 
         double strength = (entity instanceof LivingEntity _liv && _liv.hasEffect(MobEffects.DAMAGE_BOOST))
@@ -61,50 +68,54 @@ public abstract class SimpleDomainKeyMixin {
             initialCost = Math.round(initialCost * Math.pow(0.5, amp + 1));
         }
 
-        final double finalCost = initialCost;
-        entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).ifPresent(baseVars -> {
-            boolean fallingCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_falling_blossom_emotion")));
-            boolean simpleCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_simple_domain")));
+        JujutsucraftModVariables.PlayerVariables baseVars = entity.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(null);
+        double finalCost = initialCost;
+        boolean fallingCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_falling_blossom_emotion")));
+        boolean simpleCapable = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_simple_domain")));
 
-            boolean canUseFalling = false;
-            if (fallingCapable) {
-                if (simpleCapable) {
-                    if (entity instanceof LivingEntity _liv && _liv.hasEffect(JujutsucraftModMobEffects.COOLDOWN_TIME_SIMPLE_DOMAIN.get())) {
-                        int simpleAmp = _liv.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()) ?
-                                _liv.getEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getAmplifier() : 0;
-                        canUseFalling = simpleAmp <= 0;
-                    }
-                } else {
-                    canUseFalling = true;
+        boolean canUseFalling = false;
+        if (fallingCapable) {
+            if (simpleCapable) {
+                if (entity instanceof LivingEntity _liv && _liv.hasEffect(JujutsucraftModMobEffects.COOLDOWN_TIME_SIMPLE_DOMAIN.get())) {
+                    int simpleAmp = _liv.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()) ?
+                            _liv.getEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getAmplifier() : 0;
+                    canUseFalling = simpleAmp <= 0;
                 }
-            }
-
-            if (!canUseFalling && entity instanceof LivingEntity _liv && _liv.hasEffect(JujutsucraftModMobEffects.FALLING_BLOSSOM_EMOTION.get())) {
+            } else {
                 canUseFalling = true;
             }
+        }
 
-            boolean wantsFalling = false;
-            if (entity instanceof ServerPlayer sp) {
-                if (sp.isShiftKeyDown()) {
-                    var adv = sp.server.getAdvancements().getAdvancement(ResourceLocation.parse("jujutsucraft:mastery_falling_blossom_emotion"));
-                    if (adv != null && sp.getAdvancements().getOrStartProgress(adv).isDone() && baseVars.PlayerCursePowerFormer > 50.0) {
-                        wantsFalling = true;
-                    }
+        if (!canUseFalling && entity instanceof LivingEntity _liv && _liv.hasEffect(JujutsucraftModMobEffects.FALLING_BLOSSOM_EMOTION.get())) {
+            canUseFalling = true;
+        }
+
+        boolean wantsFalling = false;
+        if (entity instanceof ServerPlayer sp) {
+            if (sp.isShiftKeyDown() && baseVars != null) {
+                var adv = sp.server.getAdvancements().getAdvancement(ResourceLocation.parse("jujutsucraft:mastery_falling_blossom_emotion"));
+                if (adv != null && sp.getAdvancements().getOrStartProgress(adv).isDone() && baseVars.PlayerCursePowerFormer > 50.0) {
+                    wantsFalling = true;
                 }
-            } else if (!(entity instanceof Player) && canUseFalling) {
-                wantsFalling = true;
             }
+        } else if (!(entity instanceof Player) && canUseFalling) {
+            wantsFalling = true;
+        }
 
-            if (!wantsFalling) {
-                handleSimpleDomain(world, x, y, z, entity, baseVars, finalCost, isCreative, strength);
-            } else {
-                handleFallingBlossom(world, x, y, z, entity, strength);
-            }
-        });
+        if (!wantsFalling) {
+            handleSimpleDomain(world, x, y, z, entity, baseVars, finalCost, isCreative, strength);
+        } else {
+            handleFallingBlossom(world, x, y, z, entity, strength);
+        }
     }
 
     private static void handleSimpleDomain(LevelAccessor world, double x, double y, double z, Entity entity, JujutsucraftModVariables.PlayerVariables baseVars, double cost, boolean isCreative, double strength) {
         if (entity instanceof LivingEntity _liv && _liv.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()) && _liv.getEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()).getAmplifier() > 0) {
+            if (isOpSukunaAiControlled(entity)) {
+                entity.getPersistentData().putBoolean("JJKUR_OP_AI_SIMPLE_DOMAIN_KEY_BLOCKED", true);
+                entity.getPersistentData().putString("JJKUR_OP_AI_SIMPLE_DOMAIN_KEY_SOURCE", "prevent_toggle_off");
+                return;
+            }
             _liv.removeEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get());
             if (entity instanceof Player _player && !entity.level().isClientSide()) {
                 _player.displayClientMessage(Component.literal(Component.translatable("effect.simple_domain").getString() + ": false"), false);
@@ -124,6 +135,10 @@ public abstract class SimpleDomainKeyMixin {
             } else if (entity instanceof ServerPlayer sp) {
                 var adv = sp.server.getAdvancements().getAdvancement(ResourceLocation.parse("jujutsucraft:mastery_simple_domain"));
                 boolean mastery = adv != null && sp.getAdvancements().getOrStartProgress(adv).isDone();
+
+                if (baseVars == null) {
+                    return;
+                }
 
                 if (mastery && baseVars.PlayerCursePowerFormer > 50.0) {
                     if (baseVars.PlayerCursePower >= cost || isCreative) {
@@ -157,8 +172,8 @@ public abstract class SimpleDomainKeyMixin {
                     _liv.getAttribute(anim1).setBaseValue(-16.0);
                 }
 
-                double num1 = baseVars.PlayerCurseTechnique;
-                double num2 = baseVars.PlayerCurseTechnique2;
+                double num1 = baseVars == null ? 0.0 : baseVars.PlayerCurseTechnique;
+                double num2 = baseVars == null ? 0.0 : baseVars.PlayerCurseTechnique2;
                 boolean hwb = entity.getType().is(TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse("jujutsucraft:can_use_hollow_wicker_basket"))) ||
                         _liv.hasEffect(JujutsucraftModMobEffects.SUKUNA_EFFECT.get()) ||
                         (entity instanceof Player && (num1 == TechniqueIDs.SUKUNA || num2 == TechniqueIDs.SUKUNA ||
@@ -212,5 +227,11 @@ public abstract class SimpleDomainKeyMixin {
             );
             entity.getServer().getCommands().performPrefixedCommand(stack, "playsound ui.button.click master @s");
         }
+    }
+
+    private static boolean isOpSukunaAiControlled(Entity entity) {
+        return entity instanceof LivingEntity living
+                && OpSukunaBrainTelemetry.isOpSukunaSubject(living)
+                && entity.getPersistentData().getBoolean("JJKUR_OP_AI_CONTROLLED");
     }
 }

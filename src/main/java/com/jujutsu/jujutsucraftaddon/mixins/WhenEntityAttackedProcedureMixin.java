@@ -62,23 +62,10 @@ public abstract class WhenEntityAttackedProcedureMixin {
 
         JujutsucraftModVariables.PlayerVariables baseVars = living.getCapability(JujutsucraftModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(null);
         JujutsucraftaddonModVariables.PlayerVariables addonVars = living.getCapability(JujutsucraftaddonModVariables.PLAYER_VARIABLES_CAPABILITY, null).orElse(null);
+        String clan = addonVars == null ? "" : addonVars.Clans;
 
-        if (baseVars == null || addonVars == null) return false;
-
-        if (baseVars.PlayerCurseTechnique == TechniqueIDs.TODO && baseVars.PlayerCursePower >= 1000.0 && Math.random() < 1.0 / 60.0) {
+        if (entity instanceof TodoAoiEntity && Math.random() < 1.0 / 60.0) {
             SwapTodoTarget.execute(entity, world, sourceentity);
-            AnimationDodgeProcedure.execute(world, entity);
-            cancelOriginalEvent(event);
-            return true;
-        }
-
-        if (baseVars.PlayerCurseTechnique == TechniqueIDs.URO && Math.random() < (addonVars.Clans.equals("Fujiwara") ? 1.0 / 50.0 : 1.0 / 120.0)) {
-            applyDodgeRigor(world, entity, 3810.0);
-            cancelOriginalEvent(event);
-            return true;
-        }
-
-        if (baseVars.PlayerCurseTechnique == TechniqueIDs.MAKI && baseVars.PlayerCursePower == 0.0 && Math.random() < (addonVars.Clans.equals("Rejected Zenin") ? 1.0 / 40.0 : 1.0 / 80.0)) {
             AnimationDodgeProcedure.execute(world, entity);
             cancelOriginalEvent(event);
             return true;
@@ -99,6 +86,27 @@ public abstract class WhenEntityAttackedProcedureMixin {
                 cancelOriginalEvent(event);
                 return true;
             }
+        }
+
+        if (baseVars == null) return false;
+
+        if (baseVars.PlayerCurseTechnique == TechniqueIDs.TODO && baseVars.PlayerCursePower >= 1000.0 && Math.random() < 1.0 / 60.0) {
+            SwapTodoTarget.execute(entity, world, sourceentity);
+            AnimationDodgeProcedure.execute(world, entity);
+            cancelOriginalEvent(event);
+            return true;
+        }
+
+        if (baseVars.PlayerCurseTechnique == TechniqueIDs.URO && Math.random() < (clan.equals("Fujiwara") ? 1.0 / 50.0 : 1.0 / 120.0)) {
+            applyDodgeRigor(world, entity, 3810.0);
+            cancelOriginalEvent(event);
+            return true;
+        }
+
+        if (baseVars.PlayerCurseTechnique == TechniqueIDs.MAKI && baseVars.PlayerCursePower == 0.0 && Math.random() < (clan.equals("Rejected Zenin") ? 1.0 / 40.0 : 1.0 / 80.0)) {
+            AnimationDodgeProcedure.execute(world, entity);
+            cancelOriginalEvent(event);
+            return true;
         }
 
         return false;
