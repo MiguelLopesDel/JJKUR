@@ -431,6 +431,7 @@ public final class OpSukunaBrainTelemetry {
         bool(json, "gojo", decision.gojo).append(',');
         bool(json, "target_domain", decision.targetDomain).append(',');
         bool(json, "target_casting_domain", decision.targetCastingDomain).append(',');
+        field(json, "target_domain_signal_reason", decision.targetDomainSignalReason).append(',');
         bool(json, "target_cooldown", decision.targetCooldown).append(',');
         bool(json, "target_unstable", decision.targetUnstable).append(',');
         bool(json, "target_dodge", decision.targetDodge).append(',');
@@ -623,12 +624,17 @@ public final class OpSukunaBrainTelemetry {
         StringBuilder json = eventBase(world, sukuna, target, fightId, "domain_state", 768);
         number(json, "active_enemy_domains", decision.activeEnemyDomains).append(',');
         number(json, "active_void_domains", decision.activeVoidDomains).append(',');
-        bool(json, "gojo_muryokusho", decision.gojo || "GOJO_MURYO_GLOBAL".equals(decision.domainProfile)).append(',');
+        bool(json, "gojo_muryokusho", (decision.gojo && (decision.targetDomain || decision.targetCastingDomain
+                || decision.singleDominantSureHit || decision.activeVoidDomains > 0.0))
+                || "GOJO_MURYO_GLOBAL".equals(decision.domainProfile)).append(',');
         bool(json, "self_domain", decision.selfDomain).append(',');
+        bool(json, "target_domain", decision.targetDomain).append(',');
+        bool(json, "target_casting_domain", decision.targetCastingDomain).append(',');
         number(json, "domain_cast_requested_skill", decision.domainCastRequestedSkill).append(',');
         bool(json, "domain_cast_pending", decision.domainCastPending).append(',');
         bool(json, "domain_cast_confirmed", decision.domainCastConfirmed).append(',');
         field(json, "domain_cast_failed_reason", decision.domainCastFailedReason).append(',');
+        field(json, "target_domain_signal_reason", decision.targetDomainSignalReason).append(',');
         bool(json, "clash", decision.domainClashSuppressed).append(',');
         bool(json, "single_dominant_sure_hit", decision.singleDominantSureHit).append(',');
         field(json, "dominant_domain_owner", decision.dominantDomainOwner).append(',');
@@ -1447,6 +1453,7 @@ public final class OpSukunaBrainTelemetry {
         public boolean gojo;
         public boolean targetDomain;
         public boolean targetCastingDomain;
+        public String targetDomainSignalReason = "";
         public boolean targetCooldown;
         public boolean targetUnstable;
         public boolean targetDodge;

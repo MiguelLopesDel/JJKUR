@@ -252,7 +252,7 @@ public class JJKURStartCursedTechniqueProcedure {
                 s1 = 60;
             }
         } else {
-            if (name.contains(Component.translatable("jujutsu.technique.kashimo_domain").getString())) {
+            if (isKashimoDomainSelection(name, baseVars)) {
                 t1 = TechniqueIDs.KASHIMO;
                 s1 = 20;
             } else if (name.contains(Component.translatable("jujutsu.technique.attack5").getString())) {
@@ -306,6 +306,13 @@ public class JJKURStartCursedTechniqueProcedure {
             }
         }
         return new double[]{t1, s1};
+    }
+
+    private static boolean isKashimoDomainSelection(String name, JujutsucraftModVariables.PlayerVariables baseVars) {
+        double selectedTechnique = baseVars.SecondTechnique ? baseVars.PlayerCurseTechnique2 : baseVars.PlayerCurseTechnique;
+        return selectedTechnique == TechniqueIDs.KASHIMO
+                && baseVars.PlayerSelectCurseTechnique == 20.0
+                && name.equals(Component.translatable("jujutsu.technique.kashimo_domain").getString());
     }
 
     private static double calculateCooldown(String name, double t1, double s1, boolean itemUse, double itemCost,

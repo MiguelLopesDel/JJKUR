@@ -191,6 +191,7 @@ class OpSukunaSnapshot {
     final String sukunaForm;
     final String domainBlockReason;
     final String domainCastFailedReason;
+    final String targetDomainSignalReason;
     final String worldCutBlockReason;
     final String heianEmergencyReason;
     final String fugaReleaseReason;
@@ -285,6 +286,7 @@ class OpSukunaSnapshot {
         this.infinitySignal = (infinity && !antiInfinityBypass ? 1.0 : infinity ? 0.25 : 0.0) + (gojoTarget ? 0.35 : 0.0);
         double targetDomainNumber = domainNumber(target);
         this.targetCastingDomain = isDomainCastSignal(target, targetSkill, targetDomainNumber, read);
+        this.targetDomainSignalReason = domainCastSignalReason(target, targetSkill, targetDomainNumber, read);
         this.domainField = OpSukunaDomainFieldScan.scan(world, sukuna);
         this.worldCutCapable = hasWorldCut(sukuna);
         this.worldCutCooldownRemaining = sukuna instanceof SukunaPerfectEntity ? Math.max(0.0, PERFECT_WORLD_CUT_COOLDOWN - (tick - memory.lastWorldCutTick)) : 0.0;
@@ -335,8 +337,7 @@ class OpSukunaSnapshot {
         int selfNeutralizationAmp = effectAmplifier(sukuna, JujutsucraftModMobEffects.NEUTRALIZATION.get());
         boolean gojoDomainSignal = targetDomainNumber == 2.0
                 || targetSkill == 220.0
-                || ((int) Math.round(Math.abs(targetSkill))) % 100 == 20
-                || gojoTarget;
+                || ((int) Math.round(Math.abs(targetSkill))) % 100 == 20;
         this.enemyDomainTrap = !selfDomain && (targetDomain && distance < 42.0 || domainField.singleDominantSureHit && domainField.sukunaInsideDominant);
         this.catastrophicDomain = !domainField.clashSuppressed && (targetDomain || targetCastingDomain || enemyDomainTrap || domainField.singleDominantSureHit)
                 && (gojoDomainSignal || domainField.dominantVoidLike

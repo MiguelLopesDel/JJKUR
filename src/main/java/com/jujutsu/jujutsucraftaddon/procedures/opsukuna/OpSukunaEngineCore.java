@@ -504,14 +504,17 @@ class OpSukunaEngineCore {
     }
 
     static boolean isDomainCastSignal(LivingEntity target, double targetSkill, double targetDomainNumber, OpSukunaPlayerRead read) {
+        return !"none".equals(domainCastSignalReason(target, targetSkill, targetDomainNumber, read));
+    }
+
+    static String domainCastSignalReason(LivingEntity target, double targetSkill, double targetDomainNumber, OpSukunaPlayerRead read) {
         int roundedSkill = (int) Math.round(Math.abs(targetSkill));
         boolean domainSkill = targetSkill == 20.0 || targetSkill == 220.0 || roundedSkill % 100 == 20;
-        boolean gojoStartup = isGojoTarget(target, read)
-                && target.getPersistentData().getDouble("cnt1") > 0.0
-                && target.getPersistentData().getDouble("cnt1") < 55.0;
-        return domainSkill || targetDomainNumber == 2.0 || gojoStartup
-                || target.hasEffect(JujutsucraftModMobEffects.NEUTRALIZATION.get())
-                || target.hasEffect(JujutsucraftModMobEffects.BRAIN_DAMAGE.get());
+        if (targetSkill == 220.0) return "gojo_domain_skill_220";
+        if (targetSkill == 20.0) return "domain_skill_20";
+        if (roundedSkill != 0 && roundedSkill % 100 == 20) return "domain_skill_mod_20:" + roundedSkill;
+        if (targetDomainNumber == 2.0) return "domain_number_2";
+        return "none";
     }
 
     static boolean hasDomainEscapeCandidate(OpSukunaSnapshot s) {
@@ -1091,9 +1094,9 @@ class OpSukunaEngineCore {
     }
 
     static double scoreBasic(OpSukunaSnapshot s) {
-        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) return -0.55;
+        if (s.infinitySignal > 0.0 && !canUseMeleeThroughInfinity(s)) return -0.55;
         double yujiPunish = s.yujiBurstDuel && (s.whiffOpportunity > 0.0 || !s.lethalForecast) ? 0.42 : 0.0;
-        double infinityMelee = s.canBypassInfinityNow && s.infinitySignal > 0.0 && s.hitboxDistance <= s.selfReach + 2.0 ? 1.05 : 0.0;
+        double infinityMelee = canUseMeleeThroughInfinity(s) && s.infinitySignal > 0.0 && s.hitboxDistance <= s.selfReach + 2.0 ? 1.05 : 0.0;
         double contactTempo = s.hitboxDistance <= s.selfReach + 1.0 ? 0.65 : close(s.distance, 7.0) * 0.35;
         // Sukuna is close but stuck in a no-damage loop — force a melee attempt
         double stuckPunchBoost = s.memory.noImpactActionStreak > 4 && s.distance < 8.0 ? 0.55 : 0.0;
@@ -1104,7 +1107,7 @@ class OpSukunaEngineCore {
 
     static double scoreDismantle(OpSukunaSnapshot s) {
         if (s.selfDomain) return -1.25;
-        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) return -0.75;
+        if (s.infinitySignal > 0.0 && !canUseNormalTechniqueThroughInfinity(s)) return -3.0;
         // After extended no-damage loop vs Itadori, DISMANTLE animation wastes time — suppress it
         if (s.itadoriModulo && !s.selfDomain && s.memory.noImpactActionStreak >= 10) return -1.0;
         double range = band(s.distance, 5.0, 48.0);
@@ -1121,13 +1124,13 @@ class OpSukunaEngineCore {
     }
 
     static double scoreCleave(OpSukunaSnapshot s) {
-        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) return -0.85;
+        if (s.infinitySignal > 0.0 && !canUseNormalTechniqueThroughInfinity(s)) return -3.0;
         double contactReach = Math.max(1.25, Math.min(s.selfReach + 0.6, s.itadoriModulo ? 3.25 : 2.75));
         if (!s.selfDomain && s.hitboxDistance > contactReach) {
             return -0.95 + close(s.hitboxDistance, contactReach + 1.0) * 0.2;
         }
         double domainBonus = s.selfDomain ? 1.65 + band(s.distance, 4.0, 48.0) * 0.85 : 0.0;
-        double infinityMelee = s.canBypassInfinityNow && s.infinitySignal > 0.0 && s.hitboxDistance <= s.selfReach + 2.0 ? 1.15 : 0.0;
+        double infinityMelee = canUseNormalTechniqueThroughInfinity(s) && s.infinitySignal > 0.0 && s.hitboxDistance <= s.selfReach + 2.0 ? 1.15 : 0.0;
         double killValue = s.targetKillEstimate.finisherValue * 0.38 + (s.targetKillEstimate.difficult ? 0.22 : 0.0);
         double yujiWindow = s.yujiBurstDuel && s.distance <= 10.5 && (s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended || !s.lethalForecast)
                 ? 0.65 : 0.0;
@@ -1139,7 +1142,7 @@ class OpSukunaEngineCore {
     }
 
     static double scoreOpen(OpSukunaSnapshot s) {
-        if (s.infinitySignal > 0.0 && !s.selfDomain && !s.canBypassInfinityNow) return -0.45;
+        if (s.infinitySignal > 0.0 && !canUseNormalTechniqueThroughInfinity(s)) return -3.0;
         if (s.trivialTarget) return -1.25;
         if (s.openShotQuality <= 0.0 && !s.selfDomain) return -1.35;
         // OPEN consistently dodged by Itadori in no-damage loops — stop trying it
@@ -2175,6 +2178,19 @@ class OpSukunaEngineCore {
         if ((s.mahoragaWheel || s.mahoragaExist) && s.gojoTarget && s.tick - s.memory.lastWorldCutTick > 80.0) return "MAHORAGA_ADAPTATION";
         if (s.antiInfinityBypass) return "ANTI_INFINITY_PROCEDURE";
         return "NONE";
+    }
+
+    static boolean canUseNormalTechniqueThroughInfinity(OpSukunaSnapshot s) {
+        if (s.infinitySignal <= 0.0) return true;
+        return s.selfDomain
+                || s.targetNeutralization
+                || s.antiInfinityBypass;
+    }
+
+    static boolean canUseMeleeThroughInfinity(OpSukunaSnapshot s) {
+        if (s.infinitySignal <= 0.0) return true;
+        return s.sukuna.hasEffect(JujutsucraftModMobEffects.DOMAIN_AMPLIFICATION.get())
+                || canUseNormalTechniqueThroughInfinity(s);
     }
 
     static class AdaptationView {

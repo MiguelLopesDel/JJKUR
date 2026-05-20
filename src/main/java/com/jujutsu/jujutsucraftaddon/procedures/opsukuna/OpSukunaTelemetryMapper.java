@@ -56,6 +56,7 @@ static void recordDecision(LevelAccessor world, LivingEntity sukuna, LivingEntit
     decision.gojo = s.gojoTarget;
     decision.targetDomain = s.targetDomain;
     decision.targetCastingDomain = s.targetCastingDomain;
+    decision.targetDomainSignalReason = s.targetDomainSignalReason;
     decision.targetCooldown = s.targetCooldown;
     decision.targetUnstable = s.targetUnstable;
     decision.targetDodge = s.targetDodge;
@@ -211,6 +212,7 @@ static void recordExecutionState(LevelAccessor world, LivingEntity sukuna, Livin
     decision.gojo = s.gojoTarget;
     decision.targetDomain = s.targetDomain;
     decision.targetCastingDomain = s.targetCastingDomain;
+    decision.targetDomainSignalReason = s.targetDomainSignalReason;
     decision.targetCooldown = s.targetCooldown;
     decision.targetUnstable = s.targetUnstable;
     decision.targetDodge = s.targetDodge;
