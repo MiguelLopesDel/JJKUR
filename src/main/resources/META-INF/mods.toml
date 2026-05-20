@@ -4,7 +4,7 @@ license="All rights reserved"
 
 [[mods]]
 modId="jujutsucraftaddon"
-version="10.2.0"
+version="${mod_version}"
 displayName="JJKUR"
 displayURL="https://www.curseforge.com/members/satuxhi/projects"
 logoFile="logo.png"
