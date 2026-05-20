@@ -38,6 +38,7 @@ import java.util.UUID;
 
 @Mod.EventBusSubscriber
 public class SpawnedProcedure {
+    private static final String BENCHMARK_TAG = "jjku_op_sukuna_benchmark";
 
     @SubscribeEvent
     public static void onEntitySpawned(EntityJoinLevelEvent event) {
@@ -172,6 +173,10 @@ public class SpawnedProcedure {
     }
 
     private static void handleEntitySpawnLogic(Event event, LevelAccessor world, Entity entity, MobSpawnType spawnType) {
+        if (isBenchmarkEntity(entity)) {
+            handleBuffModification(world, entity);
+            return;
+        }
         if (spawnType == MobSpawnType.COMMAND) {
             handleBuffModification(world, entity);
             return;
@@ -230,8 +235,19 @@ public class SpawnedProcedure {
     }
 
     private static boolean shouldCancelSpawn(Entity entity) {
+        if (isBenchmarkEntity(entity)) {
+            return false;
+        }
         CompoundTag nbt = entity.getPersistentData();
         return nbt.getString("OWNER_UUID").isEmpty() && nbt.getDouble("friend_num") == 0 && nbt.getDouble("Spirit") == 0;
+    }
+
+    private static boolean isBenchmarkEntity(Entity entity) {
+        if (entity == null) {
+            return false;
+        }
+        CompoundTag nbt = entity.getPersistentData();
+        return entity.getTags().contains(BENCHMARK_TAG) || !nbt.getString("JJKU_BENCHMARK_ID").isEmpty();
     }
 
     private static void cancelEvent(Event event) {

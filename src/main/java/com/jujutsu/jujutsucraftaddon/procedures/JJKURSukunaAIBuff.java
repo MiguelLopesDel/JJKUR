@@ -5,6 +5,7 @@ import com.jujutsu.jujutsucraftaddon.entity.ItadoriShinjukuEntity;
 import com.jujutsu.jujutsucraftaddon.entity.SukunaMangaEntity;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModMobEffects;
+import com.jujutsu.jujutsucraftaddon.util.OpSukunaBrainTelemetry;
 import com.jujutsu.jujutsucraftaddon.util.TechniqueIDs;
 import net.mcreator.jujutsucraft.entity.*;
 import net.mcreator.jujutsucraft.init.JujutsucraftModItems;
@@ -44,10 +45,17 @@ public class JJKURSukunaAIBuff {
 
         boolean opSukuna = world instanceof ServerLevel level && level.getGameRules().getBoolean(JujutsucraftaddonModGameRules.JJKU_OP_SUKUNA);
         persistentData.putBoolean("JJKUR_OP_AI_CONTROLLED", opSukuna);
+        if (opSukuna && world instanceof ServerLevel level) {
+            persistentData.putLong("JJKUR_OP_AI_LAST_HOOK_GAME_TIME", level.getGameTime());
+            persistentData.putInt("JJKUR_OP_AI_LAST_HOOK_TICK", livingEntity.tickCount);
+        }
 
         handleWaterWalking(world, livingEntity);
+        double savedSkill = opSukuna ? persistentData.getDouble("skill") : -1.0;
         AIActiveProcedure.execute(world, x, y, z, livingEntity);
-
+        if (opSukuna && savedSkill == 0.0 && persistentData.getDouble("skill") != 0.0) {
+            persistentData.putDouble("skill", 0.0);
+        }
         boolean isFushiguroBody = livingEntity instanceof SukunaFushiguroEntity ||
                 livingEntity instanceof SukunaMangaEntity ||
                 livingEntity instanceof com.jujutsu.jujutsucraftaddon.entity.SukunaFushiguroEntity;
@@ -61,8 +69,15 @@ public class JJKURSukunaAIBuff {
         handleBindingVow(livingEntity, isFushiguroBody, isGojoTarget, opSukuna);
         handleMeteorLogic(world, livingEntity, target, persistentData);
         handleHeianTransformation(world, x, y, z, livingEntity, target, isFushiguroBody, persistentData, headItem, opSukuna);
+        if (opSukuna) {
+            OpSukunaBrainTelemetry.recordAiGate(world, livingEntity, target, "pre_try_execute", "entry");
+        }
         if (opSukuna && OpSukunaBrain.tryExecute(world, x, y, z, livingEntity, target, persistentData)) {
+            OpSukunaBrainTelemetry.recordAiGate(world, livingEntity, target, "post_try_execute", "engine_handled");
             return;
+        }
+        if (opSukuna) {
+            OpSukunaBrainTelemetry.recordAiGate(world, livingEntity, target, "post_try_execute", "fallback_base_ai");
         }
         handleAILogic(world, x, y, z, livingEntity, target, isFushiguroBody, persistentData, headItem, isGojoTarget);
     }

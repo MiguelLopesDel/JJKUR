@@ -91,6 +91,7 @@
     "SetTagCursedSpiritProcedureMixin",
     "SetTagSocererMixin",
     "SimpleDomainKeyMixin",
+    "SkillSetDebugMixin",
     "SimpleDomainLogicMixin",
     "SimpleDomainVowMixin",
     "SixEyesOnEffectActiveTickProcedureMixin",
@@ -116,7 +117,8 @@
     "WhenPlayerJointheWorldProcedureMixin",
     "WhenPlayerRespawnMixin",
     "WhenRespawnMixin",
-    "WhenRightClickToEntityMixin"
+    "WhenRightClickToEntityMixin",
+    "mods.LogicBetrayalPProcedureMixin"
   ],
   "client": [
     "JujutsucraftModAnimationMessageMixin",

@@ -68,6 +68,11 @@ import java.util.Map;
 
 class OpSukunaEngineCore {
     static final String SAVE_KEY = "JJKUR_OP_AI_RAM";
+    static final double OPENING_ENGAGE_WINDOW_TICKS = 120.0;
+    private static final int SKILL_STALL_MAX_TICKS = 48;
+    private static final double SKILL_STALL_MIN_DAMAGE_RATIO = 0.015;
+    private static final double SKILL_STALL_MAX_DAMAGE_TAKEN_RATIO = 0.05;
+    private static final int SKILL_STALL_MAX_RESETS_PER_FIGHT = 3;
     static final double FAST_DISMANTLE = 105.0;
     static final double CLEAVE = 106.0;
     static final double OPEN = 107.0;
@@ -90,10 +95,35 @@ class OpSukunaEngineCore {
         }
 
         OpSukunaBrainMemory memory = memory(sukuna);
+        double preTargetSkill = nbt.getDouble("skill");
+        if (isSuspiciousSkillId(preTargetSkill)) {
+            clearActiveSkill(nbt, memory);
+            OpSukunaBrainTelemetry.recordAiGate(world, sukuna, target, "try_execute_gate", "unknown_skill_precleared_" + (long) preTargetSkill);
+        }
         target = OpSukunaTargetIntel.chooseFocusTarget(world, sukuna, target, memory);
-        if (target == null || !target.isAlive() || nbt.getDouble("cnt_target") <= 6.0) {
+        if (target == null || !target.isAlive()) {
+            OpSukunaBrainTelemetry.recordAiGate(world, sukuna, target, "try_execute_gate", "invalid_target");
             memory.lastHealth = sukuna.getHealth();
             return false;
+        }
+        if (nbt.getDouble("cnt_target") <= 6.0) {
+            if (OpSukunaBrainTelemetry.hasBenchmarkContext(sukuna) && target == ((sukuna instanceof Mob mob) ? mob.getTarget() : null)) {
+                nbt.putDouble("cnt_target", 7.0);
+                OpSukunaBrainTelemetry.recordAiGate(world, sukuna, target, "try_execute_gate", "cnt_target_bootstrap");
+            } else {
+                OpSukunaBrainTelemetry.recordAiGate(world, sukuna, target, "try_execute_gate", "cnt_target_low");
+                memory.lastHealth = sukuna.getHealth();
+                return false;
+            }
+        }
+        if (nbt.getDouble("cnt_target") <= 6.0) {
+            memory.lastHealth = sukuna.getHealth();
+            return false;
+        }
+
+        if (memory.lastTargetSwitchTick < -500.0) {
+            memory.lastTargetSwitchTick = sukuna.tickCount;
+            memory.lastPrimaryTarget = targetKey(target);
         }
 
         OpSukunaSnapshot s = OpSukunaSnapshot.capture(world, x, y, z, sukuna, target, nbt, memory);
@@ -104,7 +134,41 @@ class OpSukunaEngineCore {
         tryEmergencyReaction(s);
 
         if (nbt.getDouble("skill") != 0.0) {
-            return true;
+            double activeSkill = nbt.getDouble("skill");
+            if (isSuspiciousSkillId(activeSkill)) {
+                clearActiveSkill(nbt, memory);
+                OpSukunaBrainTelemetry.recordAiGate(world, sukuna, target, "try_execute_gate", "unknown_skill_cleared_" + (long) activeSkill);
+            } else {
+                if (memory.skillActiveSinceTick < 0.0) {
+                    memory.skillActiveSinceTick = s.tick;
+                    memory.skillActiveStartTargetHealth = s.targetHealth;
+                    memory.skillActiveStartSukunaHealth = s.selfHealth;
+                }
+                double stallTicks = s.tick - memory.skillActiveSinceTick;
+                double hpDropped = memory.skillActiveStartTargetHealth - s.targetHealth;
+                double selfHpDropped = memory.skillActiveStartSukunaHealth - s.selfHealth;
+                double targetHpThreshold = target.getMaxHealth() * SKILL_STALL_MIN_DAMAGE_RATIO;
+                double selfDamageThreshold = sukuna.getMaxHealth() * SKILL_STALL_MAX_DAMAGE_TAKEN_RATIO;
+                double stallBudget = activeSkill == OPEN && s.itadoriModulo && !s.selfDomain ? 24.0 : SKILL_STALL_MAX_TICKS;
+                boolean skillTrulyIdle = hpDropped < targetHpThreshold && selfHpDropped <= selfDamageThreshold;
+                boolean withinResetBudget = memory.skillStallResets < SKILL_STALL_MAX_RESETS_PER_FIGHT;
+                if (stallTicks > stallBudget && skillTrulyIdle && withinResetBudget) {
+                    nbt.putDouble("skill", 0.0);
+                    memory.skillActiveSinceTick = -1.0;
+                    memory.skillActiveStartTargetHealth = 0.0;
+                    memory.skillActiveStartSukunaHealth = 0.0;
+                    memory.skillStallResets = Math.min(SKILL_STALL_MAX_RESETS_PER_FIGHT, memory.skillStallResets + 1);
+                    ResetCounterProcedure.execute(sukuna);
+                    OpSukunaBrainTelemetry.recordAiGate(world, sukuna, target, "try_execute_gate", "skill_stall_reset");
+                } else {
+                    OpSukunaTelemetryMapper.recordExecutionState(world, sukuna, target, s, "busy_skill");
+                    OpSukunaBrainTelemetry.recordAiGate(world, sukuna, target, "try_execute_gate", "busy_skill");
+                    return true;
+                }
+            }
+        } else {
+            memory.skillActiveSinceTick = -1.0;
+            memory.skillActiveStartSukunaHealth = 0.0;
         }
 
         ResetCounterProcedure.execute(sukuna);
@@ -223,9 +287,35 @@ class OpSukunaEngineCore {
         memory.lastTargetSwitchTick = sukuna.tickCount;
     }
 
+    // IDs >= 4000 or == -1000 are never set by OpSukuna — they come from base AI and must be cleared immediately.
+    static boolean isSuspiciousSkillId(double skill) {
+        return skill >= 4000.0 || skill == -1000.0;
+    }
+
+    static void clearActiveSkill(CompoundTag nbt, OpSukunaBrainMemory memory) {
+        nbt.putDouble("skill", 0.0);
+        nbt.putBoolean("attack", false);
+        memory.skillActiveSinceTick = -1.0;
+        memory.skillActiveStartTargetHealth = 0.0;
+        memory.skillActiveStartSukunaHealth = 0.0;
+    }
+
+    private static final java.util.Set<String> PROJECTILE_ENTITY_SUFFIXES = java.util.Set.of(
+            "projectile_slash", "blood_ball", "rock_fragment", "slash", "projectile",
+            "arrow", "crow", "bullet", "needle", "bird", "piercing_blood", "crimson_binding"
+    );
+
     static boolean isValidEnemy(LevelAccessor world, LivingEntity sukuna, LivingEntity candidate) {
+        if (!(candidate instanceof Mob) && !(candidate instanceof Player)) return false;
         if (candidate == sukuna || !candidate.isAlive() || candidate.isSpectator()) {
             return false;
+        }
+        ResourceLocation candidateType = ForgeRegistries.ENTITY_TYPES.getKey(candidate.getType());
+        if (candidateType != null) {
+            String path = candidateType.getPath();
+            for (String suffix : PROJECTILE_ENTITY_SUFFIXES) {
+                if (path.contains(suffix)) return false;
+            }
         }
         if (candidate instanceof Player player && player.getAbilities().instabuild) {
             return false;
@@ -463,140 +553,11 @@ class OpSukunaEngineCore {
     }
 
     static OpSukunaAction chooseBestAction(OpSukunaSnapshot s) {
-        if (shouldFirstInstantDomainEscape(s)) {
-            OpSukunaAction escape = OpSukunaAction.move("ESCAPE_BEFORE_CLOSE", OpSukunaMovement.DOMAIN_ESCAPE, scoreDomainEscape(s) + 2.2);
-            if (escape.canUse(s) && adjustedScore(s, escape) > -0.35) return escape;
-        }
-
-        if (shouldForceCounterDomainNow(s)) {
-            OpSukunaAction domain = OpSukunaAction.domain(scoreDomain(s) + 3.4);
-            if (domain.canUse(s)) return domain;
-        }
-
-        if (dominantDomainReserveCritical(s)) {
-            OpSukunaAction crisis = OpSukunaActionScorer.bestOf(s, criticalDomainReserveActions(s));
-            if (adjustedScore(s, crisis) > -999.0) return crisis;
-        }
-
-        if (hasConcreteDomainSignal(s)
-                && (s.voidExposure >= 0.9 || s.catastrophicDomain || s.domainField.dominantVoidLike || !s.domainDeliberation.escapeFeasible)) {
-            OpSukunaAction antiDomain = OpSukunaActionScorer.bestOf(s, OpSukunaDomainIntel.domainResponseActions(s));
-            if (antiDomain.score > 0.45) return antiDomain;
-        }
-
-        if (s.purpleThreat) {
-            OpSukunaAction purple = bestOf(s, List.of(
-                    OpSukunaAction.move("PURPLE_EVADE", OpSukunaMovement.PURPLE_EVADE, scorePurpleEvade(s)),
-                    OpSukunaAction.worldCut("PURPLE_INTERRUPT", scoreWorldCut(s) + (s.purpleWindup ? 0.8 : 0.15)),
-                    OpSukunaAction.domainAmplification(scoreDomainAmplification(s) + 0.35),
-                    OpSukunaAction.backstep("PURPLE_BACKSTEP", scoreEvasiveBackstep(s) + s.purpleRisk * 1.2)));
-            if (purple.score > 0.55) return purple;
-        }
-
-        if (s.lethalForecast || s.survivalMode) {
-            OpSukunaAction survival = bestOf(s, List.of(
-                    OpSukunaAction.domain(scoreDomain(s) + (s.domainDeathSpiral ? 1.0 : 0.2)),
-                    OpSukunaAction.simpleDomain(scoreSimpleDomain(s) + (s.simpleDomainExpiresSoon || s.domainDeathSpiral ? 0.7 : 0.35)),
-                    OpSukunaAction.domainAmplification(scoreDomainAmplification(s) + (s.voidExposure > 0.55 ? 0.65 : 0.25)),
-                    OpSukunaAction.rct("RCT", scoreRct(s) + 0.55),
-                    OpSukunaAction.backstep("SURVIVAL_RESET", scoreBackstep(s) + 1.1),
-                    OpSukunaAction.guard("PANIC_SURVIVAL", scoreGuard(s) + 0.8),
-                    OpSukunaAction.guardTiming(scoreGuardTiming(s) + 0.85),
-                    OpSukunaAction.calculate("BLACK_FLASH_RECOVERY", scoreBlackFlashRecovery(s)),
-                    OpSukunaAction.burnoutRct(scoreBurnoutRct(s) + 0.5),
-                    OpSukunaAction.worldCut("SURVIVAL_CUT", scoreWorldCut(s) + (s.domainDeathSpiral || s.blackFlashChain ? 0.65 : 0.0)),
-                    OpSukunaAction.mahoraga(scoreMahoraga(s) + 0.7),
-                    OpSukunaAction.heianReset(scoreHeianReset(s))));
-            if (survival.score > 0.65) return survival;
-        }
-
-        if (s.yujiBurstDuel && (s.distance < 12.0 || s.immediateThreat > 0.6 || s.blackFlashChain)) {
-            OpSukunaAction burstDuel = bestOf(s, List.of(
-                    OpSukunaAction.guardTiming(scoreGuardTiming(s) + 0.55),
-                    OpSukunaAction.backstep("YUJI_LATERAL_RESET", scoreEvasiveBackstep(s) + 0.35),
-                    OpSukunaAction.domainAmplification(scoreDomainAmplification(s) + 0.28),
-                    OpSukunaAction.rct("YUJI_RCT_WINDOW", scoreRct(s) + (s.selfHealthRatio < 0.62 ? 0.35 : -0.15)),
-                    OpSukunaAction.skill("YUJI_PUNISH_Cleave", CLEAVE, 100.0, false, scoreCleave(s) + 0.35),
-                    OpSukunaAction.skill("YUJI_PUNISH_Open", OPEN, 250.0, false, scoreOpen(s) + 0.2),
-                    OpSukunaAction.calculate("YUJI_COUNTER_PRESSURE", scoreBasic(s) + 0.28)));
-            if (burstDuel.score > 0.5) return burstDuel;
-        }
-
-        if (hasConcreteDomainSignal(s)) {
-            OpSukunaAction antiDomain = OpSukunaActionScorer.bestOf(s, OpSukunaDomainIntel.domainResponseActions(s));
-            if (antiDomain.score > 0.55) return antiDomain;
-        }
-
-        if (s.infinitySignal > 0.0) {
-            OpSukunaAction antiInfinity = bestOf(s, List.of(
-                    OpSukunaAction.calculate("INFINITY_MELEE_UNLOCK", scoreBasic(s) + (s.canBypassInfinityNow && s.hitboxDistance <= s.selfReach + 2.0 ? 0.95 : -0.4)),
-                    OpSukunaAction.skill("INFINITY_Cleave", CLEAVE, 100.0, false, scoreCleave(s) + (s.canBypassInfinityNow ? 0.75 : -0.35)),
-                    OpSukunaAction.domainAmplification(scoreDomainAmplification(s) + 0.8),
-                    OpSukunaAction.domain(scoreDomain(s) + 0.35),
-                    OpSukunaAction.worldCut("ANTI_INFINITY", scoreWorldCut(s) + 0.55),
-                    OpSukunaAction.mahoraga(scoreMahoraga(s) + 0.25),
-                    OpSukunaAction.move("MaintainRange", OpSukunaMovement.MAINTAIN_RANGE, scoreMaintainRange(s) + (s.pathBlocked ? -0.35 : 0.0))));
-            if (antiInfinity.score > 0.45) return antiInfinity;
-        }
-
-        if (s.targetCooldown || s.targetUnstable || s.targetAttacking) {
-            OpSukunaAction punish = bestOf(s, offensiveActions(s, "PUNISH"));
-            if (punish.score > 0.72) return punish;
-        }
-
-        if (s.selfDomain && s.normalReady) {
-            OpSukunaAction shrine = bestOf(s, shrineOffenseActions(s, "SHRINE"));
-            if (shrine.score > 0.35) return shrine;
-        }
-
-        if (s.killConfirm) {
-            OpSukunaAction finisher = bestOf(s, offensiveActions(s, "KILL_CONFIRM"));
-            if (finisher.score > 0.65) return finisher;
-        }
-
-        if (s.memory.rangeActionStreak >= 3 || s.memory.noImpactActionStreak >= 3) {
-            OpSukunaAction realAction = bestOf(s, List.of(
-                    OpSukunaAction.guardTiming(scoreGuardTiming(s) + 0.25),
-                    OpSukunaAction.domainAmplification(scoreDomainAmplification(s) + 0.2),
-                    OpSukunaAction.calculate("FORCE_CONTACT", scoreBasic(s) + 0.35),
-                    OpSukunaAction.skill("FORCE_Cleave", CLEAVE, 100.0, false, scoreCleave(s) + 0.32),
-                    OpSukunaAction.skill("FORCE_Open", OPEN, 250.0, false, scoreOpen(s) + 0.22),
-                    OpSukunaAction.worldCut("FORCE_WorldCut", scoreWorldCut(s) + 0.18)));
-            if (realAction.score > 0.35) return realAction;
-        }
-
-        if (s.trivialTarget) {
-            return bestOf(s, List.of(
-                    OpSukunaAction.skill("RESOURCE_EFFICIENT", FAST_DISMANTLE, 50.0, false, scoreDismantle(s) + 0.45),
-                    OpSukunaAction.skill("TrivialCleave", CLEAVE, 100.0, false, scoreCleave(s) + 0.25),
-                    OpSukunaAction.calculate("TRIVIAL_CLEANUP", scoreBasic(s) + 0.4)));
-        }
-
-        List<OpSukunaAction> actions = baselineActions(s);
-        return OpSukunaActionScorer.bestOf(s, actions);
+        return OpSukunaDecisionPipeline.chooseBestAction(s);
     }
 
     static List<OpSukunaAction> baselineActions(OpSukunaSnapshot s) {
-        List<OpSukunaAction> actions = new ArrayList<>();
-        actions.add(OpSukunaAction.backstep(scoreBackstep(s)));
-        actions.add(OpSukunaAction.guard(scoreGuard(s)));
-        actions.add(OpSukunaAction.guardTiming(scoreGuardTiming(s)));
-        actions.add(OpSukunaAction.backstep("EvasiveBackstep", scoreEvasiveBackstep(s)));
-        actions.add(OpSukunaAction.rct("RCT", scoreRct(s)));
-        actions.add(OpSukunaAction.burnoutRct(scoreBurnoutRct(s)));
-        actions.add(OpSukunaAction.simpleDomain(scoreSimpleDomain(s)));
-        actions.add(OpSukunaAction.domainAmplification(scoreDomainAmplification(s)));
-        actions.add(OpSukunaAction.calculate("Chase", scoreChase(s)));
-        actions.add(OpSukunaAction.calculate("CalculateAttack", scoreBasic(s)));
-        actions.add(OpSukunaAction.calculate("BLACK_FLASH_RECOVERY", scoreBlackFlashRecovery(s)));
-        OpSukunaMovementIntel.addBaselineMovementActions(s, actions);
-        actions.addAll(offensiveActions(s, ""));
-        actions.add(OpSukunaAction.summon(scoreSummon(s)));
-        actions.add(OpSukunaAction.agito(scoreAgito(s)));
-        actions.add(OpSukunaAction.mahoraga(scoreMahoraga(s)));
-        actions.add(OpSukunaAction.tenShadowsDomain(scoreTenShadowsDomain(s)));
-        actions.add(OpSukunaAction.heianReset(scoreHeianReset(s)));
-        return actions;
+        return OpSukunaActionCatalog.baselineActions(s);
     }
 
     static List<OpSukunaAction> domainResponseActions(OpSukunaSnapshot s) {
@@ -606,56 +567,23 @@ class OpSukunaEngineCore {
     }
 
     static List<OpSukunaAction> criticalDomainReserveActions(OpSukunaSnapshot s) {
-        List<OpSukunaAction> actions = new ArrayList<>();
-        actions.add(OpSukunaAction.domain(scoreDomain(s) + 2.4));
-        actions.add(OpSukunaAction.worldCut("DOMAIN_RESERVE_WORLD_CUT", scoreWorldCut(s) + 1.6));
-        actions.add(OpSukunaAction.simpleDomain(scoreSimpleDomain(s) + 1.2));
-        actions.add(OpSukunaAction.simpleDomainPlusDa(scoreSimpleDomain(s) + scoreDomainAmplification(s) * 0.45 + 1.0));
-        actions.add(OpSukunaAction.domainAmplification(scoreDomainAmplification(s) + 1.15));
-        actions.add(OpSukunaAction.tenShadowsDomain(scoreTenShadowsDomain(s) + 1.1));
-        actions.add(OpSukunaAction.mahoraga(scoreMahoraga(s) + 0.85));
-        actions.add(OpSukunaAction.rct("PRE_HIT_RCT", scoreRct(s) + (hasPrimaryAntiDomainReserve(s) ? -0.35 : 1.25)));
-        actions.add(OpSukunaAction.burnoutRct(scoreBurnoutRct(s) + 0.35));
-        return actions;
+        return OpSukunaActionCatalog.criticalDomainReserveActions(s);
     }
 
     static List<OpSukunaAction> offensiveActions(OpSukunaSnapshot s, String priorityName) {
-        List<OpSukunaAction> actions = new ArrayList<>();
-        String prefix = priorityName == null || priorityName.isEmpty() ? "" : priorityName + "_";
-        if (s.normalReady) {
-            if (!s.selfDomain) {
-                actions.add(OpSukunaAction.skill(prefix + "Dismantle", FAST_DISMANTLE, 50.0, false, scoreDismantle(s)));
-            }
-            actions.add(OpSukunaAction.skill(prefix + "Cleave", CLEAVE, 100.0, false, scoreCleave(s)));
-            actions.add(OpSukunaAction.skill(prefix + "Open", OPEN, 250.0, false, scoreOpen(s)));
-            if (s.worldCutReady) {
-                actions.add(OpSukunaAction.worldCut(prefix + "WorldCut", scoreWorldCut(s)));
-            }
-            if (s.domainReady && canSelectDomain(s)) {
-                actions.add(OpSukunaAction.domain(scoreDomain(s)));
-            }
-        }
-        if (s.passiveReady && !s.combatCooldown && !s.infinity) {
-            actions.add(OpSukunaAction.skill(prefix + "Passive111", PASSIVE_FAST, 50.0, true, scorePassive111(s)));
-            actions.add(OpSukunaAction.skill(prefix + "Passive112", PASSIVE_CLOSE, 50.0, true, scorePassive112(s)));
-            actions.add(OpSukunaAction.skill(prefix + "Passive113", PASSIVE_ANTI_RANGE, 50.0, true, scorePassive113(s)));
-        }
-        if (actions.isEmpty()) {
-            actions.add(OpSukunaAction.calculate(prefix + "CalculateAttack", scoreBasic(s)));
-        }
-        return actions;
+        return OpSukunaActionCatalog.offensiveActions(s, priorityName);
+    }
+
+    static List<OpSukunaAction> noImpactBreakerActions(OpSukunaSnapshot s, String priorityName) {
+        return OpSukunaActionCatalog.noImpactBreakerActions(s, priorityName);
+    }
+
+    static List<OpSukunaAction> openingEngageActions(OpSukunaSnapshot s) {
+        return OpSukunaActionCatalog.openingEngageActions(s);
     }
 
     static List<OpSukunaAction> shrineOffenseActions(OpSukunaSnapshot s, String priorityName) {
-        List<OpSukunaAction> actions = new ArrayList<>();
-        String prefix = priorityName == null || priorityName.isEmpty() ? "" : priorityName + "_";
-        actions.add(OpSukunaAction.skill(prefix + "Open", OPEN, 250.0, false, scoreOpen(s) + shrineOpenPriority(s)));
-        actions.add(OpSukunaAction.skill(prefix + "Cleave", CLEAVE, 100.0, false, scoreCleave(s) + 0.3));
-        if (s.worldCutReady) {
-            actions.add(OpSukunaAction.worldCut(prefix + "WorldCut", scoreWorldCut(s) + 0.35));
-        }
-        actions.add(OpSukunaAction.calculate(prefix + "Pressure", scoreBasic(s) + 0.25));
-        return actions;
+        return OpSukunaActionCatalog.shrineOffenseActions(s, priorityName);
     }
 
     static OpSukunaAction bestOf(OpSukunaSnapshot s, List<OpSukunaAction> actions) {
@@ -676,81 +604,113 @@ class OpSukunaEngineCore {
     }
 
     static double adjustedScore(OpSukunaSnapshot s, OpSukunaAction action) {
-        if (!action.canUse(s)) {
-            return -999.0;
-        }
-        double adjusted = action.score + s.memory.actionBias(action.name) + s.adaptation.actionBias(action.name);
-        if (action.kind == OpSukunaActionKind.RANGE_CONTROL) {
-            adjusted -= Math.min(0.95, s.memory.rangeActionStreak * 0.18 + s.memory.noImpactActionStreak * 0.12);
-            if (action.movement == OpSukunaMovement.DOMAIN_ESCAPE && shouldAbortDomainEscape(s)) {
-                adjusted -= 3.2;
-            }
-            if ((s.targetDomain || s.targetCastingDomain || s.domainField.singleDominantSureHit || s.voidExposure > 0.45)
-                    && (s.pathBlocked || !s.domainDeliberation.escapeFeasible)) {
-                adjusted -= action.movement == OpSukunaMovement.DOMAIN_ESCAPE && !s.pathBlocked ? 0.25 : 1.15;
-            }
-            if (s.yujiBurstDuel && (action.movement == OpSukunaMovement.CUT_OFF_ESCAPE || action.name.equals("Chase"))) {
-                adjusted -= 0.75;
-            }
-        }
-        if ((action.kind == OpSukunaActionKind.MELEE || action.kind == OpSukunaActionKind.RANGE_CONTROL)
-                && s.domainField.singleDominantSureHit
-                && s.voidExposure >= 0.9
-                && s.simpleDomainCooldown > 0
-                && !s.domainDeliberation.escapeFeasible
-                && !s.selfDomain) {
-            adjusted -= 1.65;
-        }
-        if (dominantDomainReserveCritical(s)) {
-            if (action.kind == OpSukunaActionKind.RANGE_CONTROL) {
-                if (action.movement == OpSukunaMovement.DOMAIN_ESCAPE && s.domainDeliberation.escapeFeasible && !s.pathBlocked) {
-                    adjusted -= 0.45;
-                } else {
-                    adjusted -= 4.0;
-                }
-            }
-            if (action.backstep || "PURPLE_BACKSTEP".equals(action.name) || "PURPLE_EVADE".equals(action.name)
-                    || action.name.contains("MaintainRange")) {
-                adjusted -= 4.0;
-            }
-            if (action.recoveryWindow || action.name.contains("RCT")) {
-                adjusted -= s.selfHealthRatio < 0.28 ? 1.1 : 2.2;
-            }
-            if ("BLACK_FLASH_RECOVERY".equals(action.name) || action.kind == OpSukunaActionKind.MELEE || action.kind == OpSukunaActionKind.NORMAL_SLASH) {
-                adjusted -= 2.8;
-            }
-        }
-        if (muryoSureHitEndgame(s)) {
-            if (action.kind == OpSukunaActionKind.RANGE_CONTROL || action.backstep || action.guard || action.guardTiming
-                    || "PURPLE_BACKSTEP".equals(action.name) || "PURPLE_EVADE".equals(action.name)
-                    || "TANK_AND_RECOVER".equals(action.name)) {
-                adjusted -= 4.5;
-            }
-            if (action.recoveryWindow) {
-                adjusted += hasPrimaryAntiDomainReserve(s) ? -0.9 : 1.45;
-            }
-            if (action.domainAmplification && !hasPrimaryAntiDomainReserve(s)) {
-                adjusted += 0.9;
-            }
-        }
-        if (action.kind == OpSukunaActionKind.DOMAIN && !canSelectDomain(s)) {
-            adjusted -= 2.0;
-        }
-        if (action.kind == OpSukunaActionKind.WORLD_CUT && !s.worldCutReady) {
-            adjusted -= 2.0;
-        }
-        return adjusted;
+        return OpSukunaScorePolicy.adjustedScore(s, action);
     }
 
     static boolean shouldPreferDiverseTie(OpSukunaSnapshot s, OpSukunaAction best, OpSukunaAction candidate) {
-        if (candidate.name.equals(s.memory.lastAction) || candidate.score < 0.35) {
+        return OpSukunaScorePolicy.shouldPreferDiverseTie(s, best, candidate);
+    }
+
+    static boolean shouldForceOffensiveTempo(OpSukunaSnapshot s) {
+        if (s.trivialTarget || s.lethalForecast || s.survivalMode || hasConcreteDomainSignal(s) || s.purpleThreat) {
             return false;
         }
-        if (best.name.equals(s.memory.lastAction) && s.memory.lastActionStreak >= 2) {
-            return true;
+        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) {
+            return false;
         }
-        int bucket = Math.floorMod(candidate.name.hashCode() ^ targetKey(s.target).hashCode() ^ ((int) s.tick / 20), 5);
-        return bucket == 0 && candidate.kind != OpSukunaActionKind.DOMAIN && !candidate.name.equals(best.name);
+        if (!s.normalReady && !(s.passiveReady && !s.combatCooldown)) {
+            return false;
+        }
+        boolean inContact = s.hitboxDistance <= Math.max(2.75, s.selfReach + 0.75);
+        boolean wastingMovement = s.memory.rangeActionStreak >= 2 || s.memory.noImpactActionStreak >= 2;
+        boolean punishWindow = s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended || s.targetHealthRatio < 0.45;
+        boolean cleanPressure = s.hitConfidence > 0.42 && s.immediateThreat < 0.9 && s.selfHealthRatio > 0.32;
+        boolean itadoriTempo = s.itadoriModulo && s.distance <= 18.0 && s.immediateThreat < 0.85 && s.selfHealthRatio > 0.38
+                && (s.normalReady || s.passiveReady && !s.combatCooldown)
+                && (s.memory.noImpactActionStreak >= 1 || s.targetHealthRatio > 0.38);
+        return inContact || wastingMovement && cleanPressure || punishWindow && cleanPressure || itadoriTempo;
+    }
+
+    static boolean shouldForceOpeningEngage(OpSukunaSnapshot s) {
+        if (s.trivialTarget || s.lethalForecast || s.survivalMode || hasConcreteDomainSignal(s) || s.purpleThreat) {
+            return false;
+        }
+        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) {
+            return false;
+        }
+        if (!s.normalReady && !(s.passiveReady && !s.combatCooldown)) {
+            return false;
+        }
+        if (s.selfHealthRatio < 0.33 || s.immediateThreat > 1.05) {
+            return false;
+        }
+        if (s.memory.lastTargetSwitchTick < -500.0) {
+            return false;
+        }
+        boolean openingWindow = s.tick - s.memory.lastTargetSwitchTick <= OPENING_ENGAGE_WINDOW_TICKS;
+        boolean slowOpen = s.memory.noImpactActionStreak >= 1 || s.damageDealt <= s.target.getMaxHealth() * 0.02;
+        return openingWindow && (s.distance > 7.0 || slowOpen);
+    }
+
+    static boolean shouldForcePressureChase(OpSukunaSnapshot s) {
+        if (!s.itadoriModulo || s.trivialTarget || s.lethalForecast || s.survivalMode || hasConcreteDomainSignal(s) || s.purpleThreat) {
+            return false;
+        }
+        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) {
+            return false;
+        }
+        if (s.selfHealthRatio < 0.34 && s.immediateThreat > 0.55) {
+            return false;
+        }
+        if (s.memory.noImpactActionStreak >= 2 && s.damageDealt <= s.target.getMaxHealth() * 0.02 && s.distance <= 24.0) {
+            return false;
+        }
+        if (s.memory.noImpactActionStreak >= 5 && s.distance <= 18.0) {
+            return false;
+        }
+        boolean tooFar = s.distance > 14.0;
+        boolean noImpact = s.memory.noImpactActionStreak >= 2;
+        boolean lostTempo = s.targetHealthRatio > 0.45 && s.damageDealt <= s.target.getMaxHealth() * 0.01 && s.damageTakenBurst < 0.22;
+        return (tooFar || noImpact) && lostTempo;
+    }
+
+    static boolean canConfirmRawMelee(OpSukunaSnapshot s) {
+        return s.hitboxDistance <= rawMeleeConfirmReach(s);
+    }
+
+    static boolean canProbeRawMelee(OpSukunaSnapshot s) {
+        if (!s.itadoriModulo || s.selfHealthRatio < 0.34 || s.immediateThreat > 0.95) {
+            return false;
+        }
+        if (s.memory.noImpactActionStreak < 2 && !s.targetCooldown && !s.targetUnstable && !s.targetWhiffed) {
+            return false;
+        }
+        return s.hitboxDistance <= rawMeleeConfirmReach(s) + 1.25;
+    }
+
+    static double rawMeleeConfirmReach(OpSukunaSnapshot s) {
+        return Math.max(2.75, s.selfReach + (s.itadoriModulo ? 0.65 : 0.45));
+    }
+
+    static boolean isRawMeleeAction(OpSukunaAction action) {
+        return action.kind == OpSukunaActionKind.MELEE && action.skill == 0.0;
+    }
+
+    static boolean shouldBreakNoImpactLoop(OpSukunaSnapshot s) {
+        if (s.trivialTarget || s.lethalForecast || s.survivalMode || hasConcreteDomainSignal(s) || s.purpleThreat) {
+            return false;
+        }
+        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) {
+            return false;
+        }
+        if (s.memory.noImpactActionStreak < 4 && s.memory.rangeActionStreak < 4) {
+            return false;
+        }
+        boolean contact = s.hitboxDistance <= Math.max(2.75, s.selfReach + 0.75);
+        if (!s.normalReady && !s.worldCutReady && !contact) {
+            return false;
+        }
+        return s.itadoriModulo || s.damageDealt <= s.target.getMaxHealth() * 0.02;
     }
 
     static String describeTopActions(OpSukunaSnapshot s, OpSukunaAction selected) {
@@ -790,6 +750,10 @@ class OpSukunaEngineCore {
         if (!s.canUseSimpleDomain || s.selfSimpleDomain || s.selfDomain) return false;
         if (s.domainField.clashSuppressed && !s.antiDomainGapImminent && !s.domainDeathSpiral) return false;
         if (s.domainField.activeEnemyDomains > 1 && !s.domainField.singleDominantSureHit && !s.antiDomainGapImminent && !s.domainDeathSpiral) return false;
+        if (s.brainDamaged && s.gojoTarget && !s.targetDomain && !s.domainField.singleDominantSureHit
+                && !s.antiDomainGapImminent && !s.domainDeathSpiral) {
+            return false;
+        }
         boolean concreteThreat = s.targetDomain || s.targetCastingDomain || s.domainField.singleDominantSureHit;
         if (!concreteThreat) return false;
         if (s.targetCastingDomain && (s.gojoTarget || s.domainAssessment.targetDomainThreat > 0.72 || s.domainField.dominantVoidLike)) {
@@ -961,10 +925,15 @@ class OpSukunaEngineCore {
         double projectile = s.incomingProjectileRisk * 2.8;
         double burst = s.targetSkillStartup && s.predictedDistance < (s.itadoriModulo ? 15.0 : 10.0) ? 1.25 : 0.0;
         double closePunish = s.meleeThreat * close(s.distance, s.itadoriModulo ? 12.0 : 7.0);
-        return recency + projectile + burst + closePunish + s.immediateThreat * 0.85 + s.survivalUrgency * 0.25;
+        double sustainDomain = s.selfDomain && s.domainAssessment.sustainCost < 0.3 ? -1.4 : 0.0;
+        return recency + projectile + burst + closePunish + sustainDomain + s.immediateThreat * 0.85 + s.survivalUrgency * 0.25;
     }
 
     static double scoreRct(OpSukunaSnapshot s) {
+        // Emergency override BEFORE canUseRct guard — CURSED_TECHNIQUE blocks canUseRct
+        // permanently once any skill fires, so near-death must bypass that check
+        if (!s.selfRct && !s.selfAntiHeal && s.rctStrain <= 0.92
+                && s.selfHealthRatio < 0.38 && s.itadoriModulo) return 2.5;
         if (!s.canUseRct || s.selfRct || s.selfAntiHeal) return -1.0;
         if (s.rctStrain > 0.92) return -1.0;
         double recency = s.tick - s.memory.lastRecoveryWindowTick < 24.0 ? -1.1 : 0.0;
@@ -1004,7 +973,8 @@ class OpSukunaEngineCore {
         double danger = s.dangerArea * 1.15 + s.targetSkillDanger * 0.8 + s.meleeThreat * burstRange + s.damageTakenBurst * 2.0;
         double health = (1.0 - s.selfHealthRatio) * s.recentDamageRatio * 6.0;
         double punishLoss = s.targetCooldown || s.targetUnstable ? -0.4 : 0.0;
-        return recency + danger + health + punishLoss + s.survivalUrgency * 0.35;
+        double sustainDomain = s.selfDomain && s.domainAssessment.sustainCost < 0.3 ? -1.4 : 0.0;
+        return recency + danger + health + punishLoss + sustainDomain + s.survivalUrgency * 0.35;
     }
 
     static double scoreBlackFlashRecovery(OpSukunaSnapshot s) {
@@ -1044,6 +1014,7 @@ class OpSukunaEngineCore {
 
     static double scoreMaintainRange(OpSukunaSnapshot s) {
         if (muryoSureHitEndgame(s)) return -2.0;
+        if (shouldForceOpeningEngage(s)) return -0.75;
         if ((s.targetDomain || s.targetCastingDomain || s.domainField.singleDominantSureHit || s.voidExposure > 0.45)
                 && (s.pathBlocked || !s.domainDeliberation.escapeFeasible)) return -0.85;
         if (s.selfInsideSolid) return 0.85 + s.stuckLevel;
@@ -1057,6 +1028,32 @@ class OpSukunaEngineCore {
                 + (s.itadoriModulo && s.distance > 16.0 ? -0.45 : 0.0);
     }
 
+    static double scorePressureChase(OpSukunaSnapshot s) {
+        if (s.lethalForecast || s.survivalMode || hasConcreteDomainSignal(s) || s.purpleThreat) return -1.0;
+        if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) return -0.8;
+        if (s.pathBlocked && s.stuckLevel > 0.65) return -0.35;
+        double desired = s.itadoriModulo ? 5.0 : Math.max(5.0, s.idealDistance - 3.0);
+        double distanceNeed = Mth.clamp((s.distance - desired) / (s.itadoriModulo ? 22.0 : 30.0), 0.0, 1.25);
+        double noImpact = Mth.clamp(s.memory.noImpactActionStreak / 4.0, 0.0, 0.85);
+        // If stuck and already close, the noImpact boost pushes Sukuna to keep chasing (wrong) — zero it out
+        if (s.memory.noImpactActionStreak > 5 && s.distance < 15.0) noImpact = 0.0;
+        double targetWindow = s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended ? 0.35 : 0.0;
+        double tempo = s.itadoriModulo ? 0.35 : 0.0;
+        if (shouldForceOpeningEngage(s)) {
+            tempo += 0.55;
+        }
+        double threatPenalty = s.immediateThreat > 0.9 && s.distance < (s.itadoriModulo ? 10.0 : 7.0) ? 0.55 : 0.0;
+        // If noImpact streak is high but Sukuna is already close, chasing more won't help — try something else
+        double stuckChasePenalty = s.memory.noImpactActionStreak > 6 && s.distance < 15.0 ? -0.5 : 0.0;
+        // After 4+ consecutive range actions without opening engage, stop looping and commit
+        double rangeLoopPenalty = !shouldForceOpeningEngage(s) && s.memory.rangeActionStreak > 4 ? -0.45 : 0.0;
+        // When Itadori is near-death and Sukuna is close, stop chasing and start hitting
+        double killConfirmPenalty = s.itadoriModulo && s.targetHealthRatio < 0.35 && s.distance < 12.0 ? -0.65 : 0.0;
+        double itadoriLoopPenalty = s.itadoriModulo && s.memory.noImpactActionStreak >= 3 && s.distance <= 18.0 ? -1.0 : 0.0;
+        return 0.1 + distanceNeed * 1.15 + noImpact + s.targetFleeBias * 0.35 + targetWindow + tempo
+                + s.hitConfidence * 0.12 - s.dangerArea * 0.25 - threatPenalty + stuckChasePenalty + rangeLoopPenalty + killConfirmPenalty + itadoriLoopPenalty;
+    }
+
     static double scoreCutOffEscape(OpSukunaSnapshot s) {
         if (s.yujiBurstDuel && s.distance < 16.0) return -0.85;
         if (s.memory.rangeActionStreak >= 2 && !s.targetEscaping) return -0.55;
@@ -1068,9 +1065,11 @@ class OpSukunaEngineCore {
         if (muryoSureHitEndgame(s)) return -2.0;
         double range = band(s.distance, s.itadoriModulo ? 6.0 : 5.0, s.itadoriModulo ? 16.0 : 24.0);
         double cooldown = s.normalReady ? -0.18 : 0.18;
+        double tempoPenalty = shouldForceOffensiveTempo(s) ? 0.65 : 0.0;
         return 0.18 + range * 0.42 + s.rangeThreat * 0.25 + s.meleeThreat * 0.22 + s.whiffOpportunity * 0.5 + cooldown
                 + s.adaptation.trapMastery * 0.32 + s.adaptation.rangeKiteNeed * 0.2
-                + (s.itadoriModulo && !s.pathBlocked ? 0.2 : 0.0) + s.stuckLevel * 0.25;
+                + (s.itadoriModulo && !s.pathBlocked ? 0.2 : 0.0) + s.stuckLevel * 0.25 - tempoPenalty
+                - (shouldForceOpeningEngage(s) ? 0.55 : 0.0);
     }
 
     static double scoreBaitWhiff(OpSukunaSnapshot s) {
@@ -1095,38 +1094,56 @@ class OpSukunaEngineCore {
         if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) return -0.55;
         double yujiPunish = s.yujiBurstDuel && (s.whiffOpportunity > 0.0 || !s.lethalForecast) ? 0.42 : 0.0;
         double infinityMelee = s.canBypassInfinityNow && s.infinitySignal > 0.0 && s.hitboxDistance <= s.selfReach + 2.0 ? 1.05 : 0.0;
-        return 0.18 + (s.distance > 45.0 ? 0.35 : 0.0) + s.dangerArea * 0.2 + (s.trivialTarget ? 1.0 : 0.0) + yujiPunish + infinityMelee;
+        double contactTempo = s.hitboxDistance <= s.selfReach + 1.0 ? 0.65 : close(s.distance, 7.0) * 0.35;
+        // Sukuna is close but stuck in a no-damage loop — force a melee attempt
+        double stuckPunchBoost = s.memory.noImpactActionStreak > 4 && s.distance < 8.0 ? 0.55 : 0.0;
+        return 0.18 + (s.distance > 45.0 ? 0.35 : 0.0) + s.dangerArea * 0.2 + (s.trivialTarget ? 1.0 : 0.0)
+                + yujiPunish + infinityMelee + contactTempo + s.opportunity * 0.28 + s.hitConfidence * 0.22
+                + stuckPunchBoost;
     }
 
     static double scoreDismantle(OpSukunaSnapshot s) {
         if (s.selfDomain) return -1.25;
         if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) return -0.75;
+        // After extended no-damage loop vs Itadori, DISMANTLE animation wastes time — suppress it
+        if (s.itadoriModulo && !s.selfDomain && s.memory.noImpactActionStreak >= 10) return -1.0;
         double range = band(s.distance, 5.0, 48.0);
         double killValue = s.targetKillEstimate.finisherValue * 0.32 + s.targetPowerProfile.score * 0.18;
         double yujiPunish = s.yujiBurstDuel && (s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended || s.targetSkillStartup && !s.lethalForecast)
                 ? 0.55 : 0.0;
-        return 0.42 + range * 0.75 + s.opportunity * 0.42 + s.whiffOpportunity * 0.65 + s.hitConfidence * 0.35
+        double rapidTempo = shouldForceOffensiveTempo(s) ? 0.35 : 0.0;
+        // Extra pressure in mid-health window — Itadori is still tanky but vulnerable enough to punish
+        double midHealthPressure = s.itadoriModulo && s.targetHealthRatio > 0.25 && s.targetHealthRatio < 0.65 ? 0.25 : 0.0;
+        return 0.52 + range * 0.78 + s.opportunity * 0.48 + s.whiffOpportunity * 0.65 + s.hitConfidence * 0.42
                 + s.domainAssessment.punishScore * 0.15 + s.killPressure(0.20) + killValue + yujiPunish
+                + rapidTempo + midHealthPressure
                 - s.adaptation.antiEvasionNeed * 0.35 - s.expensiveWastePenalty(0.20);
     }
 
     static double scoreCleave(OpSukunaSnapshot s) {
         if (s.infinitySignal > 0.0 && !s.canBypassInfinityNow) return -0.85;
-        double domainBonus = s.selfDomain ? 0.45 : 0.0;
+        double contactReach = Math.max(1.25, Math.min(s.selfReach + 0.6, s.itadoriModulo ? 3.25 : 2.75));
+        if (!s.selfDomain && s.hitboxDistance > contactReach) {
+            return -0.95 + close(s.hitboxDistance, contactReach + 1.0) * 0.2;
+        }
+        double domainBonus = s.selfDomain ? 1.65 + band(s.distance, 4.0, 48.0) * 0.85 : 0.0;
         double infinityMelee = s.canBypassInfinityNow && s.infinitySignal > 0.0 && s.hitboxDistance <= s.selfReach + 2.0 ? 1.15 : 0.0;
         double killValue = s.targetKillEstimate.finisherValue * 0.38 + (s.targetKillEstimate.difficult ? 0.22 : 0.0);
         double yujiWindow = s.yujiBurstDuel && s.distance <= 10.5 && (s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended || !s.lethalForecast)
                 ? 0.65 : 0.0;
-        double meleeReach = Math.max(s.selfReach + 2.0, s.itadoriModulo ? 9.5 : 7.0);
-        return 0.36 + close(s.distance, meleeReach) * 1.0 + s.meleeThreat * 0.35 + s.opportunity * 0.62 + s.whiffOpportunity * 0.95
+        double reachValue = s.selfDomain ? close(s.distance, 48.0) * 0.75 : close(s.hitboxDistance, contactReach) * 1.15;
+        double midHealthPressure = s.itadoriModulo && s.targetHealthRatio > 0.25 && s.targetHealthRatio < 0.65 ? 0.25 : 0.0;
+        return 0.62 + reachValue + s.meleeThreat * 0.35 + s.opportunity * 0.68 + s.whiffOpportunity * 0.95
                 + s.hitConfidence * 0.45 + s.killPressure(0.28) + domainBonus - s.dodgeCounterRisk * 0.35 - s.adaptation.antiEvasionNeed * 0.5
-                + killValue + yujiWindow + infinityMelee + (s.trivialTarget ? 0.45 : 0.0);
+                + killValue + yujiWindow + infinityMelee + (s.trivialTarget ? 0.45 : 0.0) + midHealthPressure;
     }
 
     static double scoreOpen(OpSukunaSnapshot s) {
         if (s.infinitySignal > 0.0 && !s.selfDomain && !s.canBypassInfinityNow) return -0.45;
         if (s.trivialTarget) return -1.25;
         if (s.openShotQuality <= 0.0 && !s.selfDomain) return -1.35;
+        // OPEN consistently dodged by Itadori in no-damage loops — stop trying it
+        if (s.itadoriModulo && !s.selfDomain && s.memory.noImpactActionStreak >= 5) return -2.0;
         if (s.itadoriModulo && !s.selfDomain && (!s.clearShot || s.distance < 12.0 || s.immediateThreat > 0.75
                 || !(s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.openShotQuality > 0.78))) return -0.75;
         double range = band(s.distance, 8.0, 40.0);
@@ -1156,12 +1173,14 @@ class OpSukunaEngineCore {
         double gojoBonus = s.gojoTarget ? 0.65 : 0.0;
         double antiDomainSpecial = s.targetPerfectAntiDomain ? 0.45 : 0.0;
         double castBonus = s.targetCastingDomain ? 0.55 : 0.0;
-        double burstPunish = s.itadoriModulo && (s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended || s.distance >= 9.0 && s.immediateThreat < 0.85) ? 1.05 : 0.0;
+        double burstPunish = s.itadoriModulo && (s.targetCooldown || s.targetUnstable || s.targetWhiffed || s.targetOverextended
+                || s.distance >= 9.0 && s.immediateThreat < 0.85 || s.yujiBurstDuel) ? 1.05 : 0.0;
+        double commitPunish = s.itadoriModulo && s.targetSkill != 0.0 && burstPunish == 0.0 ? 0.60 : 0.0;
         double crisis = (s.domainDeathSpiral ? 0.75 : 0.0) + (s.blackFlashChain && s.healthLosingRace ? 0.45 : 0.0);
         double killEstimate = s.targetKillEstimate.resourceValue * 0.7 + (s.targetKillEstimate.difficult ? 0.25 : 0.0);
         return 0.30 + range * 0.65 + s.infinitySignal * 1.9 + gojoBonus + antiDomainSpecial + castBonus + s.tankScore * 0.45 + s.targetDomainCounterBias * 0.25
                 + s.domainAssessment.punishScore * 0.35 + s.killPressure(0.55) + s.opportunity * 0.65 + s.whiffOpportunity * 0.8
-                + s.hitConfidence * 0.25 + burstPunish + crisis + s.adaptation.antiEvasionNeed * 0.38 + s.adaptation.rangeKiteNeed * 0.16 - close(s.distance, 3.5) * 0.4
+                + s.hitConfidence * 0.25 + burstPunish + commitPunish + crisis + s.adaptation.antiEvasionNeed * 0.38 + s.adaptation.rangeKiteNeed * 0.16 - close(s.distance, 3.5) * 0.4
                 + killEstimate
                 - s.expensiveWastePenalty(0.65);
     }
@@ -1204,7 +1223,10 @@ class OpSukunaEngineCore {
 
     static double scoreTenShadowsDomain(OpSukunaSnapshot s) {
         if (!s.canUseTenShadowsDomain || !s.normalReady || s.trivialTarget || s.selfDomain || s.brainDamaged) return -2.0;
-        double betterThanShrine = s.isMeguna && (s.mahoragaExist || s.domainAssessment.counterRisk > 0.45 || s.infinitySignal <= 0.0) ? 0.35 : -0.05;
+        if (s.isMeguna && canSelectDomain(s)) {
+            return -2.0;
+        }
+        double betterThanShrine = s.isMeguna ? -0.45 : -0.05;
         return betterThanShrine + s.domainAssessment.castScore + s.healScore * 0.25 + s.tankScore * 0.25
                 + (s.targetDomain || s.targetCastingDomain || s.domainField.singleDominantSureHit ? 0.55 : 0.0) - s.expensiveWastePenalty(0.65);
     }
@@ -1249,11 +1271,28 @@ class OpSukunaEngineCore {
     }
 
     static boolean canSelectOffensiveDomain(OpSukunaSnapshot s) {
-        if (s.domainAssessment.intent == OpSukunaDomainIntent.NONE || s.domainAssessment.castScore < 0.92) {
+        // Override: extended Itadori duel with no progress — domain is the correct answer
+        // even if domainTactics chose NONE intent (no obvious tactical signal for domain)
+        boolean extendedItadoriDuel = s.itadoriModulo && s.domainReady && !s.selfDomain
+                && s.targetStats.seenTicks > 400.0
+                && s.memory.noImpactActionStreak >= 3
+                && s.targetHealthRatio > 0.25;
+        if (!extendedItadoriDuel && s.domainAssessment.intent == OpSukunaDomainIntent.NONE) {
+            return false;
+        }
+        double castThreshold = 0.92;
+        if (s.itadoriModulo && s.targetHealthRatio > 0.4) {
+            castThreshold = 0.78;
+        }
+        if (s.itadoriModulo && s.selfHealthRatio < 0.55 && s.normalReady) {
+            castThreshold = 0.65;
+        }
+        if (s.domainAssessment.castScore < castThreshold) {
             return false;
         }
         double netValue = s.domainAssessment.clearValue - s.domainAssessment.sustainCost - s.domainAssessment.recoveryRisk * 0.55;
-        boolean decisiveValue = netValue > 0.32 || s.domainAssessment.castScore > 1.08;
+        boolean decisiveValue = netValue > 0.32 || s.domainAssessment.castScore > 1.08
+                || (s.itadoriModulo && s.domainAssessment.castScore > castThreshold + 0.05);
         if (!decisiveValue) {
             return false;
         }
@@ -1275,7 +1314,10 @@ class OpSukunaEngineCore {
                 && s.targetThreat >= 1.05
                 && (s.damageTakenBurst > 0.28 || s.targetStats.damageTakenAvg > s.sukuna.getMaxHealth() * 0.035)
                 && s.domainAssessment.castScore > 1.15;
-        return checkmate || antiInfinity || crowdReset || survivalStall || apexDuel;
+        boolean itadoriBurstThreat = s.itadoriModulo
+                && s.targetThreat >= 0.55
+                && (s.damageTakenBurst > 0.22 || s.memory.noImpactActionStreak >= 2 || s.targetStats.seenTicks > 120.0);
+        return checkmate || antiInfinity || crowdReset || survivalStall || apexDuel || itadoriBurstThreat;
     }
 
     static boolean readDomainReady(LevelAccessor world, double x, double y, double z, LivingEntity sukuna) {
@@ -1450,11 +1492,43 @@ class OpSukunaEngineCore {
     }
 
     static boolean shouldKeepRct(OpSukunaSnapshot s) {
-        if (s.selfAntiHeal || s.sukuna.hasEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())) {
+        if (s.selfAntiHeal) {
             return false;
         }
-        return s.selfHealth < s.sukuna.getMaxHealth() - 0.5
-                && s.nbt.getDouble("cnt_reverse_lim") < (s.sukuna.getMaxHealth() >= 800.0F ? 400.0 : 200.0);
+        if (s.selfHealth >= s.sukuna.getMaxHealth() - 0.5) {
+            return false;
+        }
+        if (s.nbt.getDouble("cnt_reverse_lim") >= (s.sukuna.getMaxHealth() >= 800.0F ? 400.0 : 200.0)) {
+            return false;
+        }
+        if (s.sukuna.hasEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())) {
+            return shouldHoldRctThroughTechnique(s);
+        }
+        return true;
+    }
+
+    static boolean shouldHoldRctThroughTechnique(OpSukunaSnapshot s) {
+        if (s.rctStrain > 0.88 || baseFatigueStrain(s.sukuna) > 0.84) {
+            return false;
+        }
+        boolean muryoCrisis = s.gojoTarget && (s.brainDamaged || s.catastrophicDomain || s.domainDeathSpiral || s.voidExposure >= 0.9);
+        boolean burstCrisis = s.lethalForecast || s.healthLosingRace && s.selfHealthRatio < 0.52 || s.damageTakenBurst > 0.45;
+        boolean lowHealth = s.selfHealthRatio < 0.42;
+        return muryoCrisis || burstCrisis || lowHealth;
+    }
+
+    static void tryPreloadRctCombo(LivingEntity sukuna, OpSukunaSnapshot s) {
+        if (!s.canUseRct || s.selfRct || s.selfAntiHeal || s.rctFatigued) {
+            return;
+        }
+        boolean criticalHeal = s.selfHealthRatio < 0.38 || s.lethalForecast || s.damageTakenBurst > 0.52;
+        boolean muryoPreload = s.gojoTarget && (s.targetCastingDomain || s.targetDomain || s.domainField.singleDominantSureHit)
+                && s.selfHealthRatio < 0.62 && !s.selfDomain;
+        if (!criticalHeal && !muryoPreload) {
+            return;
+        }
+        KeyReverseCursedTechniqueOnKeyPressedProcedure.execute(sukuna);
+        s.memory.lastRecoveryWindowTick = s.tick;
     }
 
     static boolean shouldKeepBurnoutRct(OpSukunaSnapshot s) {
@@ -1484,6 +1558,10 @@ class OpSukunaEngineCore {
     }
 
     static void useRct(LivingEntity sukuna, OpSukunaSnapshot s) {
+        // CURSED_TECHNIQUE blocks the RCT key press — strip it first on emergency heals
+        if (!sukuna.level().isClientSide() && sukuna.hasEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get())) {
+            sukuna.removeEffect(JujutsucraftModMobEffects.CURSED_TECHNIQUE.get());
+        }
         KeyReverseCursedTechniqueOnKeyPressedProcedure.execute(sukuna);
         s.memory.lastRecoveryWindowTick = s.tick;
     }

@@ -54,6 +54,14 @@ static void moveTactically(LivingEntity sukuna, OpSukunaSnapshot s, OpSukunaMove
         destination = self.add(exit.scale(s.catastrophicDomain ? 12.0 : 8.0)).add(lateral.scale(2.5));
         speed = 1.9;
         impulse = 0.5;
+    } else if (movement == OpSukunaMovement.PRESSURE_CHASE) {
+        Vec3 predicted = target.add(s.target.getDeltaMovement().scale(s.itadoriModulo ? 10.0 : 7.0));
+        boolean commitContact = s.itadoriModulo && (s.memory.noImpactActionStreak >= 2 || s.memory.rangeActionStreak >= 3 || s.targetCooldown || s.targetUnstable);
+        double closeOffset = commitContact ? 0.55 : (s.itadoriModulo ? 1.8 : 2.4);
+        double lateralOffset = commitContact ? 0.0 : (s.distance > 18.0 ? 1.5 : 0.6);
+        destination = predicted.subtract(toward.scale(closeOffset)).add(lateral.scale(lateralOffset));
+        speed = s.itadoriModulo ? 2.25 : 2.0;
+        impulse = commitContact ? 0.72 : (s.itadoriModulo ? 0.62 : 0.54);
     } else if (movement == OpSukunaMovement.MAINTAIN_RANGE) {
         if (s.itadoriModulo && (s.pathBlocked || s.distance > 16.0)) {
             destination = self.add(lateral.scale(4.5)).add(toward.scale(s.distance > 13.0 ? 3.0 : 0.9));
@@ -142,7 +150,7 @@ static void moveTo(LivingEntity sukuna, Vec3 destination, double speed, double i
     Vec3 impulse = destination.subtract(self);
     if (impulse.lengthSqr() > 1.0E-4) {
         double wallPenalty = OpSukunaEngineCore.hasClearMovementSegment(sukuna.level(), sukuna, destination, 1.0) ? 1.0 : 0.35;
-        Vec3 flat = OpSukunaEngineCore.horizontal(impulse).scale(Mth.clamp(impulseScale * wallPenalty, 0.0, 0.62));
+        Vec3 flat = OpSukunaEngineCore.horizontal(impulse).scale(Mth.clamp(impulseScale * wallPenalty, 0.0, 0.72));
         sukuna.setDeltaMovement(sukuna.getDeltaMovement().add(flat.x, 0.0, flat.z));
     }
 }

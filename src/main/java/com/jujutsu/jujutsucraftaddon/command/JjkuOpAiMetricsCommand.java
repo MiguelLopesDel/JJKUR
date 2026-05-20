@@ -2,8 +2,10 @@ package com.jujutsu.jujutsucraftaddon.command;
 
 import com.jujutsu.jujutsucraftaddon.init.JujutsucraftaddonModGameRules;
 import com.jujutsu.jujutsucraftaddon.util.OpSukunaAiTestRunner;
+import com.jujutsu.jujutsucraftaddon.util.OpSukunaBenchmarkRunner;
 import com.jujutsu.jujutsucraftaddon.util.OpSukunaBrainTelemetry;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
 import net.minecraftforge.event.RegisterCommandsEvent;
@@ -17,7 +19,7 @@ public class JjkuOpAiMetricsCommand {
         event.getDispatcher().register(Commands.literal("jjkuopai")
                 .requires(source -> source.hasPermission(2))
                 .executes(arguments -> {
-                    arguments.getSource().sendSuccess(() -> Component.literal("Use /jjkuopai metrics status|summary|report|export|finish|flush|reset or /jjkuopai aitest run gojo_muryo"), false);
+                    arguments.getSource().sendSuccess(() -> Component.literal("Use /jjkuopai metrics status|summary|report|export|finish|flush|reset, /jjkuopai aitest run gojo_muryo, or /jjkuopai bench run itadori_modulo"), false);
                     return 1;
                 })
                 .then(Commands.literal("metrics")
@@ -73,7 +75,34 @@ public class JjkuOpAiMetricsCommand {
                                                 .then(Commands.argument("forceDomainAtTick", IntegerArgumentType.integer(1, 11980))
                                                         .executes(arguments -> OpSukunaAiTestRunner.runGojoMuryo(arguments.getSource(),
                                                                 IntegerArgumentType.getInteger(arguments, "durationTicks"),
-                                                                IntegerArgumentType.getInteger(arguments, "forceDomainAtTick")))))))));
+                                                                IntegerArgumentType.getInteger(arguments, "forceDomainAtTick"))))))))
+                .then(Commands.literal("bench")
+                        .executes(arguments -> OpSukunaBenchmarkRunner.status(arguments.getSource()))
+                        .then(Commands.literal("status")
+                                .executes(arguments -> OpSukunaBenchmarkRunner.status(arguments.getSource())))
+                        .then(Commands.literal("stop")
+                                .executes(arguments -> OpSukunaBenchmarkRunner.stop(arguments.getSource())))
+                        .then(Commands.literal("export")
+                                .executes(arguments -> OpSukunaBenchmarkRunner.export(arguments.getSource())))
+                        .then(Commands.literal("run")
+                                .then(Commands.literal("itadori_modulo")
+                                        .executes(arguments -> OpSukunaBenchmarkRunner.runDefault(arguments.getSource()))
+                                        .then(Commands.argument("fights", IntegerArgumentType.integer(1, 10000))
+                                                .then(Commands.argument("durationTicks", IntegerArgumentType.integer(200, 12000))
+                                                        .then(Commands.argument("parallelArenas", IntegerArgumentType.integer(1, 12))
+                                                                .executes(arguments -> OpSukunaBenchmarkRunner.run(arguments.getSource(),
+                                                                        "itadori_modulo",
+                                                                        IntegerArgumentType.getInteger(arguments, "fights"),
+                                                                        IntegerArgumentType.getInteger(arguments, "durationTicks"),
+                                                                        IntegerArgumentType.getInteger(arguments, "parallelArenas"),
+                                                                        "standard"))
+                                                                .then(Commands.argument("variantSet", StringArgumentType.word())
+                                                                        .executes(arguments -> OpSukunaBenchmarkRunner.run(arguments.getSource(),
+                                                                                "itadori_modulo",
+                                                                                IntegerArgumentType.getInteger(arguments, "fights"),
+                                                                                IntegerArgumentType.getInteger(arguments, "durationTicks"),
+                                                                                IntegerArgumentType.getInteger(arguments, "parallelArenas"),
+                                                                                StringArgumentType.getString(arguments, "variantSet")))))))))));
     }
 
     private static String status(net.minecraft.world.level.LevelAccessor world) {

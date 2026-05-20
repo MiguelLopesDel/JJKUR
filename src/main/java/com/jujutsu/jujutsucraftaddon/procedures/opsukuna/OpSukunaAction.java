@@ -153,7 +153,11 @@ final class OpSukunaAction {
         if (hwb) return s.canUseSimpleDomain && !s.selfSimpleDomain && !s.selfDomain && OpSukunaEngineCore.shouldSpendSimpleDomain(s);
         if (simpleDomainPlusDa) return s.canUseSimpleDomain && s.canUseDomainAmplification && !s.selfSimpleDomain && !s.selfDomain
                 && !s.sukuna.hasEffect(JujutsucraftModMobEffects.DOMAIN_AMPLIFICATION.get()) && OpSukunaEngineCore.shouldSpendSimpleDomain(s);
-        if (recoveryWindow) return s.canUseRct && !s.selfRct && !s.selfAntiHeal;
+        if (recoveryWindow) {
+            // Emergency: bypass canUseRct when CURSED_TECHNIQUE is the only blocker and Sukuna is near-death
+            if (!s.selfRct && !s.selfAntiHeal && s.selfHealthRatio < 0.38 && s.itadoriModulo) return true;
+            return s.canUseRct && !s.selfRct && !s.selfAntiHeal;
+        }
         if ("BURNOUT_RCT".equals(name)) return s.canUseBurnoutRct && !s.nbt.getBoolean("PRESS_BURNOUT");
         if (domainAmplification) return s.canUseDomainAmplification && !s.sukuna.hasEffect(JujutsucraftModMobEffects.DOMAIN_AMPLIFICATION.get());
         if (domain) return OpSukunaEngineCore.canSelectDomain(s);
@@ -243,6 +247,7 @@ final class OpSukunaAction {
             OpSukunaEngineCore.equipMahoragaWheel(sukuna, s);
             OpSukunaEngineCore.setSkill(sukuna, nbt, skill, cooldownTicks, combatOnly);
         } else if (skill != 0.0) {
+            OpSukunaEngineCore.tryPreloadRctCombo(sukuna, s);
             OpSukunaEngineCore.setSkill(sukuna, nbt, skill, cooldownTicks, combatOnly);
             if (skill == OpSukunaEngineCore.OPEN) {
                 nbt.putBoolean("PRESS_Z", s.selfDomain);

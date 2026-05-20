@@ -14,18 +14,18 @@ final class OpSukunaActionScorer {
                 return antiDomain;
             }
         }
-        return OpSukunaEngine.chooseBestAction(snapshot);
+        return OpSukunaDecisionPipeline.chooseBestAction(snapshot);
     }
 
     static OpSukunaAction bestOf(OpSukunaSnapshot s, List<OpSukunaAction> actions) {
         OpSukunaAction best = actions.get(0);
-        double bestScore = OpSukunaEngine.adjustedScore(s, best);
+        double bestScore = OpSukunaScorePolicy.adjustedScore(s, best);
         for (OpSukunaAction action : actions) {
-            double adjusted = OpSukunaEngine.adjustedScore(s, action);
+            double adjusted = OpSukunaScorePolicy.adjustedScore(s, action);
             if (adjusted > bestScore) {
                 best = action;
                 bestScore = adjusted;
-            } else if (s.isMeguna && adjusted >= bestScore - 0.16 && OpSukunaEngine.shouldPreferDiverseTie(s, best, action)) {
+            } else if (s.isMeguna && adjusted >= bestScore - 0.16 && OpSukunaScorePolicy.shouldPreferDiverseTie(s, best, action)) {
                 best = action;
                 bestScore = adjusted;
             }

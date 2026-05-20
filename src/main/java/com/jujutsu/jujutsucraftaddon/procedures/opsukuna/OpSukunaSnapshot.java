@@ -141,6 +141,7 @@ class OpSukunaSnapshot {
     final boolean selfSimpleDomain;
     final boolean selfAntiHeal;
     final boolean itadoriModulo;
+    final boolean yujiCounterStance;
     final boolean trivialTarget;
     final boolean isFushiguro;
     final boolean isPerfectMode;
@@ -302,6 +303,9 @@ class OpSukunaSnapshot {
         this.canUseMahoraga = canUseTenShadows && nbt.getDouble("TenShadowsTechnique14") >= 0.0;
         this.canUseTenShadowsDomain = canUseTenShadows && (nbt.getDouble("TenShadowsTechnique14") >= 0.0 || mahoragaExist);
         this.itadoriModulo = isItadoriModulo(target);
+        int roundedTargetSkill = (int) Math.round(this.targetSkill);
+        this.yujiCounterStance = this.itadoriModulo
+                && (roundedTargetSkill == 2105 || roundedTargetSkill == 2106 || roundedTargetSkill == 2108 || roundedTargetSkill == 2118);
         this.targetHwb = target.hasEffect(JujutsucraftaddonModMobEffects.HWB.get());
         this.targetSimpleDomain = read.simpleDomain || target.hasEffect(JujutsucraftModMobEffects.SIMPLE_DOMAIN.get()) || target.hasEffect(JujutsucraftaddonModMobEffects.SIMPLE_DOMAIN_MAX.get());
         this.selfRct = sukuna.hasEffect(JujutsucraftModMobEffects.REVERSE_CURSED_TECHNIQUE.get());

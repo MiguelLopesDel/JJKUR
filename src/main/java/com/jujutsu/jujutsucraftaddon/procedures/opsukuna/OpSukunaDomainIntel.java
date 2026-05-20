@@ -43,7 +43,9 @@ final class OpSukunaDomainIntel {
                     OpSukunaEngine.scoreRct(s) + (s.healthLosingRace ? 0.35 : 0.0)
                             + d.bonus(OpSukunaDomainOption.TANK_AND_RECOVER)));
             actions.add(OpSukunaAction.guardTiming(OpSukunaEngine.scoreGuardTiming(s) + 0.35));
-            actions.add(OpSukunaAction.backstep("DOMAIN_BACKSTEP", OpSukunaEngine.scoreEvasiveBackstep(s) + 0.25));
+            // Penalize aborting domain cast — -0.9 when about to cast, -1.4 when already inside domain
+            double domainAbortPenalty = s.selfDomain ? -1.4 : -0.9;
+            actions.add(OpSukunaAction.backstep("DOMAIN_BACKSTEP", OpSukunaEngine.scoreEvasiveBackstep(s) + 0.25 + domainAbortPenalty));
             actions.add(OpSukunaAction.move("MaintainRange", OpSukunaMovement.MAINTAIN_RANGE,
                     OpSukunaEngine.scoreMaintainRange(s) + (s.pathBlocked ? -0.35 : 0.25)));
         }

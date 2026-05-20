@@ -1,5 +1,6 @@
 package com.jujutsu.jujutsucraftaddon.procedures;
 
+import com.jujutsu.jujutsucraftaddon.util.OpSukunaBenchmarkRunner;
 import net.mcreator.jujutsucraft.init.JujutsucraftModMobEffects;
 import net.mcreator.jujutsucraft.network.JujutsucraftModVariables;
 import net.mcreator.jujutsucraft.procedures.BlockDestroyAllDirectionProcedure;
@@ -49,6 +50,9 @@ public class JJKURMalevolentShrineActiveProcedure {
         handleEntityAttacks(world, entity, nbt, range, duration);
 
         if (amplifier > 0) {
+            if (isBenchmarkEntity(nbt) || OpSukunaBenchmarkRunner.isBenchmarkActive()) {
+                return;
+            }
             handleBlockDestruction(world, entity, nbt, range);
 
             updateDustOverlay(entity, nbt, duration);
@@ -125,7 +129,11 @@ public class JJKURMalevolentShrineActiveProcedure {
             double py = yCenter + rng.nextDouble() * range * 0.2;
             double pz = zCenter + Math.cos(angle) * dist;
 
-            if (!world.isEmptyBlock(BlockPos.containing(px, py, pz))) {
+            BlockPos pos = BlockPos.containing(px, py, pz);
+            if (!serverLevel.hasChunkAt(pos)) {
+                continue;
+            }
+            if (!world.isEmptyBlock(pos)) {
                 nbt.putDouble("dust_amount",
                         Math.min(nbt.getDouble("dust_amount") + 1.0, 200.0));
                 serverLevel.sendParticles(ParticleTypes.EXPLOSION,
@@ -147,6 +155,10 @@ public class JJKURMalevolentShrineActiveProcedure {
 
             iterCount++;
         }
+    }
+
+    private static boolean isBenchmarkEntity(CompoundTag nbt) {
+        return nbt.contains("JJKU_BENCHMARK_ID");
     }
 
     private static void updateDustOverlay(Entity entity, CompoundTag nbt, int duration) {

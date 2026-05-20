@@ -17,6 +17,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.LevelAccessor;
+import net.minecraft.world.phys.AABB;
 import net.minecraftforge.event.TickEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingDamageEvent;
@@ -33,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +51,8 @@ public final class OpSukunaBrainTelemetry {
     private static final Path DIR = FMLPaths.GAMEDIR.get().resolve("jjkur-op-ai-metrics");
     private static final Map<String, RuntimeFight> RUNTIME_FIGHTS = new HashMap<>();
     private static final Map<String, String> CURRENT_FIGHT_BY_SUKUNA = new HashMap<>();
+    private static final Map<String, BenchmarkContext> BENCHMARK_CONTEXT_BY_FIGHT = new HashMap<>();
+    private static final Map<String, BenchmarkContext> BENCHMARK_CONTEXT_BY_SUKUNA = new HashMap<>();
     private static final List<PendingDamage> PENDING_DAMAGE = new ArrayList<>();
     private static final Map<String, ResolvedDamage> RECENT_RESOLVED_DAMAGE = new HashMap<>();
     private static BufferedWriter writer;
@@ -76,11 +80,196 @@ public final class OpSukunaBrainTelemetry {
                 || entity instanceof com.jujutsu.jujutsucraftaddon.entity.SukunaMangaEntity;
     }
 
+    public static synchronized Path metricsDir() {
+        return DIR;
+    }
+
+    public static synchronized boolean hasBenchmarkContext(LivingEntity sukuna) {
+        return sukuna != null && BENCHMARK_CONTEXT_BY_SUKUNA.containsKey(sukuna.getStringUUID());
+    }
+
+    public static synchronized void registerBenchmarkFight(String fightId, String benchmarkId, String scenario, String variant, int runIndex, int arenaIndex) {
+        if (fightId == null || fightId.isEmpty()) {
+            return;
+        }
+        BENCHMARK_CONTEXT_BY_FIGHT.put(fightId, new BenchmarkContext(benchmarkId, scenario, variant, runIndex, arenaIndex));
+    }
+
+    public static synchronized void registerBenchmarkFight(String fightId, LivingEntity sukuna, LivingEntity target, String benchmarkId, String scenario,
+                                                           String variant, int runIndex, int arenaIndex) {
+        registerBenchmarkFight(fightId, benchmarkId, scenario, variant, runIndex, arenaIndex);
+        if (sukuna != null) {
+            BenchmarkContext context = new BenchmarkContext(benchmarkId, scenario, variant, runIndex, arenaIndex);
+            BENCHMARK_CONTEXT_BY_SUKUNA.put(sukuna.getStringUUID(), context);
+            CURRENT_FIGHT_BY_SUKUNA.put(sukuna.getStringUUID(), fightId);
+            RuntimeFight fight = RUNTIME_FIGHTS.computeIfAbsent(fightId, RuntimeFight::new);
+            fight.sukunaUuid = sukuna.getStringUUID();
+            if (target != null) {
+                fight.targetUuid = target.getStringUUID();
+                fight.targetType = typeName(target);
+                fight.targetName = target.getName().getString();
+            }
+        }
+    }
+
+    public static synchronized void clearBenchmarkContext(String benchmarkId) {
+        if (benchmarkId == null || benchmarkId.isEmpty()) {
+            return;
+        }
+        BENCHMARK_CONTEXT_BY_FIGHT.entrySet().removeIf(entry -> benchmarkId.equals(entry.getValue().benchmarkId));
+        BENCHMARK_CONTEXT_BY_SUKUNA.entrySet().removeIf(entry -> benchmarkId.equals(entry.getValue().benchmarkId));
+    }
+
+    public static synchronized void recordBenchmarkEvent(LevelAccessor world, String benchmarkId, String scenario, String variant, int runIndex,
+                                                         int arenaIndex, String event, String outcome, String details) {
+        if (!enabled(world)) {
+            return;
+        }
+        StringBuilder json = new StringBuilder(512);
+        json.append('{');
+        field(json, "event", event == null || event.isEmpty() ? "benchmark_event" : event).append(',');
+        number(json, "schema", 1.0).append(',');
+        field(json, "dev_only", "true").append(',');
+        number(json, "game_time", world.dayTime()).append(',');
+        field(json, "benchmark_id", benchmarkId).append(',');
+        field(json, "scenario", scenario).append(',');
+        field(json, "variant", variant).append(',');
+        number(json, "run_index", runIndex).append(',');
+        number(json, "arena_index", arenaIndex).append(',');
+        field(json, "outcome", outcome == null ? "" : outcome).append(',');
+        field(json, "details", details == null ? "" : details);
+        json.append('}');
+        write(json.toString());
+    }
+
+    public static synchronized void recordBenchmarkSample(LevelAccessor world, String benchmarkId, String scenario, String variant, int runIndex,
+                                                          int arenaIndex, int age, LivingEntity sukuna, LivingEntity target, String phase) {
+        if (!enabled(world) || sukuna == null || target == null) {
+            return;
+        }
+        String fightId = sukuna.getStringUUID() + ":" + target.getStringUUID();
+        StringBuilder json = new StringBuilder(1536);
+        json.append('{');
+        field(json, "event", "benchmark_sample").append(',');
+        number(json, "schema", 1.0).append(',');
+        field(json, "dev_only", "true").append(',');
+        number(json, "game_time", world.dayTime()).append(',');
+        number(json, "sukuna_tick", sukuna.tickCount).append(',');
+        field(json, "fight_id", fightId).append(',');
+        field(json, "benchmark_id", benchmarkId).append(',');
+        field(json, "scenario", scenario).append(',');
+        field(json, "variant", variant).append(',');
+        number(json, "run_index", runIndex).append(',');
+        number(json, "arena_index", arenaIndex).append(',');
+        number(json, "age", age).append(',');
+        field(json, "phase", phase == null ? "" : phase).append(',');
+        field(json, "sukuna_uuid", sukuna.getStringUUID()).append(',');
+        field(json, "target_uuid", target.getStringUUID()).append(',');
+        field(json, "sukuna_type", typeName(sukuna)).append(',');
+        field(json, "target_type", typeName(target)).append(',');
+        number(json, "sukuna_health", sukuna.getHealth()).append(',');
+        number(json, "sukuna_max_health", sukuna.getMaxHealth()).append(',');
+        number(json, "sukuna_absorption", sukuna.getAbsorptionAmount()).append(',');
+        number(json, "target_health", target.getHealth()).append(',');
+        number(json, "target_max_health", target.getMaxHealth()).append(',');
+        number(json, "target_absorption", target.getAbsorptionAmount()).append(',');
+        number(json, "distance", sukuna.distanceTo(target)).append(',');
+        number(json, "sukuna_x", sukuna.getX()).append(',');
+        number(json, "sukuna_y", sukuna.getY()).append(',');
+        number(json, "sukuna_z", sukuna.getZ()).append(',');
+        number(json, "target_x", target.getX()).append(',');
+        number(json, "target_y", target.getY()).append(',');
+        number(json, "target_z", target.getZ()).append(',');
+        number(json, "sukuna_hurt_time", sukuna.hurtTime).append(',');
+        number(json, "target_hurt_time", target.hurtTime).append(',');
+        number(json, "sukuna_fall_distance", sukuna.fallDistance).append(',');
+        bool(json, "sukuna_on_ground", sukuna.onGround()).append(',');
+        bool(json, "target_on_ground", target.onGround()).append(',');
+        field(json, "sukuna_effects", effectsSnapshot(sukuna)).append(',');
+        field(json, "target_effects", effectsSnapshot(target)).append(',');
+        appendLocalEntityCounts(world, sukuna, json).append(',');
+        number(json, "sukuna_skill", sukuna.getPersistentData().getDouble("skill")).append(',');
+        number(json, "sukuna_cnt_target", sukuna.getPersistentData().getDouble("cnt_target")).append(',');
+        number(json, "sukuna_cooldown", sukuna.getPersistentData().getDouble("COOLDOWN_TICKS")).append(',');
+        number(json, "sukuna_last_hook_game_time", sukuna.getPersistentData().getLong("JJKUR_OP_AI_LAST_HOOK_GAME_TIME")).append(',');
+        number(json, "sukuna_last_hook_tick", sukuna.getPersistentData().getInt("JJKUR_OP_AI_LAST_HOOK_TICK")).append(',');
+        number(json, "sukuna_domain_expansion", sukuna.getPersistentData().getDouble("DomainExpansion")).append(',');
+        number(json, "target_skill", target.getPersistentData().getDouble("skill")).append(',');
+        number(json, "target_cnt_target", target.getPersistentData().getDouble("cnt_target")).append(',');
+        number(json, "target_domain_expansion", target.getPersistentData().getDouble("DomainExpansion")).append(',');
+        field(json, "sukuna_mob_target", mobTargetUuid(sukuna)).append(',');
+        field(json, "target_mob_target", mobTargetUuid(target));
+        json.append('}');
+        write(json.toString());
+    }
+
+    public static synchronized void recordAiGate(LevelAccessor world, LivingEntity sukuna, LivingEntity target, String stage, String reason) {
+        if (!enabled(world) || sukuna == null) {
+            return;
+        }
+        BenchmarkContext context = BENCHMARK_CONTEXT_BY_SUKUNA.get(sukuna.getStringUUID());
+        if (context == null) {
+            return;
+        }
+        LivingEntity effectiveTarget = target != null ? target : (sukuna instanceof net.minecraft.world.entity.Mob mob ? mob.getTarget() : null);
+        String targetUuid = effectiveTarget == null ? "" : effectiveTarget.getStringUUID();
+        String targetType = effectiveTarget == null ? "" : typeName(effectiveTarget);
+        StringBuilder json = new StringBuilder(640);
+        json.append('{');
+        field(json, "event", "ai_gate").append(',');
+        number(json, "schema", 1.0).append(',');
+        field(json, "dev_only", "true").append(',');
+        number(json, "game_time", world.dayTime()).append(',');
+        number(json, "sukuna_tick", sukuna.tickCount).append(',');
+        field(json, "benchmark_id", context.benchmarkId).append(',');
+        field(json, "scenario", context.scenario).append(',');
+        field(json, "variant", context.variant).append(',');
+        number(json, "run_index", context.runIndex).append(',');
+        number(json, "arena_index", context.arenaIndex).append(',');
+        field(json, "stage", stage == null ? "" : stage).append(',');
+        field(json, "reason", reason == null ? "" : reason).append(',');
+        field(json, "sukuna_uuid", sukuna.getStringUUID()).append(',');
+        field(json, "target_uuid", targetUuid).append(',');
+        field(json, "target_type", targetType).append(',');
+        number(json, "cnt_target", sukuna.getPersistentData().getDouble("cnt_target")).append(',');
+        number(json, "skill", sukuna.getPersistentData().getDouble("skill")).append(',');
+        bool(json, "op_ai_controlled", sukuna.getPersistentData().getBoolean("JJKUR_OP_AI_CONTROLLED")).append(',');
+        field(json, "mob_target_uuid", mobTargetUuid(sukuna));
+        json.append('}');
+        write(json.toString());
+    }
+
+    private static StringBuilder appendLocalEntityCounts(LevelAccessor world, LivingEntity sukuna, StringBuilder json) {
+        int living = 0;
+        int projectiles = 0;
+        int benchmarkTagged = 0;
+        if (world instanceof net.minecraft.world.level.Level level) {
+            AABB box = sukuna.getBoundingBox().inflate(36.0);
+            for (Entity entity : level.getEntities((Entity) null, box)) {
+                if (entity instanceof LivingEntity) {
+                    living++;
+                }
+                if (entity instanceof Projectile) {
+                    projectiles++;
+                }
+                if (entity.getTags().contains("jjku_op_sukuna_benchmark")) {
+                    benchmarkTagged++;
+                }
+            }
+        }
+        number(json, "nearby_living_entities", living).append(',');
+        number(json, "nearby_projectiles", projectiles).append(',');
+        return number(json, "nearby_benchmark_entities", benchmarkTagged);
+    }
+
     @SubscribeEvent(receiveCanceled = true)
     public static synchronized void onLivingAttack(LivingAttackEvent event) {
         LivingEntity target = event.getEntity();
         LivingEntity sukuna = opSukunaFromSource(event.getSource());
         if (sukuna == null || target == sukuna || !enabled(target.level())) {
+            return;
+        }
+        if (!shouldRecordDetailedOutgoingDamage(sukuna, target)) {
             return;
         }
         String fightId = sukuna.getStringUUID() + ":" + target.getStringUUID();
@@ -107,6 +296,7 @@ public final class OpSukunaBrainTelemetry {
         RuntimeFight fight = RUNTIME_FIGHTS.computeIfAbsent(fightId, RuntimeFight::new);
         fight.sukunaUuid = sukunaId;
         fight.addDamage(damageSummary(sukuna.level(), sukuna, event.getSource(), event.getAmount()));
+        writeSukunaDamageResolved(sukuna.level(), sukuna, fightId, event);
     }
 
     @SubscribeEvent
@@ -163,14 +353,25 @@ public final class OpSukunaBrainTelemetry {
     @SubscribeEvent
     public static void onLivingDeath(LivingDeathEvent event) {
         LivingEntity sukuna = event.getEntity();
-        if (!isOpSukunaSubject(sukuna) || !enabled(sukuna.level())) {
+        if (isOpSukunaSubject(sukuna) && enabled(sukuna.level())) {
+            recordSukunaDeath(sukuna.level(), sukuna, event.getSource());
             return;
         }
-        recordSukunaDeath(sukuna.level(), sukuna, event.getSource());
+        if (!enabled(event.getEntity().level())) {
+            return;
+        }
+        LivingEntity killerSukuna = opSukunaFromSource(event.getSource());
+        if (killerSukuna != null && killerSukuna != event.getEntity() && hasBenchmarkContext(killerSukuna)) {
+            writeTargetDeathResolved(event.getEntity().level(), killerSukuna, event.getEntity(), event.getSource());
+        }
     }
 
     public static void recordDecision(LevelAccessor world, LivingEntity sukuna, LivingEntity target, Decision decision) {
         if (!enabled(world) || sukuna == null || target == null || decision == null) {
+            return;
+        }
+        String fightId = sukuna.getStringUUID() + ":" + target.getStringUUID();
+        if (hasBenchmarkContext(sukuna) && shouldSkipBenchmarkDecision(fightId, sukuna, decision)) {
             return;
         }
         StringBuilder json = new StringBuilder(2048);
@@ -180,7 +381,8 @@ public final class OpSukunaBrainTelemetry {
         field(json, "dev_only", "true").append(',');
         number(json, "game_time", world.dayTime()).append(',');
         number(json, "sukuna_tick", sukuna.tickCount).append(',');
-        field(json, "fight_id", sukuna.getStringUUID() + ":" + target.getStringUUID()).append(',');
+        field(json, "fight_id", fightId).append(',');
+        appendBenchmarkContext(json, fightId, sukuna.getStringUUID());
         field(json, "sukuna_uuid", sukuna.getStringUUID()).append(',');
         field(json, "target_uuid", target.getStringUUID()).append(',');
         field(json, "sukuna_type", typeName(sukuna)).append(',');
@@ -188,6 +390,7 @@ public final class OpSukunaBrainTelemetry {
         field(json, "target_name", target.getName().getString()).append(',');
         field(json, "action", decision.action).append(',');
         field(json, "kind", decision.kind).append(',');
+        field(json, "ai_mode", decision.aiMode).append(',');
         field(json, "top_scores", decision.topScores).append(',');
         number(json, "score", decision.score).append(',');
         number(json, "adjusted_score", decision.adjustedScore).append(',');
@@ -326,7 +529,6 @@ public final class OpSukunaBrainTelemetry {
         number(json, "fuga_hold_ticks", decision.fugaHoldTicks).append(',');
         field(json, "fuga_release_reason", decision.fugaReleaseReason);
         json.append('}');
-        String fightId = sukuna.getStringUUID() + ":" + target.getStringUUID();
         rememberDecision(world, sukuna, target, fightId, decision);
         write(json.toString());
         writeActionResult(world, sukuna, target, fightId, decision);
@@ -338,6 +540,56 @@ public final class OpSukunaBrainTelemetry {
         if (decision.selfHealth <= 0.0 || decision.targetHealth <= 0.0) {
             writeFightOutcome(world, sukuna, target, fightId, decision);
         }
+    }
+
+    private static boolean shouldSkipBenchmarkDecision(String fightId, LivingEntity sukuna, Decision decision) {
+        String profile = benchmarkTelemetryProfile();
+        if ("full".equals(profile)) {
+            return false;
+        }
+        int existing = benchmarkDecisionCount(fightId);
+        if (existing < 16) {
+            return false;
+        }
+        if (isBenchmarkCriticalDecision(decision)) {
+            return false;
+        }
+        int stride = "minimal".equals(profile) ? 6 : 3;
+        return Math.floorMod(sukuna.tickCount, stride) != 0;
+    }
+
+    private static boolean isBenchmarkCriticalDecision(Decision decision) {
+        return !decision.actionStarted
+                || (decision.blockReason != null && !"ready".equals(decision.blockReason) && !decision.blockReason.isEmpty())
+                || (decision.fallbackAction != null && !decision.fallbackAction.isEmpty())
+                || decision.damageDealt > 0.0
+                || decision.damageTaken > 0.0
+                || decision.targetDomain
+                || decision.targetCastingDomain
+                || decision.singleDominantSureHit
+                || decision.domainCastPending
+                || decision.domainCastConfirmed
+                || decision.worldCutReady
+                || decision.selfHealthRatio <= 0.38
+                || decision.noImpactActionStreak >= 3.0
+                || decision.rangeActionStreak >= 3.0;
+    }
+
+    private static String benchmarkTelemetryProfile() {
+        String prop = System.getProperty("jjku.opSukunaBenchTelemetryProfile", "");
+        if (prop != null && !prop.isEmpty()) {
+            return prop.toLowerCase(java.util.Locale.ROOT);
+        }
+        String env = System.getenv("JJKU_OP_SUKUNA_BENCH_TELEMETRY_PROFILE");
+        if (env != null && !env.isEmpty()) {
+            return env.toLowerCase(java.util.Locale.ROOT);
+        }
+        return "balanced";
+    }
+
+    private static synchronized int benchmarkDecisionCount(String fightId) {
+        RuntimeFight fight = RUNTIME_FIGHTS.get(fightId);
+        return fight == null ? 0 : fight.decisions.size();
     }
 
     public static synchronized double recentActualDamageDealt(LivingEntity sukuna, LivingEntity target, long maxAgeTicks) {
@@ -431,6 +683,36 @@ public final class OpSukunaBrainTelemetry {
         write(json.toString());
     }
 
+    private static void writeSukunaDamageResolved(LevelAccessor world, LivingEntity sukuna, String fightId, LivingDamageEvent event) {
+        BenchmarkContext context = BENCHMARK_CONTEXT_BY_SUKUNA.get(sukuna.getStringUUID());
+        StringBuilder json = new StringBuilder(768);
+        json.append('{');
+        field(json, "event", "sukuna_damage_resolved").append(',');
+        number(json, "schema", 3.0).append(',');
+        field(json, "dev_only", "true").append(',');
+        number(json, "game_time", world.dayTime()).append(',');
+        number(json, "sukuna_tick", sukuna.tickCount).append(',');
+        field(json, "fight_id", fightId).append(',');
+        if (context != null) {
+            field(json, "benchmark_id", context.benchmarkId).append(',');
+            field(json, "scenario", context.scenario).append(',');
+            field(json, "variant", context.variant).append(',');
+            number(json, "run_index", context.runIndex).append(',');
+            number(json, "arena_index", context.arenaIndex).append(',');
+        }
+        field(json, "sukuna_uuid", sukuna.getStringUUID()).append(',');
+        field(json, "sukuna_type", typeName(sukuna)).append(',');
+        number(json, "actual_damage", event.getAmount()).append(',');
+        number(json, "sukuna_health_after", healthAndAbsorption(sukuna)).append(',');
+        bool(json, "sukuna_alive", sukuna.isAlive()).append(',');
+        field(json, "damage_source", damageSourceName(event.getSource())).append(',');
+        field(json, "direct_entity", entityName(event.getSource() == null ? null : event.getSource().getDirectEntity())).append(',');
+        field(json, "attacker", entityName(event.getSource() == null ? null : event.getSource().getEntity())).append(',');
+        field(json, "sukuna_effects", effectsSnapshot(sukuna));
+        json.append('}');
+        write(json.toString());
+    }
+
     private static void writeDamageResolved(LevelAccessor world, LivingEntity sukuna, LivingEntity target, String fightId, PendingDamage pending, double actualDamage,
                                             double attemptedAmount, double hurtAmount, double damageAmount, int attemptCount, double preHealth) {
         StringBuilder json = eventBase(world, sukuna, target, fightId, "damage_resolved", 768);
@@ -443,6 +725,18 @@ public final class OpSukunaBrainTelemetry {
         number(json, "target_health_after", target.isAlive() ? healthAndAbsorption(target) : 0.0).append(',');
         bool(json, "target_alive", target.isAlive()).append(',');
         field(json, "damage_source", damageSourceName(pending.source));
+        json.append('}');
+        write(json.toString());
+    }
+
+    private static void writeTargetDeathResolved(LevelAccessor world, LivingEntity sukuna, LivingEntity target, net.minecraft.world.damagesource.DamageSource source) {
+        String fightId = sukuna.getStringUUID() + ":" + target.getStringUUID();
+        StringBuilder json = eventBase(world, sukuna, target, fightId, "target_death_resolved", 768);
+        number(json, "target_health_after", target.isAlive() ? healthAndAbsorption(target) : 0.0).append(',');
+        bool(json, "target_alive", target.isAlive()).append(',');
+        field(json, "damage_source", damageSourceName(source)).append(',');
+        field(json, "direct_entity", entityName(source == null ? null : source.getDirectEntity())).append(',');
+        field(json, "attacker", entityName(source == null ? null : source.getEntity()));
         json.append('}');
         write(json.toString());
     }
@@ -469,6 +763,7 @@ public final class OpSukunaBrainTelemetry {
         number(json, "game_time", world.dayTime()).append(',');
         number(json, "sukuna_tick", sukuna.tickCount).append(',');
         field(json, "fight_id", fightId).append(',');
+        appendBenchmarkContext(json, fightId, sukuna.getStringUUID());
         field(json, "sukuna_uuid", sukuna.getStringUUID()).append(',');
         field(json, "target_uuid", target.getStringUUID()).append(',');
         field(json, "sukuna_type", typeName(sukuna)).append(',');
@@ -558,12 +853,28 @@ public final class OpSukunaBrainTelemetry {
         number(json, "game_time", world.dayTime()).append(',');
         number(json, "sukuna_tick", sukuna.tickCount).append(',');
         field(json, "fight_id", fight.fightId).append(',');
+        appendBenchmarkContext(json, fight.fightId, sukuna.getStringUUID());
         field(json, "sukuna_uuid", sukuna.getStringUUID()).append(',');
         field(json, "target_uuid", fight.targetUuid).append(',');
         field(json, "sukuna_type", typeName(sukuna)).append(',');
         field(json, "target_type", fight.targetType).append(',');
         field(json, "target_name", fight.targetName).append(',');
         return json;
+    }
+
+    private static void appendBenchmarkContext(StringBuilder json, String fightId, String sukunaUuid) {
+        BenchmarkContext context = BENCHMARK_CONTEXT_BY_FIGHT.get(fightId);
+        if (context == null && sukunaUuid != null && !sukunaUuid.isEmpty()) {
+            context = BENCHMARK_CONTEXT_BY_SUKUNA.get(sukunaUuid);
+        }
+        if (context == null) {
+            return;
+        }
+        field(json, "benchmark_id", context.benchmarkId).append(',');
+        field(json, "scenario", context.scenario).append(',');
+        field(json, "variant", context.variant).append(',');
+        number(json, "run_index", context.runIndex).append(',');
+        number(json, "arena_index", context.arenaIndex).append(',');
     }
 
     public static synchronized String summary() {
@@ -587,6 +898,25 @@ public final class OpSukunaBrainTelemetry {
         return DIR;
     }
 
+    public static synchronized Path exportBenchmarkReports(String benchmarkId) {
+        Path exportDir = DIR.resolve("benchmarks").resolve(benchmarkId == null || benchmarkId.isEmpty() ? "unknown" : benchmarkId);
+        exportReports();
+        try {
+            Files.createDirectories(exportDir);
+            copyIfExists(DIR.resolve("summary.json"), exportDir.resolve("summary.json"));
+            copyIfExists(DIR.resolve("fights.json"), exportDir.resolve("fights.json"));
+            copyIfExists(DIR.resolve("regressions.md"), exportDir.resolve("regressions.md"));
+            try (Stream<Path> files = Files.list(DIR)) {
+                for (Path file : files.filter(path -> path.getFileName().toString().endsWith(".jsonl")).toList()) {
+                    copyBenchmarkJsonl(file, exportDir.resolve(file.getFileName().toString()), benchmarkId);
+                }
+            }
+        } catch (IOException e) {
+            JujutsucraftaddonMod.LOGGER.warn("Failed to export OpSukuna benchmark reports", e);
+        }
+        return exportDir;
+    }
+
     public static synchronized void flush() {
         if (writer == null) {
             return;
@@ -603,6 +933,7 @@ public final class OpSukunaBrainTelemetry {
         closeWriter();
         RUNTIME_FIGHTS.clear();
         CURRENT_FIGHT_BY_SUKUNA.clear();
+        BENCHMARK_CONTEXT_BY_FIGHT.clear();
         int deleted = 0;
         if (Files.isDirectory(DIR)) {
             try (Stream<Path> files = Files.list(DIR)) {
@@ -654,6 +985,40 @@ public final class OpSukunaBrainTelemetry {
         writerDate = null;
     }
 
+    private static void copyIfExists(Path source, Path target) throws IOException {
+        if (Files.exists(source)) {
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+        }
+    }
+
+    private static void copyBenchmarkJsonl(Path source, Path target, String benchmarkId) throws IOException {
+        if (!Files.exists(source)) {
+            return;
+        }
+        String marker = "\"benchmark_id\":\"" + escape(benchmarkId) + "\"";
+        try (Stream<String> lines = Files.lines(source, StandardCharsets.UTF_8);
+             BufferedWriter out = Files.newBufferedWriter(target, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
+                     StandardOpenOption.TRUNCATE_EXISTING)) {
+            Iterator<String> iterator = lines.iterator();
+            while (iterator.hasNext()) {
+                String line = iterator.next();
+                if (line.contains(marker)) {
+                    out.write(line);
+                    out.newLine();
+                }
+            }
+        }
+    }
+
+    private static boolean shouldRecordDetailedOutgoingDamage(LivingEntity sukuna, LivingEntity target) {
+        BenchmarkContext context = BENCHMARK_CONTEXT_BY_SUKUNA.get(sukuna.getStringUUID());
+        if (context == null) {
+            return true;
+        }
+        String fightId = CURRENT_FIGHT_BY_SUKUNA.get(sukuna.getStringUUID());
+        return fightId != null && fightId.equals(target.getPersistentData().getString("JJKU_BENCHMARK_FIGHT_ID"));
+    }
+
     private static Summary readSummary() {
         flush();
         Summary summary = new Summary();
@@ -692,6 +1057,13 @@ public final class OpSukunaBrainTelemetry {
     private static String typeName(LivingEntity entity) {
         ResourceLocation id = ForgeRegistries.ENTITY_TYPES.getKey(entity.getType());
         return id == null ? entity.getClass().getName() : id.toString();
+    }
+
+    private static String mobTargetUuid(LivingEntity entity) {
+        if (entity instanceof net.minecraft.world.entity.Mob mob && mob.getTarget() != null) {
+            return mob.getTarget().getStringUUID();
+        }
+        return "";
     }
 
     private static StringBuilder field(StringBuilder json, String name, String value) {
@@ -1034,6 +1406,7 @@ public final class OpSukunaBrainTelemetry {
     public static final class Decision {
         public String action = "";
         public String kind = "";
+        public String aiMode = "";
         public String topScores = "";
         public double score;
         public double adjustedScore;
@@ -1782,6 +2155,22 @@ public final class OpSukunaBrainTelemetry {
                     .limit(5)
                     .map(entry -> entry.getKey() + ":" + entry.getValue())
                     .collect(java.util.stream.Collectors.joining("|"))) + "\"}";
+        }
+    }
+
+    private static final class BenchmarkContext {
+        final String benchmarkId;
+        final String scenario;
+        final String variant;
+        final int runIndex;
+        final int arenaIndex;
+
+        BenchmarkContext(String benchmarkId, String scenario, String variant, int runIndex, int arenaIndex) {
+            this.benchmarkId = benchmarkId == null ? "" : benchmarkId;
+            this.scenario = scenario == null ? "" : scenario;
+            this.variant = variant == null ? "" : variant;
+            this.runIndex = runIndex;
+            this.arenaIndex = arenaIndex;
         }
     }
 }

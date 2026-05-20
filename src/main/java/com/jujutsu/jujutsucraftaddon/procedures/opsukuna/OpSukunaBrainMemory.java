@@ -66,6 +66,10 @@ public class OpSukunaBrainMemory {
     String lastActionTarget = "";
     String lastPrimaryTarget = "";
     int lastActionStreak;
+    double skillActiveSinceTick = -1.0;
+    double skillActiveStartTargetHealth = 0.0;
+    double skillActiveStartSukunaHealth = 0.0;
+    int skillStallResets;
 
     void requestSukunaDomainCast(double tick, double skill) {
         pendingSukunaDomainCastTick = tick;
@@ -222,10 +226,17 @@ public class OpSukunaBrainMemory {
 
     private void observeActionValue(OpSukunaSnapshot s) {
         if ("None".equals(lastAction) || !lastActionTarget.equals(OpSukunaEngineCore.targetKey(s.target))) {
+            skillStallResets = 0;
             return;
         }
-        boolean lowImpact = s.damageDealt <= s.target.getMaxHealth() * 0.01 && s.damageTakenBurst > 0.18;
-        noImpactActionStreak = lowImpact ? Math.min(20, noImpactActionStreak + 1) : Math.max(0, noImpactActionStreak - 1);
+        boolean noOffensiveImpact = s.damageDealt <= s.target.getMaxHealth() * 0.01;
+        boolean lowImpact = noOffensiveImpact && (s.damageTakenBurst > 0.18 || skillStallResets > 0);
+        noImpactActionStreak = (lowImpact || (noOffensiveImpact && noImpactActionStreak > 0))
+                ? Math.min(20, noImpactActionStreak + 1)
+                : Math.max(0, noImpactActionStreak - 1);
+        if (!noOffensiveImpact && skillStallResets > 0) {
+            skillStallResets = 0;
+        }
         double reward = s.damageDealt / Math.max(1.0, s.target.getMaxHealth()) * 3.0
                 - s.damageTaken / Math.max(1.0, s.sukuna.getMaxHealth()) * 2.6
                 - s.targetHeal / Math.max(1.0, s.target.getMaxHealth()) * 1.2
@@ -246,6 +257,13 @@ public class OpSukunaBrainMemory {
         }
         if ((s.targetCooldown || s.targetUnstable) && lastAction.startsWith("PUNISH")) {
             reward += 0.12;
+        }
+        if (lastAction.contains("SKILL_4204") && s.damageDealt <= 0.0 && s.damageTaken > s.sukuna.getMaxHealth() * 0.04) {
+            reward -= 0.45;
+        }
+        if (s.yujiCounterStance && (lastAction.contains("SKILL_4204") || lastAction.contains("SKILL_107"))
+                && s.damageDealt <= s.target.getMaxHealth() * 0.005) {
+            reward -= 0.35;
         }
         reward = Mth.clamp(reward, -0.5, 0.5);
         double old = actionValues.getOrDefault(lastAction, 0.0);
@@ -341,6 +359,10 @@ public class OpSukunaBrainMemory {
         tag.putInt("rangeActionStreak", rangeActionStreak);
         tag.putInt("noImpactActionStreak", noImpactActionStreak);
         tag.putBoolean("heianResetUsed", heianResetUsed);
+        tag.putDouble("skillActiveSinceTick", skillActiveSinceTick);
+        tag.putDouble("skillActiveStartTargetHealth", skillActiveStartTargetHealth);
+        tag.putDouble("skillActiveStartSukunaHealth", skillActiveStartSukunaHealth);
+        tag.putInt("skillStallResets", skillStallResets);
         tag.putString("lastAction", lastAction);
         tag.putString("lastActionTarget", lastActionTarget);
         tag.putString("lastPrimaryTarget", lastPrimaryTarget);
@@ -394,6 +416,10 @@ public class OpSukunaBrainMemory {
         memory.rangeActionStreak = tag.getInt("rangeActionStreak");
         memory.noImpactActionStreak = tag.getInt("noImpactActionStreak");
         memory.heianResetUsed = tag.getBoolean("heianResetUsed");
+        memory.skillActiveSinceTick = tag.contains("skillActiveSinceTick") ? tag.getDouble("skillActiveSinceTick") : -1.0;
+        memory.skillActiveStartTargetHealth = tag.contains("skillActiveStartTargetHealth") ? tag.getDouble("skillActiveStartTargetHealth") : 0.0;
+        memory.skillActiveStartSukunaHealth = tag.contains("skillActiveStartSukunaHealth") ? tag.getDouble("skillActiveStartSukunaHealth") : 0.0;
+        memory.skillStallResets = tag.contains("skillStallResets") ? tag.getInt("skillStallResets") : 0;
         memory.lastAction = tag.getString("lastAction");
         memory.lastActionTarget = tag.getString("lastActionTarget");
         memory.lastPrimaryTarget = tag.getString("lastPrimaryTarget");
